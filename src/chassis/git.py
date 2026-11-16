@@ -45,19 +45,27 @@ def ensure_repository(root: Path) -> None:
     run_git(root, "rev-parse", "--verify", "HEAD")
 
 
-def ensure_clean(root: Path, path: Path) -> None:
+def has_record_changes(root: Path, path: Path) -> bool:
+    """Shared dirty-state check; hidden index flags require explicit human repair."""
     relative = path.relative_to(root).as_posix()
-    status = run_git(root, "status", "--porcelain=v1", "--untracked-files=all", "--", relative)
-    hidden = False
-    if not status and path.is_file():
-        # Git status trusts assume-unchanged/skip-worktree; authoring must not.
-        tracked = run_git(root, "ls-files", "--", relative)
-        hidden = not tracked or (run_git(root, "hash-object", f"--path={relative}", "--", relative)
-                                 != run_git(root, "rev-parse", f"HEAD:{relative}"))
-    if status or hidden:
-        hint = "clear any assume-unchanged/skip-worktree flag, then " if hidden else ""
+    tracked = run_git(root, "ls-files", "-v", "--", relative)
+    if any(line[0] == "S" or line[0].islower() for line in tracked.splitlines()):
         raise DirtyRecordError(f"{relative}: uncommitted human edit; "
-                               f"{hint}run chassis commit-human {relative}", path=relative)
+                               "clear the assume-unchanged/skip-worktree flag first, "
+                               f"then run chassis commit-human {relative}", path=relative)
+    status = run_git(root, "status", "--porcelain=v1", "--untracked-files=all", "--", relative)
+    if status:
+        return True
+    return path.is_file() and (not tracked or
+        run_git(root, "hash-object", f"--path={relative}", "--", relative)
+        != run_git(root, "rev-parse", f"HEAD:{relative}"))
+
+
+def ensure_clean(root: Path, path: Path) -> None:
+    if has_record_changes(root, path):
+        relative = path.relative_to(root).as_posix()
+        raise DirtyRecordError(f"{relative}: uncommitted human edit; "
+                               f"run chassis commit-human {relative}", path=relative)
 
 
 def commit_file(root: Path, path: Path, identity: Identity, message: str) -> str:

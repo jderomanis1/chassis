@@ -61,6 +61,25 @@ def read_record(path: Path) -> ParsedRecord:
         raise RecordFileError(f"{path.as_posix()}: {exc}") from exc
 
 
+def read_frontmatter(path: Path) -> dict:
+    """Read only the header for scope checks, without decoding or returning body text."""
+    try:
+        with path.open("rb") as source:
+            if source.readline().rstrip(b"\r\n") != b"---":
+                raise ValueError("expected opening YAML frontmatter fence")
+            lines = []
+            for line in source:
+                if line.rstrip(b"\r\n") == b"---":
+                    fields = yaml.load(b"".join(lines).decode("utf-8"), Loader=UniqueKeyLoader)
+                    if not isinstance(fields, dict):
+                        raise ValueError("frontmatter must be a YAML mapping")
+                    return fields
+                lines.append(line)
+            raise ValueError("missing closing YAML frontmatter fence")
+    except (OSError, ValueError, yaml.YAMLError) as exc:
+        raise RecordFileError(f"{path.as_posix()}: {exc}") from exc
+
+
 def serialize_record(record: Record, body: str) -> bytes:
     """Normalize frontmatter and retain the supplied body byte for byte."""
     if not isinstance(body, str):

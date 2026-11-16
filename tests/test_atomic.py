@@ -28,6 +28,7 @@ def test_write_atomic_syncs_complete_sibling_before_replace(tmp_path, monkeypatc
     monkeypatch.setattr(atomic.os, "fsync", synced)
     monkeypatch.setattr(atomic.os, "replace", replaced)
     atomic.write_atomic(target, b"new bytes")
+    assert events == ["sync", "replace", "sync"]
     assert target.read_bytes() == b"new bytes"
     assert list(tmp_path.iterdir()) == [target]
 

@@ -8,9 +8,9 @@ from pydantic import TypeAdapter
 
 from chassis.atomic import vault_lock
 from chassis.errors import ConflictError, WriteError
-from chassis.git import Identity, commit_file, ensure_clean, ensure_repository, run_git
-from chassis.markdown import ParsedRecord, RecordFileError, parse_record
-from chassis.models import Record, RecordId
+from chassis.git import Identity, commit_file, ensure_clean, ensure_repository, has_record_changes
+from chassis.markdown import ParsedRecord, RecordFileError, parse_record, read_frontmatter
+from chassis.models import Record, RecordId, RecordType
 from chassis.policy import authorize_writer, require_grant
 from chassis.transactions import persist_record, refresh_committed
 from chassis.validation import load_vault, read_vault, validate_records
@@ -45,6 +45,15 @@ class RecordStore:
             ensure_clean(self.root, path)
             raise
 
+    def _check_scopes(self, identifier, changes, policy, agent) -> None:
+        fields = read_frontmatter(self._find_path(identifier))
+        venture, kind = TypeAdapter(tuple[RecordId, RecordType]).validate_python(
+            (fields.get("venture"), fields.get("type")))
+        require_grant(policy, agent, venture, kind)
+        venture, kind = changes.get("venture", venture), changes.get("type", kind)
+        if isinstance(venture, str) and isinstance(kind, str):
+            require_grant(policy, agent, venture, kind)
+
     def update_record(self, identifier: str, changes: Mapping, expected_version: int,
                       agent: str) -> dict:
         policy = authorize_writer(self.root, agent)
@@ -59,16 +68,12 @@ class RecordStore:
             raise WriteError("expected_version must be a positive integer")
         if "body" in changes and not isinstance(changes["body"], str):
             raise WriteError("body must be a string")
-        # Read only the target for scope preflight. Recheck from disk under lock.
-        preliminary, _ = self._read_current(identifier)
-        require_grant(policy, agent, preliminary.record.venture, preliminary.record.type)
-        venture = changes.get("venture", preliminary.record.venture)
-        kind = changes.get("type", preliminary.record.type)
-        if isinstance(venture, str) and isinstance(kind, str):
-            require_grant(policy, agent, venture, kind)
+        # Authorize both scopes from frontmatter before reading any record body.
+        self._check_scopes(identifier, changes, policy, agent)
         identity = Identity.from_env("AGENT")
         with vault_lock(self.root):
             policy = authorize_writer(self.root, agent)
+            self._check_scopes(identifier, changes, policy, agent)
             current, original = self._read_current(identifier)
             path = current.path
             require_grant(policy, agent, current.record.venture, current.record.type)
@@ -141,7 +146,7 @@ class RecordStore:
             item = next((item for item in records.values() if item.path == path), None)
             if item is None:
                 raise WriteError(f"{relative}: record path not found")
-            if not run_git(self.root, "status", "--porcelain=v1", "--", relative.as_posix()):
+            if not has_record_changes(self.root, path):
                 raise WriteError(f"{relative}: no uncommitted human edit to commit")
             commit = commit_file(self.root, path, identity, f"chassis: human edit {item.record.id}")
             refresh_committed(self.root, item, commit)
