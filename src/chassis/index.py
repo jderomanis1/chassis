@@ -2,9 +2,9 @@
 
 import json
 import sqlite3
-from hashlib import sha256
 from collections.abc import Mapping
 from contextlib import closing
+from hashlib import sha256
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -29,14 +29,15 @@ CREATE TABLE records (
     record_json TEXT NOT NULL,
     source_path TEXT NOT NULL UNIQUE,
     mtime_ns INTEGER NOT NULL,
-    content_hash TEXT NOT NULL
+    content_hash TEXT NOT NULL,
+    row_hash TEXT NOT NULL
 );
-PRAGMA user_version = 1;
+PRAGMA user_version = 2;
 """
 FIELDS = ("id", "type", "venture", "status", "parent", "assigned_agent",
           "sensitivity", "title", "next_step")
 FILTER_FIELDS = ("type", "venture", "status", "parent", "assigned_agent", "sensitivity")
-COLUMNS = FIELDS + ("body", "record_json", "source_path", "mtime_ns", "content_hash")
+COLUMNS = FIELDS + ("body", "record_json", "source_path", "mtime_ns", "content_hash", "row_hash")
 INSERT = "INSERT OR REPLACE INTO records VALUES (" + ", ".join("?" for _ in COLUMNS) + ")"
 
 
@@ -46,6 +47,14 @@ class IndexFileError(ValueError):
 
 class _InvalidIndex(Exception):
     """Disposable cache schema or integrity is invalid."""
+
+
+def _row_hash(row: tuple) -> str:
+    try:
+        encoded = json.dumps(row, ensure_ascii=True, separators=(",", ":"), allow_nan=False)
+    except (TypeError, ValueError) as exc:
+        raise _InvalidIndex("invalid cached value type") from exc
+    return sha256(encoded.encode("utf-8")).hexdigest()
 
 
 class RecordIndex:
@@ -73,12 +82,15 @@ class RecordIndex:
                 fingerprint = (after.st_mtime_ns, sha256(raw).hexdigest())
                 old = cached.get(relative)
                 if old is not None and fingerprint == (old["mtime_ns"], old["content_hash"]):
+                    if _row_hash(tuple(old)[:-1]) != old["row_hash"]:
+                        raise _InvalidIndex(f"damaged cached row: {relative}")
                     item = ParsedRecord(path, Record.model_validate_json(old["record_json"]), old["body"])
                     rows[relative] = tuple(old)
                 else:
                     item = parse_record(raw.decode("utf-8"), path)
-                    rows[relative] = tuple(getattr(item.record, field) for field in FIELDS) + (
+                    row = tuple(getattr(item.record, field) for field in FIELDS) + (
                         item.body, item.record.model_dump_json(), relative, *fingerprint)
+                    rows[relative] = row + (_row_hash(row),)
                 return item
             except (OSError, UnicodeError) as exc:
                 raise RecordFileError(f"{path}: {exc}") from exc
@@ -134,7 +146,7 @@ class RecordIndex:
             columns = tuple(row["name"] for row in connection.execute("PRAGMA table_info(records)"))
             version = connection.execute("PRAGMA user_version").fetchone()[0]
             checks = [row[0] for row in connection.execute("PRAGMA quick_check")]
-            if version != 1 or columns != COLUMNS or checks != ["ok"]:
+            if version != 2 or columns != COLUMNS or checks != ["ok"]:
                 raise _InvalidIndex("unexpected cache schema, version, or integrity check")
             self._refresh(connection)
             rows = connection.execute(
