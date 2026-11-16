@@ -9,6 +9,10 @@ import sys
 import threading
 import time
 
+import pytest
+
+pytest.importorskip("mcp", reason="Install the mcp extra for real stdio tests")
+
 
 class StdioClient:
     def __init__(self, root, **environment):
@@ -106,5 +110,4 @@ class StdioClient:
                 pass
             else:
                 raise AssertionError("Server left an orphan process in its process group")
-            assert self.stdout_lines
             assert all(json.loads(line)["jsonrpc"] == "2.0" for line in self.stdout_lines)

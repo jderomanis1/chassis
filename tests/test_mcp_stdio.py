@@ -1,5 +1,9 @@
 import asyncio
 
+import pytest
+
+pytest.importorskip("mcp", reason="Install the mcp extra for SDK interoperability")
+
 from mcp import Client
 from mcp.client.stdio import StdioServerParameters
 

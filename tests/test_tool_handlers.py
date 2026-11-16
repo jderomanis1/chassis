@@ -31,7 +31,14 @@ def test_validation_errors_have_field_and_reason_without_writes(git_repo, name, 
     before = git(git_repo, "rev-parse", "HEAD")
     result = ToolHandlers(git_repo, "chief-of-staff").call(name, args)
     assert result["error"] == "validation" and result["field"] == field
-    assert result["reason"] and "Traceback" not in str(result)
+    assert result["reason"] == {
+        "expected_version": "Input should be a valid integer",
+        "status": "Input should be 'planned', 'in_progress', 'blocked' or 'done'",
+        "id": "String should match pattern '^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$'",
+        "filters.due_at": "Input should be a valid string",
+        "agent": "Extra inputs are not permitted",
+    }[field]
+    assert "Traceback" not in str(result)
     assert git(git_repo, "rev-parse", "HEAD") == before
     assert git(git_repo, "status", "--porcelain") == ""
 

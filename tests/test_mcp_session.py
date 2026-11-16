@@ -1,6 +1,7 @@
 import fcntl
 import json
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 from conftest import git
@@ -30,7 +31,7 @@ def assert_lock_released(root):
     with (root / ".chassis/write.lock").open("rb") as handle:
         fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
     assert not (root / ".git/index.lock").exists()
-    assert not list((root / "records").rglob("*.tmp"))
+    assert list((root / "records").rglob("*.tmp")) == []
 
 
 def test_real_stdio_session_all_six_tools(template_repo):
@@ -41,9 +42,13 @@ def test_real_stdio_session_all_six_tools(template_repo):
         assert sorted(t["name"] for t in client.request("tools/list")["tools"]) == TOOLS
         listed = client.call("list_records", {"filters": {"status": "blocked", "venture": "venture-ridgeview"}})
         assert [r["id"] for r in listed["records"]] == ["task-maintenance-plan"]
-        assert listed["records"][0]["blocker_reason"]
+        assert listed["records"][0]["blocker_reason"] == (
+            "Waiting for the fictional estimate comparison before drafting the sequence.")
         original = client.call("read_record", {"id": "task-launch-budget"})["record"]
-        assert original["version"] == 1 and original["last_activity_at"]
+        assert original["version"] == 1
+        assert original["last_activity_at"] == datetime.fromisoformat(
+            git(root, "log", "-1", "--format=%cI", "--", "records/tasks/task-launch-budget.md")
+        ).astimezone(timezone.utc).isoformat()
         found = client.call("search", {"query": "three most repeated"})
         assert [r["id"] for r in found["records"]] == ["task-audience-interviews"]
 
@@ -69,7 +74,8 @@ def test_real_stdio_session_all_six_tools(template_repo):
         invalid = client.call("update_record", {"id": original["id"], "expected_version": 2,
                                                  "changes": {"due_at": "2026-02-30"}})
         assert invalid["error"] == "validation" and invalid["field"] == "due_at"
-        assert invalid["reason"] and snapshot(root) == before
+        assert invalid["reason"] == "Value error, day is out of range for month"
+        assert snapshot(root) == before
         missing = client.call("read_record", {"id": "missing-id"})
         assert missing["error"] == "not_found"
     assert git(root, "rev-list", "--count", f"{start}..HEAD") == "3"

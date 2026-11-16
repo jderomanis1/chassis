@@ -76,6 +76,7 @@ def test_mcp_refuses_symlink_lock_without_write(git_repo, tmp_path):
         client.initialize()
         result = client.call("update_record", UPDATE)
         assert result["error"] == "validation"
-        assert result["field"] and "lock paths cannot be symlinks" in result["reason"]
+        assert result["field"] == "record"
+        assert result["reason"] == f"{git_repo / '.chassis/write.lock'}: lock paths cannot be symlinks"
         assert snapshot(git_repo) == before
     assert outside.read_text() == "Fictional sentinel"
