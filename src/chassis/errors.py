@@ -16,6 +16,10 @@ class AuthorizationError(WriteError):
     code = "unauthorized"
 
 
+class NotFoundError(WriteError):
+    code = "not_found"
+
+
 class ConflictError(WriteError):
     code = "conflict"
 

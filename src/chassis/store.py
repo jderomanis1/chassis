@@ -7,7 +7,7 @@ from pathlib import Path
 from pydantic import TypeAdapter, ValidationError
 
 from chassis.atomic import vault_lock
-from chassis.errors import ConflictError, WriteError
+from chassis.errors import ConflictError, NotFoundError, WriteError
 from chassis.git import Identity, commit_file, ensure_clean, ensure_repository, has_record_changes
 from chassis.markdown import ParsedRecord, RecordFileError, parse_record, read_frontmatter
 from chassis.models import RECORD_TYPES, Record, RecordId, RecordType
@@ -32,9 +32,10 @@ class RecordStore:
                     raise RecordFileError(f"{part}: record paths cannot be symlinks")
             if path.is_file():
                 paths.append(path)
-        if len(paths) != 1:
-            reason = "record not found" if not paths else "duplicate ID"
-            raise WriteError(f"{identifier}: {reason}", id=identifier)
+        if not paths:
+            raise NotFoundError(f"{identifier}: record not found", id=identifier)
+        if len(paths) > 1:
+            raise WriteError(f"{identifier}: duplicate ID", id=identifier)
         return paths[0]
 
     def _read_current(self, identifier: str) -> tuple[ParsedRecord, bytes]:
