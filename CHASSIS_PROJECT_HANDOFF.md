@@ -1,6 +1,6 @@
 # Chassis project handoff
 
-**Checkpoint date: 2026-11-16. Next build chat: Step 2, the SQLite index.**
+**Checkpoint date: 2026-11-16. Step 2 complete. Next build: Step 3, awaiting Joe's go.**
 This file preserves the approved build decisions and evidence so each step can
 continue in a separate chat. Read current repository HEAD before making changes.
 
@@ -55,18 +55,26 @@ tokenized invitation/tracking links are not copied into the repository.
 - Private repository: https://github.com/jderomanis1/chassis
 - Published branch: `main`.
 - Step 1 implementation baseline: `7274934ea722f1c6844f5b2bb24d539eb803b1ad`.
-- Eleven development commits preserved the original repository commit.
-- Later project-migration commits add documentation only. Inspect current HEAD;
-  do not reset to the implementation baseline or mistake these docs for Step 2 code.
-- Verified at the baseline from a clean checkout: `uv sync --locked`,
-  **72 passing tests**, and `chassis validate` reporting all 13 valid records.
-- Implemented: strict record schema, safe YAML/frontmatter parsing, body
-  preservation, relationship/dependency validation, working-tree validation CLI,
-  fictional fixtures, policy scaffold, README/banner, and vault navigation.
-- `agents.yaml` is a policy scaffold. Runtime authorization is not implemented yet.
+- Step 1's eleven development commits preserved the original repository commit.
+- Migration commits `7773a87` and `f6b7ee6` added documentation only and remain
+  preserved. Step 2 started from `f6b7ee6`; the uploaded handoff matched that state.
+- Step 1 review fixes: `9f2dc28c369f66aa1ac9aaa3bbd910c57a83a463`, published
+  separately before index work. S1 validates policy and known assigned agents;
+  N1/N2 assert specific rejection causes and fields.
+- Step 2 implementation: `39b5b2ee2efbdc272fdd33b479a4884c6b65cfc7`.
+  Following commits document usage/findings (`28c0a57`) and evidence (`f0c6a82`).
+  Inspect current HEAD and preserve all work; never reset to a remembered baseline.
+- Clean-checkout proof at the implementation commit: `uv sync --locked`,
+  **151 passing tests**, 13 valid records, and an installed CLI rebuild of 13 records.
+  Step 1's earlier 72-test baseline is retained as historical evidence.
+- Implemented: strict schema, safe frontmatter parsing, body preservation,
+  relationship/dependency and policy validation, fictional fixtures, the disposable
+  SQLite index, automatic refresh/recovery, and local validate/index/list/get/search.
+- `agents.yaml` has a strict Pydantic model. Only read/write scoped grants are
+  allowed and unknown assignment IDs are rejected. Write authorization is Step 3.
 - `src/chassis/graph.py` validates record relationships; it is not the future
   renderer-neutral JSON graph or layout planner.
-- MCP, record mutations, SQLite, template expansion, and Miro rendering are pending.
+- MCP, record mutations, template expansion, and Miro rendering are pending.
 
 Read [AGENTS.md](AGENTS.md), [architecture](docs/ARCHITECTURE.md),
 [acceptance evidence](evidence/acceptance.md), and [findings](FINDINGS.md).
@@ -154,7 +162,7 @@ should contain one venture frame, seven cards, and two dependency connectors.
 | 6 | MCP status change updates exactly one existing card | Pending live verification |
 | 7 | Repeat render produces zero mutating Miro API calls | Pending live verification |
 | 8 | Delete scratch frame; query child IDs; record actual survival | Not run; outcome unknown |
-| 9 | Delete/rebuild SQLite; identical query results | Next, Step 2 |
+| 9 | Delete/rebuild SQLite; identical query results | Passed Step 2: 15 library queries and six CLI outputs are byte-identical |
 
 Never delete groups. Update board items in place. Keep status out of layout/order
 and parent rollups so a status change affects only that task. Bulk create is at
@@ -169,8 +177,8 @@ operations are the authorized exception needed for this proof.
 | Step | Scope | State |
 | :--- | :--- | :--- |
 | 1 | Skeleton, schema, parser, relationships, sample records | Implemented; Obsidian demo gap remains |
-| 2 | Disposable SQLite index and working-tree queries | Next chat |
-| 3 | Create/update, policy enforcement, concurrency, Git, commit-human | Pending |
+| 2 | Disposable SQLite index and working-tree queries | Complete; AC9 passed |
+| 3 | Create/update, policy enforcement, concurrency, Git, commit-human | Next, only after Joe's go |
 | 4 | Initiative and agent templates | Pending |
 | 5 | MCP tools and real stdio client integration | Pending |
 | 6 | Scratch Miro contract probe and frame-deletion experiment | Pending |
@@ -178,14 +186,57 @@ operations are the authorized exception needed for this proof.
 | 8 | Miro adapter, mapping persistence, rate limits, rendering | Pending |
 | 9 | Live read/write/render proof and final handoff | Pending |
 
-Step 2 must index authoritative working-tree Markdown, not Git HEAD. Cover source
-additions, edits, removals, deterministic filtering/search, and complete query
-equivalence after deleting and rebuilding the index. Document query semantics and
-surface invalid source files clearly. Reads/rebuilds must not mutate source records.
-Keep database files under ignored `.chassis/`; do not begin later build steps.
+Step 2 indexes authoritative working-tree Markdown, including uncommitted edits.
+`RecordIndex(root)` exposes `list_records(filters)`, `get_record(id)`, `search(query)`,
+and `rebuild()`. CLI commands are `chassis index rebuild`, `chassis list`,
+`chassis get`, and `chassis search`; each accepts `--vault`. `validate [vault]`
+retains its original positional path. Reads/rebuilds never mutate source records.
 
-Use [project instructions and the Step 2 prompt](docs/PROJECT_CHAT_SETUP.md).
+Filters combine exact matches on type, venture, status, parent, assigned_agent,
+and sensitivity. Null is supported for parent/assignment. Results are ordered by
+ID and include all fields plus body, including sensitivity for restricted records.
+Search is a literal, Unicode-case-insensitive substring within title, next_step,
+or body; blank and unmatched searches return `[]`. See the architecture for details.
+
+Every read scans current source bytes, compares nanosecond mtime and SHA-256,
+and validates the graph and policy before answering. Additions, edits, removals,
+preserved-mtime edits, and invalid sources are covered. Missing/corrupt caches
+rebuild; schema version 2, SQLite structure, and row-content digests are checked.
+`.chassis/index.sqlite` stays ignored. A lock/storage error is reported rather
+than treated as corruption. No large-vault benchmark or atomic snapshot across
+concurrent multi-file edits has been established. Restricted read results are
+intentional; renderer exclusion and write-time access enforcement remain pending.
+
+Use [project instructions and the next-step prompt](docs/PROJECT_CHAT_SETUP.md).
 At each step's end, update this checkpoint, acceptance evidence, and findings with
 the implementation commit, executed checks, open gaps, and next chat's prompt.
 An uploaded copy is a snapshot; the next chat must read current repo guidance.
 Do not assume a prior scratch filesystem, installed app, or credential persists.
+
+## Next chat starting prompt
+
+Use only after Joe authorizes Step 3:
+
+```text
+Start Step 3 only. Pull current main and read AGENTS.md, CHASSIS_PROJECT_HANDOFF.md,
+docs/ARCHITECTURE.md, evidence/acceptance.md, and FINDINGS.md. Step 2 code is at
+39b5b2ee2efbdc272fdd33b479a4884c6b65cfc7; later documentation must be preserved.
+Retain all 151 tests and the working-tree/disposable-index read contract.
+
+Implement create_record, update_record, and chassis commit-human under C3/C6.
+Use configured caller identity, never assigned_agent. Reload/validate agents.yaml
+on every write and check venture/type grants, including old/new scope as relevant.
+Unknown callers and missing/invalid policy cannot write. Record tools cannot edit
+the policy. Templates remain Step 4.
+
+Under an interprocess lock, reread the record and compare expected_version.
+Reject dirty targets with the filename and exact phrase uncommitted human edit.
+Stale/refused updates change no files and create no commits. Successful updates
+bump version and commit only their record with agent attribution. Implement the
+explicit human-commit path using CHASSIS_HUMAN_NAME and CHASSIS_HUMAN_EMAIL.
+
+Use fictional records and local execution only. No MCP, Miro, custom UI, agent
+spawning, or deployment. Tests first, roughly 150-line increments, push each
+completed increment without force. Update evidence/findings/handoff, report
+DELIVERED / VERIFIED / RISKS-OPEN / NEXT, then stop for the next go.
+```

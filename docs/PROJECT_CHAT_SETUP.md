@@ -42,17 +42,18 @@ findings. Include the commit, tests actually run, outstanding gaps, and the next
 chat's starting prompt. Never claim an unrun UI or live API check passed.
 Write plainly, professionally, and without em dashes or hype.
 
-## First new chat
+## Next build chat
 
-Suggested title: **Chassis Step 2 SQLite index**
+Suggested title: **Chassis Step 3 safe record mutations**
 
-Start Step 2 only. Read CHASSIS_PROJECT_HANDOFF.md and the current repository
-instructions. The Step 1 implementation baseline is
-7274934ea722f1c6844f5b2bb24d539eb803b1ad; subsequent migration commits contain
-documentation, not Step 2 implementation. Verify current HEAD before changes.
-Build the disposable SQLite index from working-tree Markdown, including
-uncommitted edits. Add deterministic list/filter/search behavior and tests for
-source changes plus deletion/rebuild equivalence. Keep source files authoritative
-and keep MCP, mutation operations, templates, and Miro work in their later steps.
-Use tests first, small increments, a push after each completed increment, and
-the required four-part reports. Update the handoff when Step 2 is complete.
+Step 2 is complete and AC9 passes. Start only after Joe's next go. Copy the full
+starting prompt from [the current handoff](../CHASSIS_PROJECT_HANDOFF.md#next-chat-starting-prompt).
+
+Start Step 3 only. Read the current handoff and repository instructions. Step 2
+implementation is at `39b5b2ee2efbdc272fdd33b479a4884c6b65cfc7`, with 151 tests
+passing from a clean checkout. Preserve later documentation and inspect current HEAD.
+Implement local create/update, C3 policy enforcement, C6 version checks and locking,
+record-only attributed Git commits, and `chassis commit-human`. Keep templates,
+MCP, and Miro in their later steps. Use tests first, small increments, a push after
+each completed increment, and the required four-part reports. Update the handoff
+and stop at Step 3; this checkpoint does not authorize starting it automatically.
