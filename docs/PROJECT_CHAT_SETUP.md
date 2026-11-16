@@ -44,16 +44,18 @@ Write plainly, professionally, and without em dashes or hype.
 
 ## Next build chat
 
-Suggested title: **Chassis Step 3 safe record mutations**
+Suggested title: **Chassis Step 4 initiative and agent templates**
 
-Step 2 is complete and AC9 passes. Start only after Joe's next go. Copy the full
+Step 3 is complete; AC3 and AC9 pass. Start only after Joe's next go. Copy the full
 starting prompt from [the current handoff](../CHASSIS_PROJECT_HANDOFF.md#next-chat-starting-prompt).
 
-Start Step 3 only. Read the current handoff and repository instructions. Step 2
-implementation is at `39b5b2ee2efbdc272fdd33b479a4884c6b65cfc7`, with 151 tests
+Start Step 4 only. Read the current handoff and repository instructions. Step 3
+implementation is at `24ddcc790a228a822bb6b4b57829302116211811`, with 236 tests
 passing from a clean checkout. Preserve later documentation and inspect current HEAD.
-Implement local create/update, C3 policy enforcement, C6 version checks and locking,
-record-only attributed Git commits, and `chassis commit-human`. Keep templates,
-MCP, and Miro in their later steps. Use tests first, small increments, a push after
-each completed increment, and the required four-part reports. Update the handoff
-and stop at Step 3; this checkpoint does not authorize starting it automatically.
+Implement populated initiative templates and file-only agent templates with
+read-only defaults. Template-backed records must use the existing validated,
+authorized, locked, atomic, attributed Git write path. Prove AC4 with fictional
+content in every required section. Keep MCP and Miro in their later steps.
+Use tests first, small increments, a push after each completed increment, and the
+required four-part reports. Update the handoff and stop at Step 4; this checkpoint
+does not authorize starting it automatically.
