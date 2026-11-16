@@ -6,10 +6,10 @@ from collections.abc import Mapping
 from contextlib import closing
 from hashlib import sha256
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 
 from pydantic import ValidationError
 
+from chassis.atomic import vault_lock, write_atomic
 from chassis.markdown import ParsedRecord, RecordFileError, parse_record
 from chassis.models import Record
 from chassis.validation import load_vault
@@ -100,19 +100,18 @@ class RecordIndex:
 
     def rebuild(self) -> int:
         """Replace the entire cache only after all source records validate."""
+        with vault_lock(self.root):
+            return self._rebuild_locked()
+
+    def _rebuild_locked(self) -> int:
+        """Caller holds vault_lock, including callers in the mutation layer."""
         self._check_path()
         rows = self._source_rows()
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with NamedTemporaryFile(dir=self.path.parent, prefix="index-", suffix=".sqlite",
-                                delete=False) as handle:
-            temporary = Path(handle.name)
-        try:
-            with closing(sqlite3.connect(temporary)) as connection, connection:
+        with closing(sqlite3.connect(":memory:")) as connection:
+            with connection:
                 connection.executescript(SCHEMA)
                 connection.executemany(INSERT, rows.values())
-            temporary.replace(self.path)
-        finally:
-            temporary.unlink(missing_ok=True)
+            write_atomic(self.path, connection.serialize())
         return len(rows)
 
     def _refresh(self, connection):
@@ -125,9 +124,13 @@ class RecordIndex:
             connection.executemany(INSERT, changed)
 
     def _query(self, where: str = "", parameters: tuple = ()) -> list[dict]:
+        with vault_lock(self.root):
+            return self._query_locked(where, parameters)
+
+    def _query_locked(self, where: str, parameters: tuple) -> list[dict]:
         self._check_path()
         if not self.path.exists():
-            self.rebuild()
+            self._rebuild_locked()
         for attempt in range(2):
             try:
                 return self._read(where, parameters)
@@ -137,7 +140,7 @@ class RecordIndex:
                     raise IndexFileError(f"{self.path}: {exc}") from exc
                 if attempt:
                     raise IndexFileError(f"{self.path}: cache remains invalid after rebuild: {exc}") from exc
-                self.rebuild()
+                self._rebuild_locked()
 
     def _read(self, where, parameters):
         with closing(sqlite3.connect(self.path)) as connection:

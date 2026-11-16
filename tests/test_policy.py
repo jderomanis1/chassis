@@ -20,6 +20,8 @@ def vault(tmp_path):
     ("unknown_agent: read", "unknown_agent: write", "unknown_agent"),
     ("version: 1", "version: true", "version"),
     ("version: 1", "version: 2", "version"),
+    ("venture-acme:", "venture-missing:", "venture-missing"),
+    ("venture-acme:", "task-launch-budget:", "task-launch-budget"),
     ("task: write", "task: read\n        task: write", "duplicate YAML key"),
     ("task: write", "task: !!python/object:builtins.object {}",
      "could not determine a constructor"),

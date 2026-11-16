@@ -1,6 +1,7 @@
 import json
 import subprocess
 import sys
+from conftest import SAMPLE_IDS
 
 
 def cli(vault, *args):
@@ -20,9 +21,9 @@ def test_cli_queries_are_byte_identical_after_delete_and_rebuild(vault):
         ("search", "three most repeated"), ("search", "zz-no-match-zz")]
     before = [cli(vault, *command) for command in commands]
     assert all(result.returncode == 0 and result.stderr == b"" for result in before)
-    assert len(json.loads(before[0].stdout)) == 13
+    assert [item["id"] for item in json.loads(before[0].stdout)] == SAMPLE_IDS
     assert [item["id"] for item in json.loads(before[1].stdout)] == ["task-launch-budget"]
-    assert len(json.loads(before[2].stdout)) == 2
+    assert [item["id"] for item in json.loads(before[2].stdout)] == ["venture-acme", "venture-ridgeview"]
     assert json.loads(before[3].stdout)["sensitivity"] == "restricted"
     assert json.loads(before[4].stdout)[0]["id"] == "task-audience-interviews"
     assert json.loads(before[5].stdout) == []
@@ -38,11 +39,13 @@ def test_cli_queries_are_byte_identical_after_delete_and_rebuild(vault):
 def test_cli_automatic_index_and_actionable_invalid_record(vault):
     assert cli(vault, "get", "venture-acme").returncode == 0
     assert (vault / ".chassis/index.sqlite").is_file()
+    before = (vault / ".chassis/index.sqlite").read_bytes()
     (vault / "records/tasks/broken.md").write_text("invalid record", encoding="utf-8")
     result = cli(vault, "list")
     assert result.returncode == 1 and result.stdout == b""
     assert b"broken.md" in result.stderr and b"opening YAML frontmatter fence" in result.stderr
     assert b"Traceback" not in result.stderr
+    assert (vault / ".chassis/index.sqlite").read_bytes() == before
 
 
 def test_cli_missing_id_has_nonzero_exit_and_no_json(vault):

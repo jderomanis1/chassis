@@ -6,7 +6,7 @@ from typing import Annotated, Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
-from chassis.markdown import RecordFileError, UniqueKeyLoader
+from chassis.markdown import ParsedRecord, RecordFileError, UniqueKeyLoader
 from chassis.models import RecordId, RecordType
 
 
@@ -31,3 +31,13 @@ def load_policy(root: Path) -> Policy:
         return Policy.model_validate(fields)
     except (OSError, ValueError, yaml.YAMLError) as exc:
         raise RecordFileError(f"{path.as_posix()}: {exc}") from exc
+
+
+def validate_policy_references(root: Path, policy: Policy, records: dict[str, ParsedRecord]) -> None:
+    for agent, grants in policy.agents.items():
+        for venture in grants.ventures:
+            item = records.get(venture)
+            if item is None or item.record.type != "venture":
+                raise RecordFileError(
+                    f"{root / 'agents.yaml'}: agent {agent!r} venture {venture!r} "
+                    "must reference an existing venture")

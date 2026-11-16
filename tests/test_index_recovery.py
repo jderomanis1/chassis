@@ -43,6 +43,7 @@ def test_bad_source_is_not_hidden_by_cache_recovery(vault):
     (vault / "records/tasks/broken.md").write_text("invalid record", encoding="utf-8")
     with pytest.raises(RecordFileError, match="broken.md:.*opening YAML frontmatter fence"):
         index.list_records()
+    assert index.path.read_bytes() == b"broken cache"
 
 
 @pytest.mark.parametrize("method", ["rebuild", "list_records"])

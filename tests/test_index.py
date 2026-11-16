@@ -2,6 +2,7 @@ import json
 import os
 
 import pytest
+from conftest import SAMPLE_IDS
 
 from chassis.index import RecordIndex
 from chassis.markdown import RecordFileError
@@ -30,8 +31,7 @@ def test_get_and_list_preserve_content_and_include_restricted_records(vault):
     index = RecordIndex(vault)
     index.rebuild()
     results = index.list_records()
-    assert len(results) == 13
-    assert [item["id"] for item in results] == sorted(item["id"] for item in results)
+    assert [item["id"] for item in results] == SAMPLE_IDS
     restricted = index.get_record("task-launch-budget")
     assert restricted in results
     assert restricted["sensitivity"] == "restricted"
@@ -70,7 +70,8 @@ def test_assignment_filters_distinguish_unassigned_and_known_agents(vault):
     index = RecordIndex(vault)
     index.rebuild()
     assert [item["id"] for item in index.list_records({"assigned_agent": None})] == ["task-launch-budget"]
-    assert len(index.list_records({"assigned_agent": "chief-of-staff"})) == 12
+    assert [item["id"] for item in index.list_records({"assigned_agent": "chief-of-staff"})] == [
+        identifier for identifier in SAMPLE_IDS if identifier != "task-launch-budget"]
 
 
 @pytest.mark.parametrize(("query", "expected"), [
@@ -145,26 +146,54 @@ def test_source_addition_and_removal_are_seen_without_rebuild(vault):
     added = original.with_name("task-extra-budget.md")
     added.write_text(original.read_text().replace("task-launch-budget", "task-extra-budget"),
                      encoding="utf-8")
-    assert len(index.list_records()) == 14
+    assert [item["id"] for item in index.list_records()] == [
+        *SAMPLE_IDS[:4], "task-extra-budget", *SAMPLE_IDS[4:]]
     assert index.get_record("task-extra-budget") is not None
     added.unlink()
     assert index.get_record("task-extra-budget") is None
-    assert len(index.search("launch test budget")) == 1
+    assert [item["id"] for item in index.list_records()] == SAMPLE_IDS
+    assert [item["id"] for item in index.search("launch test budget")] == ["task-launch-budget"]
+
+
+def test_source_rename_removes_old_id_and_path_and_indexes_new_ones(vault):
+    import sqlite3
+    from contextlib import closing
+
+    index = RecordIndex(vault)
+    index.rebuild()
+    original = vault / "records/tasks/task-launch-budget.md"
+    renamed = original.with_name("task-renamed-budget.md")
+    renamed.write_bytes(original.read_bytes().replace(b"task-launch-budget", b"task-renamed-budget"))
+    original.unlink()
+    assert [item["id"] for item in index.list_records()] == [
+        *SAMPLE_IDS[:4], *SAMPLE_IDS[5:9], "task-renamed-budget", *SAMPLE_IDS[9:]]
+    assert index.get_record("task-launch-budget") is None
+    assert index.get_record("task-renamed-budget")["sensitivity"] == "restricted"
+    assert not original.exists()
+    with closing(sqlite3.connect(index.path)) as connection:
+        assert connection.execute("SELECT id, source_path FROM records WHERE id LIKE '%budget'").fetchall() == [
+            ("task-renamed-budget", "records/tasks/task-renamed-budget.md")]
 
 
 @pytest.mark.parametrize("method,args", [("rebuild", ()), ("list_records", ()),
                                         ("get_record", ("venture-acme",)), ("search", ("",))])
-def test_invalid_source_fails_loudly_before_any_answer(vault, method, args):
+@pytest.mark.parametrize("existing", [False, True])
+def test_invalid_source_fails_loudly_before_any_answer(vault, method, args, existing):
     index = RecordIndex(vault)
-    index.rebuild()
+    if existing:
+        index.rebuild()
+    before = index.path.read_bytes() if existing else None
     (vault / "records/tasks/broken.md").write_text("# Missing frontmatter\n", encoding="utf-8")
     with pytest.raises(RecordFileError, match="broken.md:.*opening YAML frontmatter fence"):
         getattr(index, method)(*args)
+    assert (index.path.read_bytes() if index.path.exists() else None) == before
 
 
 def test_removal_that_breaks_relationships_is_rejected(vault):
     index = RecordIndex(vault)
     index.rebuild()
+    before = index.path.read_bytes()
     (vault / "records/tasks/task-maintenance-inventory.md").unlink()
     with pytest.raises(RecordFileError, match="task-maintenance-quotes.md: dependency.*does not exist"):
         index.list_records()
+    assert index.path.read_bytes() == before

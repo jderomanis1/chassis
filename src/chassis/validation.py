@@ -5,7 +5,7 @@ from collections.abc import Callable
 
 from chassis.graph import fail, validate_graph
 from chassis.markdown import ParsedRecord, RecordFileError, read_record
-from chassis.policy import load_policy
+from chassis.policy import load_policy, validate_policy_references
 
 
 def load_vault(root: Path, *, reader: Callable[[Path], ParsedRecord] = read_record) -> dict[str, ParsedRecord]:
@@ -27,6 +27,7 @@ def load_vault(root: Path, *, reader: Callable[[Path], ParsedRecord] = read_reco
         raise RecordFileError(f"{record_root}: No record files found")
     by_id = validate_graph(records)
     policy = load_policy(root)
+    validate_policy_references(root, policy, by_id)
     for item in records:
         agent = item.record.assigned_agent
         if agent is not None and agent not in policy.agents:

@@ -4,6 +4,12 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+SAMPLE_IDS = [
+    "initiative-d2c-launch", "initiative-maintenance", "initiative-resident-updates",
+    "task-audience-interviews", "task-launch-budget", "task-launch-offer",
+    "task-maintenance-inventory", "task-maintenance-plan", "task-maintenance-quotes",
+    "task-resident-bulletin", "task-resident-faq", "venture-acme", "venture-ridgeview",
+]
 
 
 @pytest.fixture
