@@ -2,9 +2,10 @@
 
 ## Current boundary
 
-Step 1 implements the source-record schema, safe parsing, relationship validation,
-fictional records, and `chassis validate`. Everything described as a later contract
-below is planned, not implemented. All Chassis execution stays local; the later
+Steps 1–2 implement the source-record schema, safe parsing, relationship and policy
+validation, fictional records, and a disposable SQLite read index. Commands are
+`validate`, `index rebuild`, `list`, `get`, and `search`. Later contracts below
+remain planned, not implemented. All Chassis execution stays local; the later
 scratch Miro connection is the only external runtime integration in Increment 0.
 
 ## Source records
@@ -63,7 +64,9 @@ Status changes must not move neighboring cards or alter parent summaries.
 grant permits reads too. Unknown agents are read-only. Missing or invalid policy
 must deny writes. Reload and check the policy on every write, including old and
 new scope when relevant. A record's `assigned_agent` never supplies caller identity.
-Record tools cannot edit the policy file. Step 1 commits the policy scaffold only.
+Record tools cannot edit the policy file. Step 2 validates policy shape with
+Pydantic and rejects unknown assignment IDs. Caller authentication and write-time
+authorization remain in Step 3; valid assignment metadata never authorizes a write.
 
 Tool handlers are transport-agnostic functions. A thin MCP adapter will expose
 them through stdio. No model SDK, model credential, HTTP server, or agent spawning
@@ -79,9 +82,60 @@ process configuration. Unrelated changes must never enter a record commit.
 A dirty target is refused with its filename and the exact phrase
 `uncommitted human edit`. `chassis commit-human <path>` will commit an explicitly
 selected path as `CHASSIS_HUMAN_NAME` / `CHASSIS_HUMAN_EMAIL`. It is not available
-in Step 1. Ordinary editors do not honor Chassis locks; concurrent manual editing
+in Steps 1–2. Ordinary editors do not honor Chassis locks; concurrent manual editing
 requires coordination. The disposable SQLite index reads working-tree files,
 including uncommitted edits. Rebuilds must reproduce identical query results.
+
+## Disposable index and read contract
+
+`RecordIndex(root)` in `chassis.index` is the transport-independent library API.
+It uses the Python standard-library SQLite driver. `.chassis/index.sqlite` is
+ignored by Git and can always be deleted. Sources, policy, and Git history are
+never changed by reads or rebuilds.
+
+```python
+from pathlib import Path
+from chassis.index import RecordIndex
+
+index = RecordIndex(Path("."))
+index.list_records({"type": "task", "sensitivity": "restricted"})
+index.get_record("task-launch-budget")
+index.search("three most repeated")
+```
+
+All results contain the full normalized record plus unchanged Markdown `body`.
+Lists and searches use ascending ID order. `sensitivity` is always present;
+restricted records remain readable here. Renderer filtering belongs to C2.
+
+Filters are case-sensitive exact matches on type, venture, status, parent,
+assigned_agent, and sensitivity, combined with AND. Omission means no constraint.
+`None` matches null parent/assignment; CLI `null` has that meaning for those two
+options. Unsupported filter fields or value types raise `ValueError`. No-match
+list/search results are `[]`; a missing ID is `None` in Python and exit code 1
+with `NOT FOUND` on CLI stderr. JSON output has sorted keys and no cache metadata.
+
+Search trims outer query whitespace, then matches a literal Unicode-casefolded
+substring within title, next_step, or body. There is no query language, wildcard,
+regular expression, relevance ranking, or cross-field phrase match. Blank search
+returns `[]` after validating the working tree.
+
+Every read scans record paths and hashes their current bytes with SHA-256, even
+when mtime is unchanged. Nanosecond mtime and content hash select cached versus
+newly parsed records. The exact bytes hashed are parsed; metadata changes during
+that individual read fail with the filename. Additions, edits, and removals are
+validated as a complete graph before the cache transaction updates changed rows.
+Policy validation and known-assignment checks also run on every read.
+
+Rebuild validates all sources before replacing the database atomically. Missing
+indexes rebuild automatically. Schema version 2, column order, SQLite quick_check,
+record JSON, and row-content digests detect cache damage; a read rebuilds and
+retries once. Locked databases and other storage errors are reported, not treated
+as corruption. Cache symlinks are rejected. Invalid sources never yield old data.
+
+Each read costs a full source-byte scan plus graph validation. This is an explicit
+local-increment tradeoff, not a large-vault performance claim. Reads do not provide
+an atomic snapshot across concurrent edits to multiple files. Write locking and
+version control remain Step 3 work.
 
 ## C7: review and delivery
 

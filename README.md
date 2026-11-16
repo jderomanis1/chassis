@@ -17,9 +17,9 @@ Chassis is Andy Patterson’s command foundation for running parallel ventures.
 Its goal is a shared project state that a chief-of-staff agent can read and update,
 with a spatial view that makes the next action easy to see.
 
-**This checkout delivers Step 1 of Increment 0: the record foundation.**
-All venture data is fictional. The MCP server, SQLite index, write operations,
-and Miro renderer follow in later steps.
+**This checkout delivers Steps 1 and 2 of Increment 0: validated records and local reads.**
+All venture data is fictional. SQLite is a disposable index of working-tree files.
+Record mutations, MCP, templates, and Miro remain in their approved later steps.
 
 **Continuing in a new chat?** Read the [project handoff](CHASSIS_PROJECT_HANDOFF.md)
 and [project chat setup](docs/PROJECT_CHAT_SETUP.md). Engineering agents should
@@ -27,7 +27,7 @@ start with [AGENTS.md](AGENTS.md).
 
 ## Start here
 
-Prerequisites: **Python 3.12+, Git, and uv**. No API key is needed for Step 1.
+Prerequisites: **Python 3.12+, Git, and uv**. No runtime API key is needed for Steps 1–2.
 
 ```bash
 git clone https://github.com/jderomanis1/chassis.git
@@ -35,10 +35,30 @@ cd chassis
 uv sync --locked
 uv run pytest -q
 uv run chassis validate
+uv run chassis index rebuild
+uv run chassis list --venture venture-ridgeview --status blocked
+uv run chassis get task-launch-budget
+uv run chassis search "three most repeated"
 ```
 
 Already have a checkout? Start with `uv sync --locked` from its root.
 Validation reads the Markdown files in the working tree.
+
+Read commands return stable JSON with every record field plus `body`. Results
+are ordered by ID and always include `sensitivity`, including restricted records.
+The index is not an access-control layer. Use `--vault /path/to/chassis` on any
+new read/index command to select a vault; `validate` retains its positional path.
+
+List filters are exact matches combined with AND: `--type`, `--venture`,
+`--status`, `--parent`, `--assigned-agent`, and `--sensitivity`. Use `null` for
+no parent or an unassigned agent. Search matches a literal, case-insensitive
+substring in title, next step, or body; an empty query returns an empty list.
+A missing ID returns exit code 1; a list/search with no matches returns `[]`.
+
+Reads detect changed, added, and removed working-tree records automatically.
+Deleting `.chassis/index.sqlite` is safe: the next read rebuilds it. Damaged
+caches also rebuild. Invalid source records fail with a filename and reason.
+See the [read contract](docs/ARCHITECTURE.md#disposable-index-and-read-contract).
 
 **For a visual browse:** open the repository folder as an Obsidian vault and open
 [HOME.md](HOME.md). Obsidian is optional; the records are ordinary Markdown.
@@ -46,15 +66,16 @@ The actual Obsidian UI check is tracked in the acceptance evidence.
 
 ## What works today
 
-| Capability | Step 1 status |
+| Capability | Current status |
 | :--- | :--- |
 | One Markdown file per venture, initiative, or task | Implemented |
 | Strict frontmatter schema, including sensitivity and assigned agent | Implemented |
 | Relationship and dependency validation | Implemented |
 | Local validation command and automated tests | Implemented |
 | Fictional sample vault | 2 ventures, 3 initiatives, 8 tasks, 2 dependencies |
-| Agent permissions | Tracked policy scaffold; runtime enforcement is pending |
-| MCP, Git-backed record mutations, SQLite, and Miro | Planned in the approved build order |
+| Agent policy validation | Strict grants and known assignment IDs; write enforcement is Step 3 |
+| Disposable SQLite and list/get/search | Implemented, including automatic refresh and recovery |
+| MCP, Git-backed record mutations, templates, and Miro | Planned in the approved build order |
 
 ## Explore the sample
 
@@ -85,17 +106,18 @@ what has actually been verified.
 | :--- | :--- |
 | `records/` | Authoritative ventures, initiatives, and tasks |
 | `agents.yaml` | Agent access policy |
-| `src/chassis/` | Schema, parsing, validation, and the local command |
+| `src/chassis/` | Schema, parsing, policy validation, index, and local commands |
 | `tests/` | Tests of the implemented behavior |
 | `docs/` | Architecture and project presentation |
 | `evidence/` | Acceptance status and recorded checks |
 | `render/miro/` | Tracked board mappings for the later renderer |
-| `.chassis/` | Ignored local runtime state for later steps |
+| `.chassis/` | Ignored, disposable `index.sqlite` and rebuild temporary files |
 
 ## Next in the build
 
-The approved sequence continues with the disposable SQLite index, safe record
-mutations, templates, and MCP. A scratch-board contract probe precedes layout,
+Step 3 starts only after Joe's go: safe record mutations, permissions, version
+checks, attributed Git commits, and `commit-human`. Templates and MCP follow.
+A scratch-board contract probe precedes layout,
 Miro rendering, and the complete read → write → render acceptance demo.
 
 Keep secrets in environment variables. `.env` is ignored; `.env.example`
