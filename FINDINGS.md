@@ -91,12 +91,54 @@ Creating a new venture scope therefore requires human provisioning; record tools
 cannot create their own permissions. Initiative/task creation in granted ventures
 is implemented. This retains the approved explicit-grant policy.
 
-Next chat, only after Joe's go: **Step 4, initiative and agent templates (AC4).**
-The starting prompt and remaining gates are in `CHASSIS_PROJECT_HANDOFF.md`.
+The preceding observations describe the historical Step 3 boundary.
+
+## Step 4: observed
+
+- Started from accepted `main` at `9774ed4`; the attached handoff was an older
+  Step 1 snapshot. Reran the 236-test baseline successfully. Part A was pushed
+  separately as `9f02599`. Final implementation: `176478a0ae56c718c2683fd5fb5f885a15554508`.
+- A fresh detached checkout with no environment/cache passed `uv sync --locked`,
+  **343 tests in 13.83s**, validation of 13 records, and installed index rebuild.
+  Original record bytes, policy, dependency configuration/lock, and Git status
+  remained unchanged. The real-process concurrency and crash tests remain green.
+- An unchanged file with skip-worktree can evade status and the earlier content
+  comparison. The shared guard now rejects `S` and every lowercase ls-files tag
+  before writes or human commits. Real `S`/`h` cases pass; uppercase `H` is allowed.
+  `commit-human` also uses the hash fallback when status reports no change.
+- Updates authorize current and destination scopes from frontmatter before body
+  reads. Template creates deny ungranted callers after policy-only I/O; they read
+  neither templates nor records and do not reach locks, index, or Git.
+- AC4 creates all six exact GTM sections through `create_record`, with version 1,
+  one attributed record-only commit, and a matching index payload. Missing/empty/
+  placeholder content leaves records, cache, and HEAD unchanged.
+- Review demonstrated that ordered tokens alone did not ensure correct section
+  placement, and numeric list markers could count as content. Three regressions
+  failed before the fix; source placement and rendered content are now checked.
+- Agent templates create descriptive `agent` records with a fixed read-only notice.
+  They do not register callers, grant permissions, or spawn agents. The new ID's
+  actual write attempt is refused. A human must separately grant the author access
+  to the `agent` record kind; checked-in `agents.yaml` remains unchanged.
+- The installed CLI created one initiative and one agent document in a temporary
+  fictional repository. Exactly two single-record commits were attributed to the
+  configured agent; policy stayed unchanged, invalid sections made no writes, and
+  deleting/rebuilding the cache restored all 15 records with identical new payloads.
+- Joe's revised roadmap is recorded: real-client MCP, prototype-approved read-only
+  portal, layout/change planner, optional Miro export, and separate later chat import.
+  No implementation for those future steps was added or verified here.
+- Portal health needs decisions on milestone/date, task due dates, blocker reasons,
+  and derived activity/health. Human commits preserve `updated_at`; it cannot alone
+  establish last activity. No proposed portal fields or health calculations were added.
+
+Step 4 limits: structural validation cannot assess the business quality of section
+prose. Agent documents remain distinct from policy identities. Existing POSIX,
+ordinary-editor concurrency, crash-recovery, and read-isolation limits still apply.
+Obsidian UI, real MCP client, portal, and optional Miro evidence remain pending.
+Next chat, only after Joe's go: **Step 5, MCP tools via a real stdio client (AC2).**
 
 ## Miro frame-deletion experiment
 
-**Not run. Outcome unknown.** Scheduled for Step 6 on disposable scratch items.
+**Not run. Outcome unknown.** Part of revised optional Step 8, on disposable scratch items.
 
 Record the board ID, frame ID, child IDs, timestamp, deletion response, and each
 child's subsequent GET result. Test actual frame-parent relationships. Distinguish

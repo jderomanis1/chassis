@@ -1,7 +1,108 @@
 # Acceptance evidence
 
-**Snapshot:** Increment 0, Step 3 complete. **Date:** 2026-11-16.
-All source records and people are fictional. AC3 and AC9 pass; later gates remain pending.
+**Snapshot:** Increment 0, Step 4 complete. **Date:** 2026-11-16.
+All source records and people are fictional. AC3, AC4, and AC9 pass; later gates remain pending.
+
+## Step 4 executed checks
+
+Start: accepted `main` at **`9774ed4cbdca94f6a9724318b733a08cd9ff88f0`**.
+Part A was published separately as **`9f0259917fedb3ed503e549e6da6975997497577`**.
+Implementation checkpoint: **`176478a0ae56c718c2683fd5fb5f885a15554508`**.
+The uploaded handoff was the older Step 1 snapshot; current repository instructions
+and Joe's accepted Step 3 checkpoint governed. The 236-test baseline was rerun and passed.
+
+Final verification used a fresh detached Git worktree at the implementation SHA,
+with neither `.venv` nor `.chassis` present initially. Python was 3.12.14 on Linux.
+Subsequent commits update documentation only and retain the tested runtime tree.
+
+| Check | Observed result |
+| :--- | :--- |
+| `uv sync --locked` | Passed from the clean checkout; no dependency or lock changes |
+| `uv run pytest -q` | **343 passed in 13.83s**, including the real-process race and crash regressions |
+| `uv run chassis validate` | 13 records, 2 ventures, 3 initiatives, 8 tasks, 2 dependencies |
+| `uv run chassis index rebuild` | Indexed all 13 original working-tree records |
+| Source/history boundary | Clean checkout status empty; original records, `agents.yaml`, `pyproject.toml`, and `uv.lock` unchanged from `9774ed4` |
+| A1 flag-aware refusal | Real `git update-index` sets `S`/`h`; unchanged flagged targets raise `DirtyRecordError` with filename, exact phrase, and flag advice before write/commit; normal `H` passes |
+| A2 human handoff | `commit-human` shares the flag/hash check; flagged clean and edited files are refused; a forced-clean status response still allows the real content hash to detect a human edit |
+| A3 authorization ordering | Both current and proposed venture scopes are checked from frontmatter before body reads; denied callers/scopes retain the established I/O boundaries |
+| A4 atomic event assertion | The test requires the exact `sync`, `replace`, `sync` sequence |
+| AC4 initiative | All six exact GTM sections are populated in order, version is 1, parent/venture agree, and one attributed record-only commit matches the index |
+| Invalid sections | Every GTM field is tested missing, empty, and unresolved; source/cache bytes and HEAD remain unchanged |
+| Template integrity | Invalid names/order, wrong-section tokens, markup-only values, unresolved markers, and body/parent overrides are refused |
+| Read-only agent document | Creation leaves policy byte-identical; the new ID cannot perform an actual record update; authoring needs an explicit existing `agent: write` grant |
+| Unknown template/venture | Unknown/path-traversal template names and missing ventures are refused; even an invalid policy grant cannot manufacture a missing venture |
+| Unauthorized template caller | Unknown, read-only, and wrong-scope callers read only `agents.yaml`; spies forbid template/record, lock, index, or Git I/O |
+| Revoked grant | A grant revoked after expansion is rejected again by the shared create path before the lock |
+| CLI | Both `chassis new initiative` and `chassis new agent` create one attributed record; explicit `--vault`, configured callers, usage errors, and content refusals pass |
+| AC3 and AC9 retained | Existing concurrency/version/Git and delete/rebuild equivalence proofs remain green |
+
+The 236 existing test cases remain represented. The malformed-type parameter
+formerly using `agent` now uses `unknown`, because Step 4 introduces descriptive
+agent records. Positive creation, parent validation through the shared graph,
+read/query, update, human-commit, and no-grant behavior are exercised for that kind.
+The original sample policy and record allocation were not expanded.
+
+### AC4 proof locations
+
+- `tests/test_template_creates.py::test_ac4_template_creation_populates_six_sections_and_commits_once`
+  checks headings, every supplied value, parent, version, sole changed file, author,
+  exactly one parent-to-child commit, and identical index payload.
+- `tests/test_templates.py` fixes the golden names to `Positioning`, `Audience`,
+  `Channels`, `Offer`, `Launch checklist`, and `Success metrics`, in that order.
+- `tests/test_template_creates.py` verifies no-write refusals for every section,
+  unknown template/venture, and policy-only I/O for denied callers.
+- `tests/test_agent_templates.py::test_agent_document_created_from_template_grants_no_access`
+  checks fixed read-only text, unchanged policy, and an actual refused write as the new ID.
+- `tests/test_template_cli.py` and `tests/test_template_guards.py` cover CLI routing,
+  structural integrity, grant injection, and authorization rechecks.
+- `tests/test_review_fixes.py` contains the live Git flag and body-access regressions.
+
+### Installed CLI proof
+
+The clean checkout's installed `.venv/bin/chassis` ran from a different working
+directory against a separate disposable fictional Git repository. The fixture
+explicitly provisioned the author's agent-document grant to represent a separate
+human policy edit; template creation itself made no policy changes.
+Observed results:
+
+- Created one initiative with all six populated sections in order and one agent
+  document with the fixed read-only notice; each produced one record-only commit
+  authored by `Fictional Homer <homer@chassis.local>`.
+- Both returned records matched subsequent installed `get` output and version 1.
+- An update attempted as the new agent ID returned `unauthorized` without a commit.
+- Missing, empty, and unresolved `Offer` values were refused; cache bytes and HEAD
+  remained unchanged. Policy bytes stayed unchanged throughout template creation.
+- Exactly two successful runtime commits followed the fixture baseline. After
+  deleting the cache, the installed CLI rebuilt 15 records and returned both new
+  payloads unchanged. The temporary repository ended clean.
+- The original clean checkout's records, policy, and dependency lock stayed identical.
+
+### Test-first and publication record
+
+Part A had nine failing regressions before the fix. Initiative tests failed on
+the absent module; four agent-template checks and 29 create-entry-point checks
+failed before their implementations. All nine CLI checks failed before `new`
+existed. Final review reproduced two misplaced-token cases and an empty numbered
+list being accepted; those three regressions failed before the integrity fix.
+
+| Increment | Published commit | Tests after increment |
+| :--- | :--- | ---: |
+| Part A fixes, separately | `9f02599` | 246 |
+| Initiative template expansion | `4cbda44` | 291 |
+| Read-only agent documents | `b3fd630` | 295 |
+| Shared template-create transaction | `18f96c7` | 323 |
+| CLI `new` | `debed11` | 332 |
+| Section-placement and empty-content fixes | `176478a` | 343 |
+
+Direct shell Git authentication was unavailable. The connected GitHub API supplied
+an exact SHA-verified shallow checkout and published each completed increment with
+its expected parent and no force. Remote trees and commit objects matched local
+Git objects; previous history was preserved. No runtime code was added for the
+portal, MCP, layout, Miro, or chat import. No UI, real MCP-client, portal, or live
+Miro check is claimed.
+
+The portal roadmap and health-field decisions are in the architecture and handoff.
+Step 5 starts only after Joe's go.
 
 ## Step 3 executed checks
 
@@ -98,7 +199,7 @@ force, and returned Git objects checked against the staged tree and reconstructe
 commit SHA. The uploaded handoff was an older Step 1 snapshot; the accepted
 repository checkpoint governed Step 3. No existing work or history was replaced.
 
-Step 4 is next only after Joe's go. See the current handoff for the starting prompt.
+This is the historical Step 3 checkpoint. Step 4 evidence and the current gate are above.
 
 ## Step 2 executed checks
 
@@ -176,11 +277,11 @@ the fix and now pass.
 | 1 | Obsidian vault and valid records | All records validate. Actual Obsidian open-and-browse check pending; see below. |
 | 2 | MCP client list/read/create/update | Pending Step 5 |
 | 3 | Stale write rejection, version bump, Git commit | **Passed Step 3** at `24ddcc7`: two real processes, exactly one commit, structured stale rejection, agent attribution, and installed CLI proof |
-| 4 | Filled initiative template | Pending Step 4; the sample initiative is not template-engine evidence |
-| 5 | Ridgeview rendered on Miro | Pending Steps 6–9 |
-| 6 | MCP status update changes one card | Pending Steps 5–9 |
-| 7 | Unchanged render has zero writes | Pending Steps 7–9 |
-| 8 | Delete-frame behavior observed | Pending Step 6; no result has been inferred |
+| 4 | Filled initiative template | **Passed Step 4** at `176478a`: six populated sections, shared transaction, one attributed commit, library and installed CLI proof |
+| 5 | Ridgeview rendered on Miro | Pending optional Miro export in revised Step 8 |
+| 6 | MCP status update changes one card | Pending Step 5 and optional Miro export in Step 8 |
+| 7 | Unchanged render has zero writes | Pending planner Step 7 and optional Miro export Step 8 |
+| 8 | Delete-frame behavior observed | Pending optional Step 8 scratch probe; no result has been inferred |
 | 9 | SQLite deletion/rebuild preserves query results | **Passed Step 2**, library and installed CLI byte-equivalence proofs at `39b5b2e` |
 
 ## Obsidian demo status
