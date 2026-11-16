@@ -10,8 +10,9 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from chassis.atomic import vault_lock, write_atomic
+from chassis.git import record_activity
 from chassis.markdown import ParsedRecord, RecordFileError, parse_record
-from chassis.models import Record
+from chassis.models import Record, iso_date
 from chassis.validation import load_vault
 
 SCHEMA = """
@@ -25,6 +26,11 @@ CREATE TABLE records (
     sensitivity TEXT NOT NULL,
     title TEXT NOT NULL,
     next_step TEXT NOT NULL,
+    next_milestone TEXT,
+    milestone_due_at TEXT,
+    due_at TEXT,
+    blocker_reason TEXT,
+    last_activity_at TEXT,
     body TEXT NOT NULL,
     record_json TEXT NOT NULL,
     source_path TEXT NOT NULL UNIQUE,
@@ -32,11 +38,15 @@ CREATE TABLE records (
     content_hash TEXT NOT NULL,
     row_hash TEXT NOT NULL
 );
-PRAGMA user_version = 2;
+PRAGMA user_version = 3;
 """
 FIELDS = ("id", "type", "venture", "status", "parent", "assigned_agent",
-          "sensitivity", "title", "next_step")
-FILTER_FIELDS = ("type", "venture", "status", "parent", "assigned_agent", "sensitivity")
+          "sensitivity", "title", "next_step", "next_milestone", "milestone_due_at",
+          "due_at", "blocker_reason", "last_activity_at")
+FILTER_FIELDS = ("type", "venture", "status", "parent", "assigned_agent", "sensitivity",
+                 "next_milestone", "milestone_due_at", "due_at", "blocker_reason", "last_activity_at")
+NULL_FILTER_FIELDS = {"parent", "assigned_agent", "next_milestone", "milestone_due_at",
+                      "due_at", "blocker_reason", "last_activity_at"}
 COLUMNS = FIELDS + ("body", "record_json", "source_path", "mtime_ns", "content_hash", "row_hash")
 INSERT = "INSERT OR REPLACE INTO records VALUES (" + ", ".join("?" for _ in COLUMNS) + ")"
 
@@ -69,6 +79,7 @@ class RecordIndex:
 
     def _source_rows(self, cached=None) -> dict[str, tuple]:
         cached, rows = cached or {}, {}
+        activity = record_activity(self.root)
 
         def read(path):
             try:
@@ -85,12 +96,12 @@ class RecordIndex:
                     if _row_hash(tuple(old)[:-1]) != old["row_hash"]:
                         raise _InvalidIndex(f"damaged cached row: {relative}")
                     item = ParsedRecord(path, Record.model_validate_json(old["record_json"]), old["body"])
-                    rows[relative] = tuple(old)
                 else:
                     item = parse_record(raw.decode("utf-8"), path)
-                    row = tuple(getattr(item.record, field) for field in FIELDS) + (
-                        item.body, item.record.model_dump_json(), relative, *fingerprint)
-                    rows[relative] = row + (_row_hash(row),)
+                values = item.record.model_dump(mode="json") | {"last_activity_at": activity.get(relative)}
+                row = tuple(values[field] for field in FIELDS) + (
+                    item.body, item.record.model_dump_json(), relative, *fingerprint)
+                rows[relative] = row + (_row_hash(row),)
                 return item
             except (OSError, UnicodeError) as exc:
                 raise RecordFileError(f"{path}: {exc}") from exc
@@ -149,13 +160,14 @@ class RecordIndex:
             columns = tuple(row["name"] for row in connection.execute("PRAGMA table_info(records)"))
             version = connection.execute("PRAGMA user_version").fetchone()[0]
             checks = [row[0] for row in connection.execute("PRAGMA quick_check")]
-            if version != 2 or columns != COLUMNS or checks != ["ok"]:
+            if version != 3 or columns != COLUMNS or checks != ["ok"]:
                 raise _InvalidIndex("unexpected cache schema, version, or integrity check")
             self._refresh(connection)
             rows = connection.execute(
-                "SELECT record_json, body FROM records " + where + " ORDER BY id",
+                "SELECT record_json, body, last_activity_at FROM records " + where + " ORDER BY id",
                 parameters).fetchall()
-        return [json.loads(row["record_json"]) | {"body": row["body"]} for row in rows]
+        return [json.loads(row["record_json"]) | {"body": row["body"],
+                "last_activity_at": row["last_activity_at"]} for row in rows]
 
     def list_records(self, filters: Mapping[str, str | None] | None = None) -> list[dict]:
         """AND exact filters; omitted fields are unrestricted, None matches null."""
@@ -164,8 +176,13 @@ class RecordIndex:
             if field not in FILTER_FIELDS:
                 raise ValueError(f"Unknown filter field: {field}")
             if not isinstance(value, str) and not (
-                    value is None and field in {"parent", "assigned_agent"}):
+                    value is None and field in NULL_FILTER_FIELDS):
                 raise ValueError(f"Invalid filter value for {field}: {value!r}")
+            if value is not None and field in {"milestone_due_at", "due_at"}:
+                try:
+                    value = iso_date(value).isoformat()
+                except ValueError as exc:
+                    raise ValueError(f"Invalid filter value for {field}: {exc}") from exc
             clauses.append(f"{field} IS ?")
             parameters.append(value)
         where = "WHERE " + " AND ".join(clauses) if clauses else ""

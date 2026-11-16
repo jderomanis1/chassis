@@ -3,6 +3,7 @@
 import os
 import subprocess
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 from chassis.errors import DirtyRecordError, GitError, WriteError
@@ -43,6 +44,23 @@ def ensure_repository(root: Path) -> None:
     if Path(run_git(root, "rev-parse", "--show-toplevel")).resolve() != root.resolve():
         raise GitError(f"{root}: vault must be the Git repository root")
     run_git(root, "rev-parse", "--verify", "HEAD")
+
+
+def record_activity(root: Path) -> dict[str, str]:
+    """Latest HEAD-history commit per record path, using committer time in UTC."""
+    if not (root / ".git").exists() or not run_git(root, "rev-parse", "--revs-only", "HEAD"):
+        return {}
+    history = run_git(root, "log", "--topo-order", "--format=chassis-commit:%cI",
+                      "--name-only", "-z", "HEAD", "--", "records/")
+    activity, timestamp = {}, None
+    for part in history.split("\0"):
+        part = part.lstrip("\n")
+        if part.startswith("chassis-commit:"):
+            timestamp = datetime.fromisoformat(part.removeprefix("chassis-commit:")).astimezone(
+                timezone.utc).isoformat()
+        elif part.startswith("records/") and timestamp is not None:
+            activity.setdefault(part, timestamp)
+    return activity
 
 
 def has_record_changes(root: Path, path: Path) -> bool:

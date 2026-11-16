@@ -3,6 +3,7 @@ id: task-maintenance-plan
 type: task
 title: Draft the maintenance decision brief
 status: blocked
+blocker_reason: Waiting for the fictional estimate comparison before drafting the sequence.
 owner: Morgan Vale
 venture: venture-ridgeview
 parent: initiative-maintenance

@@ -20,7 +20,8 @@ store = RecordStore(Path(sys.argv[1]))
 print('ready', flush=True)
 sys.stdin.readline()
 try:
-    result = store.update_record('task-launch-budget', {'status': sys.argv[2]}, 1, 'chief-of-staff')
+    changes = {'status': sys.argv[2], 'blocker_reason': 'Fictional review pending' if sys.argv[2] == 'blocked' else None}
+    result = store.update_record('task-launch-budget', changes, 1, 'chief-of-staff')
 except ConflictError as error:
     print(json.dumps({'outcome': 'conflict', **error.as_dict()}), flush=True)
     sys.exit(3)
@@ -83,7 +84,7 @@ from pathlib import Path
 from chassis import atomic
 from chassis.store import RecordStore
 atomic.os.replace = lambda *args: os._exit(73)
-RecordStore(Path(sys.argv[1])).update_record('task-launch-budget', {'status': 'blocked'}, 1, 'chief-of-staff')
+RecordStore(Path(sys.argv[1])).update_record('task-launch-budget', {'status': 'blocked', 'blocker_reason': 'Fictional review pending'}, 1, 'chief-of-staff')
 """, str(git_repo)], capture_output=True, timeout=20)
     assert crashed.returncode == 73
     assert path.read_bytes() == original and index.path.read_bytes() == cached

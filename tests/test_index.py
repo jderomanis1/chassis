@@ -124,18 +124,18 @@ def test_every_read_refreshes_edits_even_with_preserved_mtime(vault, monkeypatch
     monkeypatch.setattr(index, "rebuild", lambda: pytest.fail("Expected record refresh, not rebuild"))
     path = vault / "records/tasks/task-launch-budget.md"
     previous = path.stat()
-    text = path.read_text().replace("status: planned", "status: blocked")
+    text = path.read_text().replace("status: planned", "status: done   ")
     path.write_text(text.replace("visibility rule", "freshness proof"), encoding="utf-8")
     assert path.stat().st_size == previous.st_size
     mtime = previous.st_mtime_ns if preserve_mtime else previous.st_mtime_ns + 10_000_000
     os.utime(path, ns=(previous.st_atime_ns, mtime))
     if operation == "list":
-        result = index.list_records({"status": "blocked", "sensitivity": "restricted"})[0]
+        result = index.list_records({"status": "done", "sensitivity": "restricted"})[0]
     elif operation == "get":
         result = index.get_record("task-launch-budget")
     else:
         result = index.search("freshness proof")[0]
-    assert result["id"] == "task-launch-budget" and result["status"] == "blocked"
+    assert result["id"] == "task-launch-budget" and result["status"] == "done"
     assert "freshness proof" in result["body"]
 
 

@@ -30,7 +30,7 @@ def test_dirty_refusal_then_human_commit_allows_agent_update(git_repo, staged):
     assert path.read_bytes() == original  # Explicit commit preserves manual bytes.
     assert git(git_repo, "diff", "--cached", "--", "unrelated.txt") == staged_diff
     version = read_record(path).record.version
-    result = store.update_record("task-launch-budget", {"status": "blocked"}, version, "chief-of-staff")
+    result = store.update_record("task-launch-budget", {"status": "blocked", "blocker_reason": "Fictional review pending"}, version, "chief-of-staff")
     assert result["record"]["version"] == version + 1
     assert "Fictional human edit" in result["record"]["body"]
 

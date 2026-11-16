@@ -12,7 +12,7 @@ TARGET = "records/tasks/task-launch-budget.md"
 
 def test_cli_update_and_structured_stale_conflict_share_the_library_path(git_repo):
     result = cli(git_repo, "update", "task-launch-budget", "--expected-version", "1",
-                 "--changes", '{"status":"blocked"}')
+                 "--changes", '{"status":"blocked","blocker_reason":"Fictional review pending"}')
     assert result.returncode == 0 and result.stderr == b""
     payload = json.loads(result.stdout)
     assert payload["record"]["version"] == 2

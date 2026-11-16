@@ -1,9 +1,10 @@
 """Record schema shared by every transport and renderer."""
 
-from datetime import datetime
+import re
+from datetime import date, datetime
 from typing import Annotated, Literal, get_args
 
-from pydantic import (AwareDatetime, BaseModel, ConfigDict, Field,
+from pydantic import (AwareDatetime, BaseModel, BeforeValidator, ConfigDict, Field,
                       StringConstraints, field_validator)
 
 RecordId = Annotated[str, StringConstraints(strict=True, max_length=80,
@@ -12,6 +13,18 @@ Nonempty = Annotated[str, StringConstraints(strict=True, strip_whitespace=True,
                                           min_length=1)]
 RecordType = Literal["venture", "initiative", "task", "agent"]
 RECORD_TYPES = get_args(RecordType)
+
+
+def iso_date(value):
+    if type(value) is date:
+        return value
+    if isinstance(value, str) and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value):
+        return date.fromisoformat(value)
+    raise ValueError("must be an ISO date (YYYY-MM-DD)")
+
+
+IsoDate = Annotated[date, BeforeValidator(iso_date)]
+OptionalText = Annotated[str, StringConstraints(strict=True, strip_whitespace=True)] | None
 
 
 class Record(BaseModel):
@@ -30,6 +43,28 @@ class Record(BaseModel):
     sensitivity: Literal["normal", "restricted"] = "normal"
     assigned_agent: RecordId | None = None
     depends_on: list[RecordId] = Field(default_factory=list, strict=True)
+    next_milestone: Nonempty | None = None
+    milestone_due_at: IsoDate | None = None
+    due_at: IsoDate | None = None
+    blocker_reason: OptionalText = Field(default=None, validate_default=True)
+
+    @field_validator("next_milestone", "milestone_due_at", "due_at")
+    @classmethod
+    def portal_field_scope(cls, value, info):
+        kinds = {"task"} if info.field_name == "due_at" else {"venture", "initiative"}
+        if value is not None and info.data.get("type") not in kinds:
+            raise ValueError(f"{info.field_name} is only valid for {', '.join(sorted(kinds))}")
+        return value
+
+    @field_validator("blocker_reason")
+    @classmethod
+    def blocker_matches_status(cls, value, info):
+        if info.data.get("type") == "task" and info.data.get("status") == "blocked":
+            if not value:
+                raise ValueError("blocker_reason is required when a task is blocked")
+        elif value:
+            raise ValueError("blocker_reason must be empty unless a task is blocked")
+        return value
 
     @field_validator("updated_at", mode="before")
     @classmethod

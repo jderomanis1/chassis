@@ -33,7 +33,7 @@ def test_reads_rebuild_missing_or_corrupt_cache(vault, operation, args, damage):
     assert index.path.is_file()
     with closing(sqlite3.connect(index.path)) as connection:
         assert connection.execute("PRAGMA quick_check").fetchone() == ("ok",)
-        assert connection.execute("PRAGMA user_version").fetchone() == (2,)
+        assert connection.execute("PRAGMA user_version").fetchone() == (3,)
 
 
 def test_bad_source_is_not_hidden_by_cache_recovery(vault):

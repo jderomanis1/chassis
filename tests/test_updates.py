@@ -19,7 +19,7 @@ def test_good_update_bumps_once_commits_only_target_as_agent_and_refreshes_index
     (git_repo / "unrelated.txt").write_text("Keep staged\n")
     git(git_repo, "add", "unrelated.txt")
     staged = git(git_repo, "diff", "--cached")
-    result = store.update_record(IDENTIFIER, {"status": "blocked"}, original["version"], AGENT)
+    result = store.update_record(IDENTIFIER, {"status": "blocked", "blocker_reason": "Fictional review pending"}, original["version"], AGENT)
     assert result["record"]["version"] == original["version"] + 1
     assert result["record"]["status"] == "blocked"
     assert result["record"]["body"] == original["body"]
@@ -34,7 +34,7 @@ def test_good_update_bumps_once_commits_only_target_as_agent_and_refreshes_index
 
 def test_stale_version_returns_current_version_without_file_cache_or_commit_change(git_repo):
     store = RecordStore(git_repo)
-    store.update_record(IDENTIFIER, {"status": "blocked"}, 1, AGENT)
+    store.update_record(IDENTIFIER, {"status": "blocked", "blocker_reason": "Fictional review pending"}, 1, AGENT)
     path = git_repo / TARGET
     cache = git_repo / ".chassis/index.sqlite"
     original, cached = path.read_bytes(), cache.read_bytes()

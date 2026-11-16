@@ -39,14 +39,16 @@ def persist_record(root: Path, item: ParsedRecord, original: bytes | None,
             else:
                 write_atomic(path, original)
         raise
-    refresh_committed(root, item, commit)
-    return {"record": item.record.model_dump(mode="json") | {"body": item.body}, "commit": commit}
+    record = refresh_committed(root, item, commit)
+    return {"record": record, "commit": commit}
 
 
-def refresh_committed(root: Path, item: ParsedRecord, commit: str) -> None:
+def refresh_committed(root: Path, item: ParsedRecord, commit: str) -> dict:
     """Refresh under the held lock; make post-commit failures unambiguous."""
     try:
-        RecordIndex(root)._rebuild_locked()
+        index = RecordIndex(root)
+        index._rebuild_locked()
+        return index._query_locked("WHERE id = ?", (item.record.id,))[0]
     except (OSError, ValueError, sqlite3.Error) as exc:
         raise CommittedIndexError(
             f"{item.path.relative_to(root)}: record committed as {commit}; index refresh failed: {exc}",

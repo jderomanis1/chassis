@@ -8,7 +8,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from chassis.index import FILTER_FIELDS, RecordIndex
+from chassis.index import FILTER_FIELDS, NULL_FILTER_FIELDS, RecordIndex
 from chassis.errors import AuthorizationError, ConflictError, WriteError
 from chassis.models import RECORD_TYPES
 from chassis.store import RecordStore
@@ -31,8 +31,8 @@ def main(argv=None) -> int:
     for field in FILTER_FIELDS:
         listing.add_argument("--" + field.replace("_", "-"), default=argparse.SUPPRESS,
                              choices=choices.get(field),
-                             help="Exact match; use null for unassigned/no parent" if field in {
-                                 "parent", "assigned_agent"} else "Exact match")
+                             help="Exact match; use null for absent values" if field in
+                             NULL_FILTER_FIELDS else "Exact match")
     get = commands.add_parser("get", help="Read a complete record by ID")
     get.add_argument("identifier")
     search = commands.add_parser("search", help="Search title, next_step, and body")
@@ -65,7 +65,7 @@ def main(argv=None) -> int:
             return 0
         if args.command == "list":
             filters = {field: value for field, value in vars(args).items() if field in FILTER_FIELDS}
-            for field in ("parent", "assigned_agent"):
+            for field in NULL_FILTER_FIELDS:
                 if filters.get(field) == "null":
                     filters[field] = None
             result = index.list_records(filters)

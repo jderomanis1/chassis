@@ -12,7 +12,7 @@ from chassis.transactions import persist_record
 
 def candidate(root, created=False):
     original = read_record(root / "records/tasks/task-launch-budget.md")
-    fields = original.record.model_dump() | {"version": 2, "status": "blocked"}
+    fields = original.record.model_dump() | {"version": 2, "status": "blocked", "blocker_reason": "Fictional review pending"}
     if created:
         fields.update(id="task-new", version=1)
     path = original.path.with_name(f"{fields['id']}.md")
