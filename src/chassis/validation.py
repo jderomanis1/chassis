@@ -1,13 +1,14 @@
 """Validate the working-tree vault; no index or Git state is consulted."""
 
 from pathlib import Path
+from collections.abc import Callable
 
 from chassis.graph import fail, validate_graph
 from chassis.markdown import ParsedRecord, RecordFileError, read_record
 from chassis.policy import load_policy
 
 
-def load_vault(root: Path) -> dict[str, ParsedRecord]:
+def load_vault(root: Path, *, reader: Callable[[Path], ParsedRecord] = read_record) -> dict[str, ParsedRecord]:
     record_root = root / "records"
     if record_root.is_symlink():
         raise RecordFileError(f"{record_root}: record directory cannot be a symlink")
@@ -17,7 +18,7 @@ def load_vault(root: Path) -> dict[str, ParsedRecord]:
             raise RecordFileError(f"{path}: record paths cannot be symlinks")
         if not path.is_file() or path.suffix != ".md":
             continue
-        item = read_record(path)
+        item = reader(path)
         expected = Path(f"{item.record.type}s") / f"{item.record.id}.md"
         if path.relative_to(record_root) != expected:
             raise RecordFileError(f"{path}: expected records/{expected.as_posix()}")

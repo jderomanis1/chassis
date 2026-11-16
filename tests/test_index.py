@@ -1,10 +1,12 @@
 import json
+import os
 import shutil
 from pathlib import Path
 
 import pytest
 
 from chassis.index import RecordIndex
+from chassis.markdown import RecordFileError
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -122,3 +124,59 @@ def test_invalid_filter_fields_and_values_are_actionable(vault, filters):
     index.rebuild()
     with pytest.raises(ValueError, match=next(iter(filters))):
         index.list_records(filters)
+
+
+@pytest.mark.parametrize("operation", ["list", "get", "search"])
+@pytest.mark.parametrize("preserve_mtime", [False, True])
+def test_every_read_refreshes_edits_even_with_preserved_mtime(vault, monkeypatch,
+                                                            operation, preserve_mtime):
+    index = RecordIndex(vault)
+    index.rebuild()
+    monkeypatch.setattr(index, "rebuild", lambda: pytest.fail("Expected record refresh, not rebuild"))
+    path = vault / "records/tasks/task-launch-budget.md"
+    previous = path.stat()
+    text = path.read_text().replace("status: planned", "status: blocked")
+    path.write_text(text.replace("visibility rule", "freshness proof"), encoding="utf-8")
+    assert path.stat().st_size == previous.st_size
+    mtime = previous.st_mtime_ns if preserve_mtime else previous.st_mtime_ns + 10_000_000
+    os.utime(path, ns=(previous.st_atime_ns, mtime))
+    if operation == "list":
+        result = index.list_records({"status": "blocked", "sensitivity": "restricted"})[0]
+    elif operation == "get":
+        result = index.get_record("task-launch-budget")
+    else:
+        result = index.search("freshness proof")[0]
+    assert result["id"] == "task-launch-budget" and result["status"] == "blocked"
+    assert "freshness proof" in result["body"]
+
+
+def test_source_addition_and_removal_are_seen_without_rebuild(vault):
+    index = RecordIndex(vault)
+    index.rebuild()
+    original = vault / "records/tasks/task-launch-budget.md"
+    added = original.with_name("task-extra-budget.md")
+    added.write_text(original.read_text().replace("task-launch-budget", "task-extra-budget"),
+                     encoding="utf-8")
+    assert len(index.list_records()) == 14
+    assert index.get_record("task-extra-budget") is not None
+    added.unlink()
+    assert index.get_record("task-extra-budget") is None
+    assert len(index.search("launch test budget")) == 1
+
+
+@pytest.mark.parametrize("method,args", [("rebuild", ()), ("list_records", ()),
+                                        ("get_record", ("venture-acme",)), ("search", ("",))])
+def test_invalid_source_fails_loudly_before_any_answer(vault, method, args):
+    index = RecordIndex(vault)
+    index.rebuild()
+    (vault / "records/tasks/broken.md").write_text("# Missing frontmatter\n", encoding="utf-8")
+    with pytest.raises(RecordFileError, match="broken.md:.*opening YAML frontmatter fence"):
+        getattr(index, method)(*args)
+
+
+def test_removal_that_breaks_relationships_is_rejected(vault):
+    index = RecordIndex(vault)
+    index.rebuild()
+    (vault / "records/tasks/task-maintenance-inventory.md").unlink()
+    with pytest.raises(RecordFileError, match="task-maintenance-quotes.md: dependency.*does not exist"):
+        index.list_records()
