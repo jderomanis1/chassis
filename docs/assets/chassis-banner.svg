@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-labelledby="title desc">
+  <title id="title">Chassis</title>
+  <desc id="desc">A foundation for parallel ventures. A dark workshop-inspired banner connects venture, initiative, and task records.</desc>
+  <defs>
+    <linearGradient id="surface" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#101D2D"/><stop offset="1" stop-color="#080F19"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#B8D8E8" stroke-opacity=".045"/>
+    </pattern>
+    <linearGradient id="connector" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#65DDD0"/><stop offset="1" stop-color="#244355"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="360" rx="18" fill="url(#surface)"/>
+  <rect x="740" y="1" width="539" height="358" rx="18" fill="url(#grid)"/>
+  <path d="M740 28V332" stroke="#26394C" stroke-opacity=".7"/>
+  <g font-family="Inter, Segoe UI, Arial, sans-serif">
+    <rect x="56" y="51" width="29" height="3" rx="1.5" fill="#65DDD0"/>
+    <text x="100" y="58" fill="#A8BECE" font-size="13" letter-spacing="2">A FOUNDATION FOR PARALLEL VENTURES</text>
+    <text x="52" y="165" fill="#F4F1E9" font-size="76" font-weight="700" letter-spacing="5">CHASSIS</text>
+    <text x="56" y="217" fill="#CFDCE5" font-size="28" font-weight="400">Keep the work connected.</text>
+    <path d="M56 268H681" stroke="#293B4D"/>
+    <text x="56" y="301" fill="#65DDD0" font-size="12" font-weight="600" letter-spacing="1.6">INCREMENT 0</text>
+    <text x="183" y="301" fill="#879EAF" font-size="12" letter-spacing="1.4">STEP 1 / THE FOUNDATION</text>
+  </g>
+  <g fill="none" stroke="url(#connector)" stroke-width="2">
+    <path d="M963 117V139H904V160"/><path d="M904 212V235H1012V251"/>
+  </g>
+  <g font-family="Inter, Segoe UI, Arial, sans-serif">
+    <rect x="836" y="59" width="256" height="58" rx="8" fill="#152536" stroke="#335268"/>
+    <rect x="777" y="154" width="256" height="58" rx="8" fill="#122230" stroke="#315064"/>
+    <rect x="885" y="251" width="256" height="58" rx="8" fill="#11202D" stroke="#2B4559"/>
+    <circle cx="862" cy="88" r="5" fill="#65DDD0"/><circle cx="803" cy="183" r="5" fill="#65DDD0" opacity=".75"/>
+    <circle cx="911" cy="280" r="5" fill="#65DDD0" opacity=".5"/>
+    <text x="882" y="94" fill="#E1EAF0" font-size="17" font-weight="600">Venture</text>
+    <text x="823" y="189" fill="#D4E0E8" font-size="17" font-weight="600">Initiative</text>
+    <text x="931" y="286" fill="#C7D7E2" font-size="17" font-weight="600">Task</text>
+    <path d="M1024 83H1064M1024 93H1051M966 178H1005M966 188H992M1072 275H1113M1072 285H1100" stroke="#536C7F" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <rect x=".5" y=".5" width="1279" height="359" rx="17.5" fill="none" stroke="#2C4053"/>
+</svg>
