@@ -2,11 +2,12 @@
 
 ## Current boundary
 
-Steps 1–4 implement the source-record schema, safe parsing, relationship and policy
+Steps 1–5 implement the source-record schema, safe parsing, relationship and policy
 validation, fictional records, a disposable SQLite index, and versioned local
-record writes and constrained templates. Commands include `validate`, `index
+record writes, constrained templates, approved portal data fields, and stdio MCP. Commands include `validate`, `index
 rebuild`, `list`, `get`, `search`, `update`, `create`, `new`, and `commit-human`.
-MCP and rendering remain planned. Step 4 adds no portal or external runtime code.
+`chassis-mcp` exposes six tools using the official MCP Python SDK, locked at 2.3.0.
+Portal UI, health calculations, layout, and rendering remain later work.
 Execution and data remain local and fictional; any Miro proof uses designated scratch space.
 
 ## Source records
@@ -25,6 +26,14 @@ Statuses are `planned`, `in_progress`, `blocked`, and `done`.
 
 Optional fields: `depends_on: []`, `sensitivity: normal | restricted` (default
 normal), and `assigned_agent` (default null). Assignment is descriptive metadata.
+Ventures and initiatives additionally accept optional `next_milestone` and
+`milestone_due_at`; tasks accept optional `due_at` and `blocker_reason`. Dates are
+strict `YYYY-MM-DD` strings or YAML date values, never datetimes or numeric epochs.
+A task with status `blocked` requires a nonempty reason. Every other status
+requires an empty/null reason. Optional fields default to null, so older records
+continue to validate except that legacy blocked tasks must supply a reason.
+The sample blocked Ridgeview task has been migrated. Fields cannot be populated
+on the wrong record type. `last_activity_at` is a read projection, not frontmatter.
 Dependencies may cross ventures; self-dependencies, missing targets, and cycles
 are invalid. Versions are positive integers. Timestamps carry an explicit zone.
 Unknown fields, duplicate YAML keys, unsafe tags, and merge keys are rejected.
@@ -71,7 +80,7 @@ than read/write, unknown venture references, and unknown assignment IDs. Step 3
 enforces exact venture/type write grants, including old and new scope on a move.
 Restricted records use the same write-grant rule; sensitivity is not an identity.
 
-CLI identity comes from `CHASSIS_AGENT_ID`; the library accepts an explicit trusted
+CLI and MCP caller identity come from `CHASSIS_AGENT_ID`; the library accepts an explicit trusted
 caller ID. Author name/email come from `CHASSIS_AGENT_NAME` / `CHASSIS_AGENT_EMAIL`.
 Unknown/read-only callers are refused after reading only policy, before record,
 lock, index, template, or Git access. Scoped updates read only target frontmatter
@@ -81,9 +90,27 @@ Denied scopes never open the lock/index or invoke Git. Under the lock,
 policy and the target are reread and grants are checked again. These are local
 authorization checks, not an authentication service or a filesystem sandbox.
 
-Tool handlers are transport-agnostic functions. A thin MCP adapter will expose
-them through stdio. No model SDK, model credential, HTTP server, or agent spawning
+`chassis.tool_handlers.ToolHandlers` contains transport-independent argument
+models, error mapping, and thin calls into the same `RecordIndex`/`RecordStore`
+methods used by the CLI. `chassis.mcp_server` supplies the official SDK stdio
+adapter, runs blocking library calls in worker threads, and logs to stderr.
+There are exactly six tools: `list_records`, `read_record`, `search`,
+`create_record`, `create_from_template`, and `update_record`. The library's
+`get_record` method is exposed as `read_record`; no `upsert_record` tool exists.
+Arguments forbid extra fields and accept no caller ID/name/email. `--vault` or
+`CHASSIS_VAULT` sets the vault; the default is the process's working directory.
+No model SDK, model credential, HTTP server, or agent spawning
 is required. Agent templates remain files; their default permission is read-only.
+
+MCP success results are objects: `records` for list/search, `record` for read,
+and `record` plus `commit` for writes. Identical JSON is returned in text content
+and `structuredContent`. Failures set `isError: true`: `conflict` includes the
+expected/current versions, `unauthorized` and `dirty_record` retain actionable
+details, `validation` includes a field and reason (plus issues for schema errors),
+and `not_found` identifies missing records/tools. Whole-record/relationship errors
+use `record` as the field when no narrower field is available. Git/index/internal
+failures keep separate structured codes. Raw hook/exception diagnostics go only
+to stderr. Post-commit and uncertain-commit metadata is preserved for recovery.
 
 ## C6: writes, human edits, and the index
 
@@ -108,7 +135,7 @@ would move the stable record path. Supplied new venture scopes cannot bootstrap
 their own grants: A2 requires policy venture references to already exist. Human
 provisioning of a venture and its policy remains separate from record tools.
 
-Success returns `{"record": <full record plus body>, "commit": <SHA>}`. A stale
+Success returns `{"record": <full record plus body and derived activity>, "commit": <SHA>}`. A stale
 write raises `ConflictError` with `as_dict()` containing `error: conflict`, `id`,
 `expected_version`, and `current_version`. No record/cache write or commit occurs.
 Other write refusals also expose `as_dict()`. The CLI prints success JSON to
@@ -149,6 +176,12 @@ section. `fields.sections` maps those exact names to nonempty strings. Expansion
 rejects missing/unknown keys, empty or markup-only content, recognized placeholder
 markers, damaged headings/order, and tokens assigned to the wrong sections.
 This validates structure and explicit markers, not the business quality of prose.
+Markers include FIXME and XXX. Matching normalizes to Unicode NFKC so compatibility
+forms cannot conceal known markers; it does not claim to detect all Unicode
+homoglyphs. Accepted content is not normalized/replaced. Caller owner, sensitivity,
+and assignment use the same strict schema constraints before template expansion,
+and a non-null assignment must be a known policy ID. The shared create path checks
+the complete record and policy again.
 
 `create_from_template` checks policy and the venture/type grant before opening
 the template, then calls `create_record`. That path reloads authorization before
@@ -190,14 +223,17 @@ index.get_record("task-launch-budget")
 index.search("three most repeated")
 ```
 
-All results contain the full normalized record plus unchanged Markdown `body`.
+All results contain the full normalized record plus unchanged Markdown `body`
+and derived `last_activity_at`.
 Lists and searches use ascending ID order. `sensitivity` is always present;
 restricted records remain readable here. Renderer filtering belongs to C2.
 
 Filters are case-sensitive exact matches on type, venture, status, parent,
-assigned_agent, and sensitivity, combined with AND. Omission means no constraint.
-`None` matches null parent/assignment; CLI `null` has that meaning for those two
-options. Unsupported filter fields or value types raise `ValueError`. No-match
+assigned_agent, sensitivity, next_milestone, milestone_due_at, due_at,
+blocker_reason, and last_activity_at, combined with AND. Omission means no constraint.
+`None` matches any nullable field; CLI `null` has the same meaning. Date filters
+require `YYYY-MM-DD`. Activity filters match the returned UTC datetime exactly.
+Unsupported filter fields or value types raise `ValueError`. No-match
 list/search results are `[]`; a missing ID is `None` in Python and exit code 1
 with `NOT FOUND` on CLI stderr. JSON output has sorted keys and no cache metadata.
 
@@ -214,12 +250,22 @@ validated as a complete graph before the cache transaction updates changed rows.
 Policy validation and known-assignment checks also run on every read.
 
 Rebuild validates all sources before replacing the database atomically. Missing
-indexes rebuild automatically. Schema version 2, column order, SQLite quick_check,
+indexes rebuild automatically. Schema version 3, column order, SQLite quick_check,
 record JSON, and row-content digests detect cache damage; a read rebuilds and
 retries once. Locked databases and other storage errors are reported, not treated
 as corruption. Cache symlinks are rejected. Invalid sources never yield old data.
 
-Each read costs a full source-byte scan plus graph validation. Rebuilds serialize
+At index time, `git log` over current HEAD history supplies the newest touching
+commit for each record path. Its committer timestamp is normalized to UTC. Agent
+and human commits count; an unrelated commit or an uncommitted edit does not advance
+the record's activity. No history means null, including non-Git read-only folders,
+unborn repositories, and new uncommitted records. The value is stored only in the
+disposable projection and included in row integrity checks, never in record JSON
+or source Markdown. History is refreshed on every read, independently of source
+mtime/hash; an edit followed by a byte-identical restore still advances activity.
+Schema-2 caches rebuild automatically. No health, age threshold, or colors are derived.
+
+Each read costs a full source-byte scan, Git history scan, and graph validation. Rebuilds serialize
 an in-memory SQLite database through the same atomic writer. This is an explicit
 local-increment tradeoff, not a large-vault performance claim. The shared lock
 coordinates Chassis operations but cannot provide an atomic snapshot across
@@ -235,12 +281,12 @@ instructions and work. Never force-push. Secrets come from the environment;
 ## Approved roadmap change, 2026-11-16
 
 Joe moved the portal into scope after MCP. This supersedes the earlier Miro-first
-sequence. Step 4 records the decision only; no portal, graph-export, layout, Miro,
-agent integration, or chat-import implementation is included in this step.
+sequence. Step 5 adds the explicitly approved data fields and MCP only; no portal,
+graph-export, layout, Miro, agent integration, or chat-import implementation is included.
 
 | Order | Scope and gate |
 | :--- | :--- |
-| Step 5 | Transport-independent MCP tools, proved through a real stdio client |
+| Step 5 | Complete: transport-independent MCP tools, proved through real stdio clients |
 | Step 6 | Read-only command-center web portal over the Chassis library and index; Joe must approve its design prototype before any portal code |
 | Step 7 | Renderer-neutral layout and change planner |
 | Step 8, optional | Miro export: designated scratch API contract/deletion probe first, then adapter and live export proofs |
@@ -259,21 +305,20 @@ leave position planning and per-item change planning for Step 7. The present
 restricted nodes and revealing edges still applies. The index alone does not
 provide read isolation. C1 and the other Miro contracts still govern an optional export.
 
-### Portal health fields flagged for decision
+### Portal fields approved; health decisions remain
 
-These are proposals, not schema additions or implemented health calculations.
+Joe approved the milestone, due-date, blocker, and derived activity fields in Step 5.
+The remaining decisions concern how the future portal interprets and presents them.
 
 | Information | Current support | Decision needed before the health view |
 | :--- | :--- | :--- |
 | Lifecycle, responsibility, next action | `status`, `owner`, `assigned_agent`, `next_step` | Define health separately from lifecycle status |
 | Drilldown and dependencies | `venture`, `parent`, `depends_on` | Define rollups and hidden-record handling in the neutral read projection |
-| Next milestone | No structured milestone fields | Consider optional `next_milestone` and `milestone_due_at` on ventures/initiatives |
-| Overdue tasks | No due date | Consider optional task `due_at` if lateness should affect health |
-| Reason for a blocker or risk | Body and `next_step` only | Consider `blocker_reason`; decide whether a separate risk summary is needed |
-| Last meaningful activity | `updated_at`; Git history and internal file metadata | Prefer deriving `last_activity_at`; human commits preserve `updated_at`, so that field alone can be stale |
+| Next milestone | Optional `next_milestone` and `milestone_due_at` on ventures/initiatives | Define how missing milestones/dates affect the display |
+| Overdue tasks | Optional task `due_at` | Define whether/how lateness affects health |
+| Reason for a blocker | Task `blocker_reason`, required only when blocked | Define summaries and dependency effects |
+| Last committed activity | Derived `last_activity_at`, including agent/human commits | Define freshness thresholds and how to present uncommitted changes separately |
 | Overall health and explanation | No health model | Define computed health, reason, freshness, and an unknown state before assigning colors |
 
-Recommendation for Joe's decision: add only milestone/date and blocker fields
-that the approved prototype needs; derive activity and aggregate health where
-possible. Decide how uncommitted human edits affect activity. Step 4 changes no
-portal-related record fields and implements no health heuristics.
+The portal step must settle health rules, reasons, freshness, and unknown states
+before assigning colors. Step 5 does not implement health calculations or UI.
