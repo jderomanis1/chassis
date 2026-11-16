@@ -19,7 +19,7 @@ def test_reads_rebuild_missing_or_corrupt_cache(vault, operation, args, damage):
     index.rebuild()
     expected = getattr(index, operation)(*args)
     if damage == "missing":
-        shutil.rmtree(index.path.parent)
+        index.path.unlink()
     elif damage == "garbage":
         index.path.write_bytes(b"not a SQLite database")
     elif damage == "truncated":
@@ -41,7 +41,7 @@ def test_bad_source_is_not_hidden_by_cache_recovery(vault):
     index.rebuild()
     index.path.write_bytes(b"broken cache")
     (vault / "records/tasks/broken.md").write_text("invalid record", encoding="utf-8")
-    with pytest.raises(RecordFileError, match="broken.md:.*opening YAML frontmatter fence"):
+    with pytest.raises(RecordFileError, match="^Records unavailable; source validation failed$"):
         index.list_records()
     assert index.path.read_bytes() == b"broken cache"
 
@@ -50,8 +50,9 @@ def test_bad_source_is_not_hidden_by_cache_recovery(vault):
 def test_generated_cache_does_not_follow_symlink_outside_vault(vault, tmp_path, method):
     outside = tmp_path / "outside-cache"
     outside.mkdir()
+    shutil.rmtree(vault / ".chassis")
     (vault / ".chassis").symlink_to(outside, target_is_directory=True)
-    with pytest.raises(ValueError, match=".chassis.*symlink"):
+    with pytest.raises(ValueError, match="Audit unavailable"):
         getattr(RecordIndex(vault), method)()
     assert list(outside.iterdir()) == []
 

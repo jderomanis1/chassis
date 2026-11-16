@@ -39,8 +39,8 @@ def test_agent_document_created_from_template_grants_no_access(agent_repo):
     assert result["record"]["type"] == "agent" and result["record"]["assigned_agent"] is None
     assert git(agent_repo, "show", "--format=", "--name-only") == "records/agents/agent-sample-reader.md"
     policy = load_policy(agent_repo)
-    assert policy.unknown_agent == "read" and "agent-sample-reader" not in policy.agents
-    with pytest.raises(AuthorizationError, match="agent-sample-reader.*no write grant"):
+    assert policy.unknown_agent == "deny" and "agent-sample-reader" not in policy.agents
+    with pytest.raises(AuthorizationError, match="^Write not permitted$"):
         RecordStore(agent_repo).update_record("task-launch-budget", {"status": "blocked"}, 1, "agent-sample-reader")
     assert git(agent_repo, "rev-parse", "HEAD") == result["commit"]
     assert (agent_repo / "agents.yaml").read_bytes() == policy_bytes

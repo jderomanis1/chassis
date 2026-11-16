@@ -48,7 +48,7 @@ def test_not_found_and_unauthorized_are_structured(git_repo):
     assert handler.call("read_record", {"id": "missing-id"})["error"] == "not_found"
     result = handler.call("create_record", {"type": "task", "fields": new_task(git_repo)})
     assert result["error"] == "unauthorized"
-    assert result["agent"] == "unknown-agent"
+    assert result == {"error": "unauthorized", "message": "Write not permitted"}
 
 
 def test_unexpected_exception_is_logged_but_never_returned(git_repo, monkeypatch, caplog):

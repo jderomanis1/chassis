@@ -3,7 +3,7 @@ id: task-launch-budget
 type: task
 title: Set the internal launch test budget
 status: planned
-owner: Avery Quinn
+owner: Fictional Private Reviewer
 venture: venture-acme
 parent: initiative-d2c-launch
 next_step: Record the sample budget assumptions for internal review.

@@ -17,7 +17,40 @@ Chassis is Andy Patterson’s command foundation for running parallel ventures.
 Its goal is a shared project state that a chief-of-staff agent can read and update,
 with a spatial view that makes the next action easy to see.
 
-**This checkout delivers Steps 1–5 of Increment 0: validated records, reads, local writes, templates, and MCP.**
+## Step 6 access requirements
+
+Record reads and writes require an existing policy agent and a valid
+`CHASSIS_AGENT_TOKEN`. The local operator provisions a credential with
+`uv run chassis agent-token create reviewer`; that command prints the new token
+once and stores only its SHA-256 digest in ignored `.chassis/agent-tokens.yaml`.
+Export the returned value as `CHASSIS_AGENT_TOKEN` and set `CHASSIS_AGENT_ID` to
+the same agent. Repeating the command rotates that agent's credential.
+`docs/agent-tokens.example.yaml` contains placeholders only.
+
+Unknown or empty callers, missing/wrong tokens, and revoked access get no records.
+Read/write grants are exact per venture and record type. `clearance` defaults to
+`normal`; restricted records additionally require `restricted` clearance. They
+are completely omitted for other callers, including dependency IDs, graph nodes,
+counts, and descendants of hidden parents. Missing and unauthorized reads share
+one `not_found` response. No portal masking layer is needed.
+
+Each library read and write appends body-free metadata to ignored
+`.chassis/audit.jsonl`. Audit failure withholds read results; a failure after a
+successful commit preserves the commit/version recovery facts. `commit-human`
+also requires the configured agent's credential and grant, while retaining human
+Git attribution. Token provisioning is a local operator command, never an MCP tool.
+
+MCP is optional: `uv sync --extra mcp`. Without the extra, the core remains usable
+and `chassis-mcp` explains how to install it. The default request cap is 1 MiB;
+set `CHASSIS_MCP_MAX_REQUEST_BYTES` or `--max-request-bytes` to change it.
+Malformed JSON returns `-32700`; oversized input is drained and rejected with a
+structured error. SIGTERM finishes an active transaction and releases its lock.
+
+These controls govern Chassis APIs. Files and Git history are still plaintext,
+and anyone with direct filesystem access can read them. Real data, hosted access,
+and agent-to-agent channels remain outside this sample-only increment.
+
+**This checkout delivers Steps 1–5 and Step 6 read security: validated records, reads, local writes, templates, and MCP.**
 All venture data is fictional. SQLite is a disposable index of working-tree files.
 Six MCP tools run over stdio. The portal, layout planner, optional Miro export, and chat import follow.
 

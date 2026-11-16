@@ -1,3 +1,4 @@
+from conftest import assert_no_transaction_artifacts
 import pytest
 from conftest import git
 
@@ -57,11 +58,11 @@ def test_human_commit_uses_content_hash_when_status_reports_clean(git_repo, monk
 
 @pytest.mark.parametrize("move", [False, True])
 def test_wrong_venture_is_refused_before_reading_a_record_body(git_repo, monkeypatch, move):
-    limit_to_ridgeview(git_repo)
-    store = RecordStore(git_repo)
+    token = limit_to_ridgeview(git_repo)
+    store = RecordStore(git_repo, token=token)
     monkeypatch.setattr(store, "_read_current", lambda *a: pytest.fail("Body read before scope authorization"))
     identifier = "task-resident-faq" if move else "task-launch-budget"
     changes = {"venture": "venture-acme", "parent": "initiative-d2c-launch"} if move else {}
-    with pytest.raises(AuthorizationError, match="venture-acme/task"):
+    with pytest.raises(AuthorizationError, match="^Write not permitted$"):
         store.update_record(identifier, changes, 1, "limited-writer")
-    assert not (git_repo / ".chassis").exists()
+    assert_no_transaction_artifacts(git_repo)

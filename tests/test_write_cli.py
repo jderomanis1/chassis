@@ -1,3 +1,4 @@
+from conftest import assert_no_transaction_artifacts
 import json
 
 import pytest
@@ -62,7 +63,7 @@ def test_cli_denied_caller_makes_no_record_or_git_changes(git_repo, monkeypatch,
     assert json.loads(result.stderr)["error"] == "unauthorized"
     assert (git_repo / TARGET).read_bytes() == original
     assert git(git_repo, "rev-parse", "HEAD") == before
-    assert not (git_repo / ".chassis").exists()
+    assert_no_transaction_artifacts(git_repo)
 
 
 def test_cli_bad_json_is_actionable_and_does_not_commit(git_repo):

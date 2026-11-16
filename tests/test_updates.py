@@ -1,3 +1,4 @@
+from conftest import assert_no_transaction_artifacts
 import pytest
 from conftest import git
 
@@ -55,4 +56,4 @@ def test_immutable_update_preserves_file_and_git_history(git_repo, field, value)
         RecordStore(git_repo).update_record(IDENTIFIER, {field: value}, 1, AGENT)
     assert path.read_bytes() == original
     assert git(git_repo, "rev-parse", "HEAD") == before
-    assert not (git_repo / ".chassis").exists()
+    assert_no_transaction_artifacts(git_repo)

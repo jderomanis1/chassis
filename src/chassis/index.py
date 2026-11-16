@@ -10,6 +10,9 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from chassis.atomic import vault_lock, write_atomic
+from chassis.audit import audited, mark_denied
+from chassis.identity import caller_id
+from chassis.policy import authorize_reader, visible_records
 from chassis.git import record_activity
 from chassis.markdown import ParsedRecord, RecordFileError, parse_record
 from chassis.models import Record, iso_date
@@ -68,8 +71,9 @@ def _row_hash(row: tuple) -> str:
 
 
 class RecordIndex:
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, agent=None, token=None):
         self.root = Path(root).resolve()
+        self.agent, self.token = caller_id(agent), token
         self.path = self.root / ".chassis" / "index.sqlite"
 
     def _check_path(self):
@@ -109,10 +113,23 @@ class RecordIndex:
         load_vault(self.root, reader=read)
         return rows
 
+    @audited("rebuild", many=True)
     def rebuild(self) -> int:
         """Replace the entire cache only after all source records validate."""
+        policy = authorize_reader(self.root, self.agent, self.token)
+        if policy is None:
+            mark_denied()
+            return 0
         with vault_lock(self.root):
-            return self._rebuild_locked()
+            policy = authorize_reader(self.root, self.agent, self.token)
+            if policy is None:
+                mark_denied()
+                return 0
+            try:
+                self._rebuild_locked()
+                return len(visible_records(self._query_locked("", ()), policy, self.agent))
+            except RecordFileError as exc:
+                raise RecordFileError("Records unavailable; source validation failed") from exc
 
     def _rebuild_locked(self) -> int:
         """Caller holds vault_lock, including callers in the mutation layer."""
@@ -169,6 +186,24 @@ class RecordIndex:
         return [json.loads(row["record_json"]) | {"body": row["body"],
                 "last_activity_at": row["last_activity_at"]} for row in rows]
 
+    def _visible(self):
+        policy = authorize_reader(self.root, self.agent, self.token)
+        if policy is None:
+            mark_denied()
+            return []
+        with vault_lock(self.root):
+            policy = authorize_reader(self.root, self.agent, self.token)
+            if policy is None:
+                mark_denied()
+                return []
+            try:
+                records = self._query_locked("", ())
+            except RecordFileError as exc:
+                # A malformed hidden row must not expose its name or contents.
+                raise RecordFileError("Records unavailable; source validation failed") from exc
+            return visible_records(records, policy, self.agent)
+
+    @audited("list_records", many=True)
     def list_records(self, filters: Mapping[str, str | None] | None = None) -> list[dict]:
         """AND exact filters; omitted fields are unrestricted, None matches null."""
         clauses, parameters = [], []
@@ -185,18 +220,23 @@ class RecordIndex:
                     raise ValueError(f"Invalid filter value for {field}: {exc}") from exc
             clauses.append(f"{field} IS ?")
             parameters.append(value)
-        where = "WHERE " + " AND ".join(clauses) if clauses else ""
-        return self._query(where, tuple(parameters))
+        return [r for r in self._visible()
+                if all(r[field] == value for field, value in zip((filters or {}), parameters))]
 
+    @audited("read_record")
     def get_record(self, identifier: str) -> dict | None:
-        results = self._query("WHERE id = ?", (identifier,))
-        return results[0] if results else None
+        return next((r for r in self._visible() if r["id"] == identifier), None)
 
+    @audited("search", many=True)
     def search(self, query: str) -> list[dict]:
         """Literal Unicode-casefolded substring in title, next_step, or body."""
         needle = query.strip().casefold()
-        if not needle:
-            return self._query("WHERE 0")
-        return self._query("WHERE instr(casefold(title), ?) > 0 "
-                           "OR instr(casefold(next_step), ?) > 0 "
-                           "OR instr(casefold(body), ?) > 0", (needle,) * 3)
+        return [r for r in self._visible() if needle and any(
+            needle in r[field].casefold() for field in ("title", "next_step", "body"))]
+
+    read_record = get_record
+
+    @audited("graph")
+    def graph(self, venture=None):
+        from chassis.read_model import neutral_graph
+        return neutral_graph(self._visible(), venture)

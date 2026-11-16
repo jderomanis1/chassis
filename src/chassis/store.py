@@ -7,11 +7,13 @@ from pathlib import Path
 from pydantic import TypeAdapter, ValidationError
 
 from chassis.atomic import vault_lock
-from chassis.errors import ConflictError, NotFoundError, WriteError
+from chassis.audit import audited
+from chassis.identity import caller_id
+from chassis.errors import AuthorizationError, ConflictError, NotFoundError, WriteError
 from chassis.git import Identity, commit_file, ensure_clean, ensure_repository, has_record_changes
 from chassis.markdown import ParsedRecord, RecordFileError, parse_record, read_frontmatter
 from chassis.models import RECORD_TYPES, Record, RecordId, RecordType
-from chassis.policy import authorize_writer, require_grant
+from chassis.policy import authorize_writer, require_grant, require_clearance, visible_records
 from chassis.templates import expand_template, template_sections
 from chassis.transactions import persist_record, refresh_committed
 from chassis.validation import load_vault, read_vault, validate_records
@@ -20,8 +22,9 @@ IMMUTABLE = {"id", "version", "updated_at"}
 
 
 class RecordStore:
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, token=None):
         self.root = Path(root).resolve()
+        self.token = token
 
     def _find_path(self, identifier: str) -> Path:
         paths = []
@@ -48,7 +51,12 @@ class RecordStore:
             raise
 
     def _check_scopes(self, identifier, changes, policy, agent) -> None:
-        fields = read_frontmatter(self._find_path(identifier))
+        try:
+            fields = read_frontmatter(self._find_path(identifier))
+        except NotFoundError as exc:
+            raise AuthorizationError("Write not permitted") from exc
+        require_clearance(policy, agent, fields.get("sensitivity", "normal"))
+        require_clearance(policy, agent, changes.get("sensitivity", fields.get("sensitivity", "normal")))
         venture, kind = TypeAdapter(tuple[RecordId, RecordType]).validate_python(
             (fields.get("venture"), fields.get("type")))
         require_grant(policy, agent, venture, kind)
@@ -56,9 +64,10 @@ class RecordStore:
         if isinstance(venture, str) and isinstance(kind, str):
             require_grant(policy, agent, venture, kind)
 
+    @audited("update_record")
     def update_record(self, identifier: str, changes: Mapping, expected_version: int,
                       agent: str) -> dict:
-        policy = authorize_writer(self.root, agent)
+        policy = authorize_writer(self.root, agent, self.token)
         if not isinstance(changes, Mapping):
             raise WriteError("changes must be an object")
         changes = dict(changes)
@@ -74,7 +83,7 @@ class RecordStore:
         self._check_scopes(identifier, changes, policy, agent)
         identity = Identity.from_env("AGENT")
         with vault_lock(self.root):
-            policy = authorize_writer(self.root, agent)
+            policy = authorize_writer(self.root, agent, self.token)
             self._check_scopes(identifier, changes, policy, agent)
             current, original = self._read_current(identifier)
             path = current.path
@@ -95,11 +104,18 @@ class RecordStore:
             items = read_vault(self.root)
             validate_records(self.root, [proposed if item.record.id == identifier else item
                                          for item in items], policy)
-            return persist_record(self.root, proposed, original, identity,
-                                  f"chassis: update {identifier} v{record.version} by {agent}")
+            references = self._visible_dependencies(proposed, items, policy, agent)
+            result = persist_record(self.root, proposed, original, identity,
+                                    f"chassis: update {identifier} v{record.version} by {agent}")
+            result["record"]["depends_on"] = references
+            return result
 
+    @audited("create_record")
     def create_record(self, record_type: str, fields: Mapping, agent: str) -> dict:
-        policy = authorize_writer(self.root, agent)
+        return self._create_record(record_type, fields, agent)
+
+    def _create_record(self, record_type: str, fields: Mapping, agent: str) -> dict:
+        policy = authorize_writer(self.root, agent, self.token)
         if not isinstance(fields, Mapping):
             raise WriteError("fields must be an object")
         fields = dict(fields)
@@ -114,10 +130,12 @@ class RecordStore:
         record = Record.model_validate(fields | {"type": record_type, "version": 1,
                                                 "updated_at": datetime.now(timezone.utc)})
         require_grant(policy, agent, record.venture, record.type)
+        require_clearance(policy, agent, record.sensitivity)
         identity = Identity.from_env("AGENT")
         with vault_lock(self.root):
-            policy = authorize_writer(self.root, agent)
+            policy = authorize_writer(self.root, agent, self.token)
             require_grant(policy, agent, record.venture, record.type)
+            require_clearance(policy, agent, record.sensitivity)
             items = read_vault(self.root)
             if any(item.record.id == record.id for item in items):
                 raise WriteError(f"{record.id}: duplicate ID", id=record.id)
@@ -125,13 +143,17 @@ class RecordStore:
             proposed = ParsedRecord(path, record, body)
             validate_records(self.root, [*items, proposed], policy)
             ensure_repository(self.root)
-            return persist_record(self.root, proposed, None, identity,
-                                  f"chassis: create {record.id} v1 by {agent}")
+            references = self._visible_dependencies(proposed, items, policy, agent)
+            result = persist_record(self.root, proposed, None, identity,
+                                    f"chassis: create {record.id} v1 by {agent}")
+            result["record"]["depends_on"] = references
+            return result
 
+    @audited("create_from_template")
     def create_from_template(self, template: str, venture: str, fields: Mapping,
                              agent: str) -> dict:
         """Authorize before template I/O, then use the sole record-create transaction."""
-        policy = authorize_writer(self.root, agent)
+        policy = authorize_writer(self.root, agent, self.token)
         template_sections(template)
         TypeAdapter(RecordId).validate_python(venture)
         require_grant(policy, agent, venture, template)
@@ -155,10 +177,22 @@ class RecordStore:
             raise WriteError(f"assigned_agent {assigned!r} is not a known agent id",
                              field="assigned_agent", reason="must be a known agent id")
         expanded = expand_template(self.root, template, fields)
-        return self.create_record(template, expanded | {"venture": venture, "parent": venture}, agent)
+        return self._create_record(template, expanded | {"venture": venture, "parent": venture}, agent)
 
+    def _visible_dependencies(self, proposed, items, policy, agent):
+        rows = [item.record.model_dump(mode="json") for item in items
+                if item.record.id != proposed.record.id] + [proposed.record.model_dump(mode="json")]
+        record = next((r for r in visible_records(rows, policy, agent)
+                       if r["id"] == proposed.record.id), None)
+        if record is None:
+            raise AuthorizationError("Write not permitted")
+        return record["depends_on"]
+
+    @audited("commit_human")
     def commit_human(self, path: str | Path) -> dict:
         """Commit one validated manual edit exactly as written, as the human."""
+        agent = caller_id()
+        policy = authorize_writer(self.root, agent, self.token)
         path = Path(path)
         if not path.is_absolute():
             path = self.root / path
@@ -170,8 +204,11 @@ class RecordStore:
                 or relative.parts[1] not in {f"{kind}s" for kind in RECORD_TYPES}
                 or path.suffix != ".md" or ".." in relative.parts):
             raise WriteError("commit-human requires a canonical record path under records/")
+        self._check_scopes(path.stem, {}, policy, agent)
         identity = Identity.from_env("HUMAN")
         with vault_lock(self.root):
+            policy = authorize_writer(self.root, agent, self.token)
+            self._check_scopes(path.stem, {}, policy, agent)
             ensure_repository(self.root)
             records = load_vault(self.root)
             item = next((item for item in records.values() if item.path == path), None)

@@ -43,7 +43,7 @@ def test_cli_automatic_index_and_actionable_invalid_record(vault):
     (vault / "records/tasks/broken.md").write_text("invalid record", encoding="utf-8")
     result = cli(vault, "list")
     assert result.returncode == 1 and result.stdout == b""
-    assert b"broken.md" in result.stderr and b"opening YAML frontmatter fence" in result.stderr
+    assert result.stderr == b"INVALID: Records unavailable; source validation failed\n"
     assert b"Traceback" not in result.stderr
     assert (vault / ".chassis/index.sqlite").read_bytes() == before
 
@@ -51,7 +51,7 @@ def test_cli_automatic_index_and_actionable_invalid_record(vault):
 def test_cli_missing_id_has_nonzero_exit_and_no_json(vault):
     result = cli(vault, "get", "missing-id")
     assert result.returncode == 1 and result.stdout == b""
-    assert b"NOT FOUND: missing-id" in result.stderr
+    assert json.loads(result.stderr) == {"error": "not_found", "message": "Record not found"}
 
 
 def test_cli_null_assignment_and_explicit_vault(vault):

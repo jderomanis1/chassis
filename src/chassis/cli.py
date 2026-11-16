@@ -8,6 +8,8 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+from chassis.identity import create_agent_token, caller_id
+from chassis.policy import authorize_reader
 from chassis.index import FILTER_FIELDS, NULL_FILTER_FIELDS, RecordIndex
 from chassis.errors import AuthorizationError, ConflictError, WriteError
 from chassis.models import RECORD_TYPES
@@ -19,6 +21,10 @@ from chassis.validation import load_vault
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="chassis", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
+    token_command = commands.add_parser("agent-token", help="Manage local per-agent credentials")
+    token_actions = token_command.add_subparsers(dest="token_command", required=True)
+    token_create = token_actions.add_parser("create", help="Print a fresh token once and save only its hash")
+    token_create.add_argument("agent_id")
     validate = commands.add_parser("validate", help="Validate all working-tree records")
     validate.add_argument("vault", type=Path, nargs="?", default=Path.cwd())
     index = commands.add_parser("index", help="Manage the disposable SQLite index")
@@ -50,10 +56,13 @@ def main(argv=None) -> int:
     new.add_argument("--fields", required=True, help="JSON record fields and an exact-name sections object")
     human = commands.add_parser("commit-human", help="Commit one manual record edit as the human")
     human.add_argument("path", type=Path)
-    for command in (rebuild, listing, get, search, update, create, new, human):
+    for command in (rebuild, listing, get, search, update, create, new, human, token_create):
         command.add_argument("--vault", type=Path, default=Path.cwd())
     args = parser.parse_args(argv)
     try:
+        if args.command == "agent-token":
+            print(create_agent_token(args.vault, args.agent_id))
+            return 0
         if args.command == "validate":
             return _validate(args.vault)
         if args.command in {"update", "create", "new", "commit-human"}:
@@ -72,7 +81,7 @@ def main(argv=None) -> int:
         elif args.command == "get":
             result = index.get_record(args.identifier)
             if result is None:
-                print(f"NOT FOUND: {args.identifier}", file=sys.stderr)
+                print(json.dumps({"error": "not_found", "message": "Record not found"}), file=sys.stderr)
                 return 1
         else:
             result = index.search(args.query)
@@ -101,9 +110,11 @@ def _write(args) -> dict:
 
 
 def _validate(root: Path) -> int:
-    records = load_vault(root)
-    counts = Counter(item.record.type for item in records.values())
-    dependencies = sum(len(item.record.depends_on) for item in records.values())
+    if authorize_reader(root, caller_id()) is None:
+        raise AuthorizationError("Read not permitted")
+    records = RecordIndex(root).list_records()
+    counts = Counter(item["type"] for item in records)
+    dependencies = sum(len(item["depends_on"]) for item in records)
     print(f"VALID: {len(records)} records | {counts['venture']} ventures | "
           f"{counts['initiative']} initiatives | {counts['task']} tasks | "
           f"{dependencies} dependencies" + (f" | {counts['agent']} agent documents" if counts['agent'] else ""))

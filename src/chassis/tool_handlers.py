@@ -7,6 +7,7 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from chassis.errors import NotFoundError, WriteError
+from chassis.audit import record_event
 from chassis.index import RecordIndex
 from chassis.models import RecordId, RecordType
 from chassis.store import RecordStore
@@ -68,8 +69,8 @@ def validation_error(exc: ValueError, fallback: str) -> dict:
 class ToolHandlers:
     """One trusted caller configuration; model-supplied metadata cannot replace it."""
 
-    def __init__(self, root: Path, agent: str):
-        self.index, self.store = RecordIndex(root), RecordStore(root)
+    def __init__(self, root: Path, agent: str, token=None):
+        self.index, self.store = RecordIndex(root, agent=agent, token=token), RecordStore(root, token=token)
         self.agent = agent
 
     def call(self, name: str, arguments: dict | None) -> dict:
@@ -78,6 +79,10 @@ class ToolHandlers:
         try:
             args = TOOL_INPUTS[name].model_validate({} if arguments is None else arguments)
         except ValidationError as exc:
+            try:
+                record_event(self.index.root, self.agent, name, "validation")
+            except WriteError as failure:
+                return failure.as_dict()
             return validation_error(exc, "arguments")
         logger.info("Calling %s", name)
         try:
@@ -104,7 +109,7 @@ class ToolHandlers:
         if name == "read_record":
             record = self.index.get_record(args.id)
             if record is None:
-                raise NotFoundError(f"{args.id}: record not found", id=args.id)
+                raise NotFoundError("Record not found")
             return {"record": record}
         if name == "search":
             return {"records": self.index.search(args.query)}

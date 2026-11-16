@@ -24,7 +24,7 @@ def test_agents_file_has_explicit_venture_and_type_scopes():
     assert set(chief) == {"venture-ridgeview", "venture-acme"}
     assert all(scopes == {"venture": "write", "initiative": "write", "task": "write"}
                for scopes in chief.values())
-    assert policy["unknown_agent"] == "read"
+    assert policy["unknown_agent"] == "deny"
 
 
 def test_ridgeview_has_five_tasks_and_two_dependencies():

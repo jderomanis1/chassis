@@ -67,7 +67,7 @@ def test_policy_is_reloaded_after_waiting_for_lock(git_repo, monkeypatch, operat
     monkeypatch.setattr(store_module, "vault_lock", revoke_while_waiting)
     monkeypatch.setattr("chassis.transactions.write_atomic", lambda *a: pytest.fail("Revoked write reached disk"))
     store = RecordStore(git_repo)
-    with pytest.raises(AuthorizationError, match="venture-acme/task"):
+    with pytest.raises(AuthorizationError, match="^Write not permitted$"):
         if operation == "update":
             store.update_record("task-launch-budget", {"status": "blocked"}, 1, "chief-of-staff")
         else:

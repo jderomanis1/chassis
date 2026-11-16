@@ -1,3 +1,4 @@
+from conftest import assert_no_transaction_artifacts
 import asyncio
 
 import pytest
@@ -22,7 +23,7 @@ def test_real_stdio_initialize_list_tools_and_clean_shutdown(git_repo):
             assert tool["inputSchema"]["additionalProperties"] is False
             assert "agent" not in tool["inputSchema"]["properties"]
     assert "Chassis stdio server starting" in "".join(client.stderr_lines)
-    assert not (git_repo / ".chassis").exists()
+    assert_no_transaction_artifacts(git_repo)
 
 
 def test_official_sdk_client_connects_to_real_stdio_process(git_repo):

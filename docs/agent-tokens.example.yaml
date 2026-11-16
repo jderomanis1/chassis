@@ -1,0 +1,7 @@
+# Copy to .chassis/agent-tokens.yaml only as a schema reference.
+# Prefer `chassis agent-token create <agent-id>` to generate a fresh token.
+# This placeholder is deliberately not a valid SHA-256 digest or credential.
+version: 1
+tokens:
+  chief-of-staff: <SHA256_HEX_DIGEST_ONLY>
+  reviewer: <SHA256_HEX_DIGEST_ONLY>

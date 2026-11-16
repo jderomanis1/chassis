@@ -1,9 +1,10 @@
-# Policy contract. Runtime enforcement is implemented with the mutation layer.
+# Policy contract. Every record read and write requires a verified agent token.
 # assigned_agent on a record never supplies caller identity or permissions.
 version: 1
-unknown_agent: read
+unknown_agent: deny
 agents:
   chief-of-staff:
+    clearance: restricted
     ventures:
       venture-ridgeview:
         venture: write

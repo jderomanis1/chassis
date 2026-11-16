@@ -184,7 +184,7 @@ def test_invalid_source_fails_loudly_before_any_answer(vault, method, args, exis
         index.rebuild()
     before = index.path.read_bytes() if existing else None
     (vault / "records/tasks/broken.md").write_text("# Missing frontmatter\n", encoding="utf-8")
-    with pytest.raises(RecordFileError, match="broken.md:.*opening YAML frontmatter fence"):
+    with pytest.raises(RecordFileError, match="^Records unavailable; source validation failed$"):
         getattr(index, method)(*args)
     assert (index.path.read_bytes() if index.path.exists() else None) == before
 
@@ -194,6 +194,6 @@ def test_removal_that_breaks_relationships_is_rejected(vault):
     index.rebuild()
     before = index.path.read_bytes()
     (vault / "records/tasks/task-maintenance-inventory.md").unlink()
-    with pytest.raises(RecordFileError, match="task-maintenance-quotes.md: dependency.*does not exist"):
+    with pytest.raises(RecordFileError, match="^Records unavailable; source validation failed$"):
         index.list_records()
     assert index.path.read_bytes() == before

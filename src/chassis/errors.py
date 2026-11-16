@@ -16,6 +16,10 @@ class AuthorizationError(WriteError):
     code = "unauthorized"
 
 
+class AuditError(WriteError):
+    code = "audit_error"
+
+
 class NotFoundError(WriteError):
     code = "not_found"
 

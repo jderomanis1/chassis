@@ -1,3 +1,4 @@
+from conftest import assert_no_transaction_artifacts
 import pytest
 
 from chassis.errors import AuthorizationError, ConflictError
@@ -17,11 +18,11 @@ def test_unknown_and_read_only_callers_are_denied_after_policy_read(vault, monke
         return original(path, *args, **kwargs)
 
     monkeypatch.setattr(Path, "open", policy_only)
-    with pytest.raises(AuthorizationError, match=f"{agent}.*write grant") as error:
+    with pytest.raises(AuthorizationError, match="^Write not permitted$") as error:
         authorize_writer(vault, agent)
     assert error.value.as_dict()["error"] == "unauthorized"
     assert opened == [vault / "agents.yaml"]
-    assert not (vault / ".chassis").exists()
+    assert_no_transaction_artifacts(vault)
 
 
 @pytest.mark.parametrize("damage", ["missing", "invalid"])
@@ -31,19 +32,19 @@ def test_missing_or_invalid_policy_denies_writes(vault, damage):
         path.unlink()
     else:
         path.write_text("version: 1\nunknown_agent: write\nagents: {}\n")
-    with pytest.raises(AuthorizationError, match="agents.yaml"):
+    with pytest.raises(AuthorizationError, match="^Write not permitted$"):
         authorize_writer(vault, "chief-of-staff")
 
 
 def test_scope_is_exact_and_policy_is_reloaded(vault):
     policy = authorize_writer(vault, "chief-of-staff")
     require_grant(policy, "chief-of-staff", "venture-acme", "task")
-    with pytest.raises(AuthorizationError, match="venture-missing.*task"):
+    with pytest.raises(AuthorizationError, match="^Write not permitted$"):
         require_grant(policy, "chief-of-staff", "venture-missing", "task")
     path = vault / "agents.yaml"
     path.write_text(path.read_text().replace("task: write", "task: read"))
     fresh = authorize_writer(vault, "chief-of-staff")
-    with pytest.raises(AuthorizationError, match="venture-acme.*task"):
+    with pytest.raises(AuthorizationError, match="^Write not permitted$"):
         require_grant(fresh, "chief-of-staff", "venture-acme", "task")
     require_grant(fresh, "chief-of-staff", "venture-acme", "initiative")
 

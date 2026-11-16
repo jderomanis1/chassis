@@ -35,14 +35,17 @@ one-build-step-per-chat workflow. Read the current user request first.
 - SQLite is disposable and indexes the working tree, including uncommitted edits.
 - Preserve the required fields and relationship rules in `src/chassis/models.py`
   and `docs/ARCHITECTURE.md`. Assignment is metadata, never caller authentication.
-- Exclude restricted records and revealing edges before renderer-neutral JSON
-  graph emission. Resolve hidden-parent and normal-to-restricted transitions before
+- Filter all reads in the library using verified tokens, venture/type grants, and
+  normal/restricted clearance. Hide unauthorized restricted records and their edges
+  completely, including counts, descendants of hidden parents, and health inputs.
+  Resolve normal-to-restricted transitions in external renderers before
   claiming renderer acceptance; simply omitting a future card leaves old content visible.
 - Keep layout and graph planning independent of Miro. Miro runtime types and API
   code belong only under `src/chassis/render/miro/`.
 - Tool handlers are transport-agnostic. MCP uses stdio initially.
-- Check and validate `agents.yaml` on every write. Unknown agents are read-only;
-  missing/invalid policy denies writes. Record tools cannot edit the policy.
+- Check `agents.yaml` and SHA-256 token hashes on every read and write, including
+  checks under the lock. Unknown agents and missing/wrong tokens have no access.
+  Record tools cannot edit policy or provision credentials.
 - Under a shared write lock, reread the file and enforce `expected_version`.
   Successful writes bump version and commit only their record with agent attribution.
 - Refuse dirty target files with the filename and exact phrase `uncommitted human edit`.

@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from chassis.markdown import RecordFileError
+from conftest import issue
 from chassis.validation import load_vault
 
 TEXT = """---
@@ -24,13 +25,15 @@ version: 1
 
 
 @pytest.fixture
-def vault(tmp_path):
+def vault(tmp_path, monkeypatch):
     path = tmp_path / "records/ventures/venture-ridgeview.md"
     path.parent.mkdir(parents=True)
     path.write_text(TEXT, encoding="utf-8")
     (tmp_path / "README.md").write_text("Not a record", encoding="utf-8")
     (tmp_path / "agents.yaml").write_text(
-        "version: 1\nunknown_agent: read\nagents: {}\n", encoding="utf-8")
+        "version: 1\nunknown_agent: deny\nagents:\n  validator:\n    ventures:\n      venture-ridgeview:\n        venture: read\n", encoding="utf-8")
+    monkeypatch.setenv("CHASSIS_AGENT_ID", "validator")
+    monkeypatch.setenv("CHASSIS_AGENT_TOKEN", issue(tmp_path, "validator"))
     return tmp_path
 
 
@@ -71,5 +74,5 @@ def test_cli_failure_is_actionable(tmp_path):
     result = subprocess.run([sys.executable, "-m", "chassis.cli", "validate", str(tmp_path)],
                             capture_output=True, text=True)
     assert result.returncode == 1
-    assert "No record files" in result.stderr
+    assert "Read not permitted" in result.stderr
     assert "Traceback" not in result.stderr

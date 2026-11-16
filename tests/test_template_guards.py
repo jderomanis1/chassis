@@ -1,3 +1,4 @@
+from conftest import assert_no_transaction_artifacts
 import pytest
 import yaml
 from conftest import git
@@ -17,7 +18,7 @@ def test_template_tokens_must_fill_their_own_sections(template_repo, tail):
     with pytest.raises(ValueError, match="Success metrics|section"):
         RecordStore(template_repo).create_from_template("initiative", "venture-acme", initiative_fields(), "chief-of-staff")
     assert git(template_repo, "rev-parse", "HEAD") == before
-    assert not (template_repo / ".chassis").exists()
+    assert_no_transaction_artifacts(template_repo)
 
 
 @pytest.mark.parametrize("value", ["1. \n2. ", "- [ ]\n- [x]", "<!-- draft note -->"])
@@ -27,7 +28,7 @@ def test_markup_only_sections_are_empty(template_repo, value):
     with pytest.raises(ValueError, match="Launch checklist.*empty"):
         RecordStore(template_repo).create_from_template("initiative", "venture-acme", fields, "chief-of-staff")
     assert git(template_repo, "status", "--porcelain") == ""
-    assert not (template_repo / ".chassis").exists()
+    assert_no_transaction_artifacts(template_repo)
 
 
 @pytest.mark.parametrize("extra", [{"body": "Bypassed content"}, {"parent": "venture-ridgeview"},
@@ -41,7 +42,7 @@ def test_template_fields_cannot_bypass_content_scope_or_grants(template_repo, ex
     assert (template_repo / "agents.yaml").read_bytes() == policy
     assert git(template_repo, "rev-parse", "HEAD") == before
     assert git(template_repo, "status", "--porcelain") == ""
-    assert not (template_repo / ".chassis").exists()
+    assert_no_transaction_artifacts(template_repo)
 
 
 def test_template_creation_rechecks_policy_after_expansion(template_repo, monkeypatch):
@@ -56,7 +57,7 @@ def test_template_creation_rechecks_policy_after_expansion(template_repo, monkey
 
     monkeypatch.setattr(store_module, "expand_template", revoke_after_expansion)
     monkeypatch.setattr(store_module, "vault_lock", lambda *_: pytest.fail("Revoked grant reached lock"))
-    with pytest.raises(AuthorizationError, match="venture-acme/initiative"):
+    with pytest.raises(AuthorizationError, match="^Write not permitted$"):
         RecordStore(template_repo).create_from_template("initiative", "venture-acme", initiative_fields(), "chief-of-staff")
     assert git(template_repo, "rev-parse", "HEAD") == before
     assert not (template_repo / "records/initiatives/initiative-sample-launch.md").exists()

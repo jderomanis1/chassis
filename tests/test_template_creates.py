@@ -1,3 +1,4 @@
+from conftest import assert_no_transaction_artifacts
 from pathlib import Path
 
 import pytest
@@ -51,7 +52,7 @@ def test_bad_template_sections_leave_sources_index_and_head_unchanged(template_r
 @pytest.mark.parametrize("template,venture,reason", [
     ("unknown", "venture-acme", "unknown template"),
     ("../agent", "venture-acme", "unknown template"),
-    ("initiative", "venture-missing", "venture-missing"),
+    ("initiative", "venture-missing", "Write not permitted"),
 ])
 def test_unknown_template_or_venture_is_rejected_without_write(template_repo, template, venture, reason):
     before = git(template_repo, "rev-parse", "HEAD")
@@ -59,18 +60,18 @@ def test_unknown_template_or_venture_is_rejected_without_write(template_repo, te
         RecordStore(template_repo).create_from_template(template, venture, initiative_fields(), "chief-of-staff")
     assert git(template_repo, "rev-parse", "HEAD") == before
     assert git(template_repo, "status", "--porcelain") == ""
-    assert not (template_repo / ".chassis").exists()
+    assert_no_transaction_artifacts(template_repo)
 
 
 @pytest.mark.parametrize("template", ["initiative", "agent"])
 @pytest.mark.parametrize("agent", ["unknown-agent", "reviewer", "limited-writer"])
 def test_template_scope_denial_reads_policy_only(template_repo, monkeypatch, template, agent):
-    limit_to_ridgeview(template_repo)
-    store = RecordStore(template_repo)
+    token = limit_to_ridgeview(template_repo)
+    store = RecordStore(template_repo, token=token if agent == "limited-writer" else None)
     opened, original_open = [], Path.open
 
     def policy_only(path, *args, **kwargs):
-        assert path == template_repo / "agents.yaml", f"Unauthorized I/O: {path}"
+        assert path in {template_repo / "agents.yaml", template_repo / ".chassis/agent-tokens.yaml"}, f"Unauthorized I/O: {path}"
         opened.append(path)
         return original_open(path, *args, **kwargs)
 
@@ -78,7 +79,7 @@ def test_template_scope_denial_reads_policy_only(template_repo, monkeypatch, tem
         patch.setattr(Path, "open", policy_only)
         patch.setattr("chassis.store.vault_lock", lambda *_: pytest.fail("Unauthorized lock I/O"))
         patch.setattr("chassis.git.subprocess.run", lambda *a, **k: pytest.fail("Unauthorized Git I/O"))
-        with pytest.raises(AuthorizationError, match=f"{agent}.*write grant"):
+        with pytest.raises(AuthorizationError, match="^Write not permitted$"):
             store.create_from_template(template, "venture-acme", {}, agent)
-    assert opened == [template_repo / "agents.yaml"]
-    assert not (template_repo / ".chassis").exists()
+    assert opened == [template_repo / "agents.yaml"] + ([template_repo / ".chassis/agent-tokens.yaml"] if agent == "limited-writer" else [])
+    assert_no_transaction_artifacts(template_repo)

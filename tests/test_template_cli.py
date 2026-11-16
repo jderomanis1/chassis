@@ -1,3 +1,4 @@
+from conftest import assert_no_transaction_artifacts
 import json
 
 import pytest
@@ -40,7 +41,7 @@ def test_cli_new_requires_configured_authorized_caller(template_repo, monkeypatc
     assert result.returncode == 1 and result.stdout == b""
     assert json.loads(result.stderr)["error"] == "unauthorized"
     assert git(template_repo, "rev-parse", "HEAD") == before
-    assert not (template_repo / ".chassis").exists()
+    assert_no_transaction_artifacts(template_repo)
 
 
 @pytest.mark.parametrize("arguments,code,reason", [
@@ -56,4 +57,4 @@ def test_cli_new_refusals_are_actionable_and_do_not_write(template_repo, argumen
     assert reason in result.stderr and b"Traceback" not in result.stderr
     assert git(template_repo, "rev-parse", "HEAD") == before
     assert git(template_repo, "status", "--porcelain") == ""
-    assert not (template_repo / ".chassis").exists()
+    assert_no_transaction_artifacts(template_repo)

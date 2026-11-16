@@ -11,6 +11,8 @@ from mcp.server import Server
 from chassis.index import FILTER_FIELDS
 from chassis.tool_handlers import TOOL_INPUTS, ToolHandlers
 from chassis.stdio import bounded_stdio
+from chassis.policy import authorize_reader
+from chassis.errors import AuthorizationError
 
 DESCRIPTIONS = {
     "list_records": "List working-tree records in ID order; AND exact filters: " + ", ".join(FILTER_FIELDS),
@@ -41,6 +43,8 @@ def make_server(handlers: ToolHandlers) -> Server:
 
 
 async def serve(root: Path, agent: str, max_bytes: int) -> None:
+    if authorize_reader(root, agent) is None:
+        raise AuthorizationError("Authentication failed: a valid agent and CHASSIS_AGENT_TOKEN are required")
     server = make_server(ToolHandlers(root, agent))
     loop = asyncio.get_running_loop()
     with anyio.CancelScope() as scope:

@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 from pathlib import Path
+from chassis.errors import AuthorizationError
 
 
 def main(argv=None) -> int:
@@ -31,6 +32,9 @@ def main(argv=None) -> int:
         asyncio.run(serve(args.vault, os.environ.get("CHASSIS_AGENT_ID", "").strip(), args.max_request_bytes))
     except KeyboardInterrupt:
         pass
+    except AuthorizationError as exc:
+        logger.error("%s", exc)
+        return 1
     except Exception:
         logger.exception("Chassis stdio server failed")
         return 1

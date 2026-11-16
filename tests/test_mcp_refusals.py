@@ -1,5 +1,7 @@
+from conftest import assert_no_transaction_artifacts
 import pytest
-from conftest import git
+from conftest import git, issue
+import os
 from mcp_client import StdioClient
 from test_mcp_session import assert_lock_released, snapshot
 
@@ -34,20 +36,22 @@ def test_mcp_refuses_dirty_and_flagged_records_without_write(git_repo, mode):
 @pytest.mark.parametrize("mode", ["unknown", "reviewer", "missing-policy", "invalid-policy", "wrong-scope"])
 def test_mcp_authorization_refuses_before_lock_or_index(git_repo, mode):
     policy = git_repo / "agents.yaml"
-    agent = mode if mode in {"unknown", "reviewer"} else "chief-of-staff"
-    if mode == "missing-policy":
-        policy.unlink()
-    elif mode == "invalid-policy":
-        policy.write_text("version: invalid\n")
-    elif mode == "wrong-scope":
-        policy.write_text(policy.read_text().replace("task: write", "task: read"))
-    before = snapshot(git_repo)
-    with StdioClient(git_repo, CHASSIS_AGENT_ID=agent) as client:
+    agent = "reviewer" if mode == "reviewer" else "chief-of-staff"
+    token = issue(git_repo, agent) if mode == "reviewer" else os.environ["CHASSIS_AGENT_TOKEN"]
+    with StdioClient(git_repo, CHASSIS_AGENT_ID=agent, CHASSIS_AGENT_TOKEN=token) as client:
         client.initialize()
-        result = client.call("update_record", UPDATE)
-        assert result["error"] == "unauthorized"
+        if mode == "missing-policy":
+            policy.unlink()
+        elif mode == "invalid-policy":
+            policy.write_text("version: invalid\n")
+        elif mode == "unknown":
+            policy.write_text(policy.read_text().replace("chief-of-staff:", "revoked-agent:"))
+        elif mode == "wrong-scope":
+            policy.write_text(policy.read_text().replace("task: write", "task: read"))
+        before = snapshot(git_repo)
+        assert client.call("update_record", UPDATE) == {"error": "unauthorized", "message": "Write not permitted"}
         assert snapshot(git_repo) == before
-    assert not (git_repo / ".chassis").exists()
+    assert_no_transaction_artifacts(git_repo)
 
 
 def test_mcp_reloads_policy_between_calls_and_rejects_identity_arguments(git_repo):
@@ -69,7 +73,7 @@ def test_mcp_reloads_policy_between_calls_and_rejects_identity_arguments(git_rep
 def test_mcp_refuses_symlink_lock_without_write(git_repo, tmp_path):
     outside = tmp_path / "outside-lock"
     outside.write_text("Fictional sentinel")
-    (git_repo / ".chassis").mkdir()
+    (git_repo / ".chassis").mkdir(exist_ok=True)
     (git_repo / ".chassis/write.lock").symlink_to(outside)
     before = snapshot(git_repo)
     with StdioClient(git_repo) as client:

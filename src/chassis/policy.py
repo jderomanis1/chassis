@@ -9,19 +9,21 @@ from pydantic import BaseModel, ConfigDict, Field
 from chassis.errors import AuthorizationError
 from chassis.markdown import ParsedRecord, RecordFileError, UniqueKeyLoader
 from chassis.models import RecordId, RecordType
+from chassis.identity import authenticate
 
 
 class AgentPolicy(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     ventures: dict[RecordId, dict[RecordType, Literal["read", "write"]]]
+    clearance: Literal["normal", "restricted"] = "normal"
 
 
 class Policy(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     version: Annotated[int, Field(ge=1, le=1)]
-    unknown_agent: Literal["read"]
+    unknown_agent: Literal["deny"] = "deny"
     agents: dict[RecordId, AgentPolicy]
 
 
@@ -44,21 +46,49 @@ def validate_policy_references(root: Path, policy: Policy, records: dict[str, Pa
                     "must reference an existing venture")
 
 
-def authorize_writer(root: Path, agent: str) -> Policy:
+def authorize_reader(root: Path, agent: str, token=None) -> Policy | None:
+    try:
+        policy = load_policy(root)
+    except RecordFileError:
+        return None
+    return policy if agent in policy.agents and authenticate(root, agent, token) else None
+
+
+def visible_records(records, policy, agent):
+    grants = policy.agents[agent]
+    visible = {r["id"]: r for r in records
+               if grants.ventures.get(r["venture"], {}).get(r["type"]) in {"read", "write"}
+               and (r["sensitivity"] != "restricted" or grants.clearance == "restricted")}
+    # Hiding an ancestor also hides descendants; no dangling identifying relations.
+    while hidden := [key for key, r in visible.items() if r["venture"] not in visible
+                     or (r["parent"] is not None and r["parent"] not in visible)]:
+        for key in hidden:
+            del visible[key]
+    return [r | {"depends_on": [key for key in r["depends_on"] if key in visible]}
+            for r in visible.values()]
+
+
+def authorize_writer(root: Path, agent: str, token=None) -> Policy:
     """Policy read is required; deny unknown/read-only agents before record I/O."""
     try:
         policy = load_policy(root)
     except RecordFileError as exc:
-        raise AuthorizationError(f"Writes denied: {exc}") from exc
+        raise AuthorizationError("Write not permitted") from exc
     grants = policy.agents.get(agent)
     if grants is None or not any(grant == "write" for types in grants.ventures.values()
                                  for grant in types.values()):
-        raise AuthorizationError(f"{agent}: no write grant", agent=agent)
+        raise AuthorizationError("Write not permitted")
+    if not authenticate(root, agent, token):
+        raise AuthorizationError("Write not permitted")
     return policy
 
 
 def require_grant(policy: Policy, agent: str, venture: str, record_type: str) -> None:
     grants = policy.agents.get(agent)
     if grants is None or grants.ventures.get(venture, {}).get(record_type) != "write":
-        raise AuthorizationError(f"{agent}: no write grant for {venture}/{record_type}",
-                                 agent=agent, venture=venture, type=record_type)
+        raise AuthorizationError("Write not permitted")
+
+
+def require_clearance(policy, agent, sensitivity):
+    if sensitivity == "restricted" and policy.agents[agent].clearance != "restricted":
+        raise AuthorizationError("Write not permitted")

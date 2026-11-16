@@ -1,3 +1,4 @@
+from conftest import assert_no_transaction_artifacts
 import pytest
 from conftest import git
 
@@ -21,7 +22,7 @@ def test_template_metadata_is_validated_before_expansion(template_repo, monkeypa
             "initiative", "venture-acme", initiative_fields() | {field: value}, "chief-of-staff")
     assert git(template_repo, "rev-parse", "HEAD") == before
     assert git(template_repo, "status", "--porcelain") == ""
-    assert not (template_repo / ".chassis").exists()
+    assert_no_transaction_artifacts(template_repo)
 
 
 def test_valid_template_metadata_uses_record_constraints(template_repo):
@@ -47,4 +48,4 @@ def test_nfkc_placeholder_markers_never_create_a_record(template_repo, value):
             "initiative", "venture-acme", fields, "chief-of-staff")
     assert git(template_repo, "rev-parse", "HEAD") == before
     assert git(template_repo, "status", "--porcelain") == ""
-    assert not (template_repo / ".chassis").exists()
+    assert_no_transaction_artifacts(template_repo)
