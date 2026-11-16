@@ -2,12 +2,12 @@
 
 ## Current boundary
 
-Steps 1–3 implement the source-record schema, safe parsing, relationship and policy
+Steps 1–4 implement the source-record schema, safe parsing, relationship and policy
 validation, fictional records, a disposable SQLite index, and versioned local
-record writes. Commands include `validate`, `index rebuild`, `list`, `get`,
-`search`, `update`, `create`, and `commit-human`. Templates, MCP, and rendering
-remain planned. All Chassis execution stays local; the later
-scratch Miro connection is the only external runtime integration in Increment 0.
+record writes and constrained templates. Commands include `validate`, `index
+rebuild`, `list`, `get`, `search`, `update`, `create`, `new`, and `commit-human`.
+MCP and rendering remain planned. Step 4 adds no portal or external runtime code.
+Execution and data remain local and fictional; any Miro proof uses designated scratch space.
 
 ## Source records
 
@@ -21,6 +21,7 @@ Statuses are `planned`, `in_progress`, `blocked`, and `done`.
 | venture | Its own ID | `null` |
 | initiative | Existing venture ID | That venture |
 | task | Existing venture ID | An initiative in that venture |
+| agent | Existing venture ID | That venture; descriptive document only |
 
 Optional fields: `depends_on: []`, `sensitivity: normal | restricted` (default
 normal), and `assigned_agent` (default null). Assignment is descriptive metadata.
@@ -73,8 +74,10 @@ Restricted records use the same write-grant rule; sensitivity is not an identity
 CLI identity comes from `CHASSIS_AGENT_ID`; the library accepts an explicit trusted
 caller ID. Author name/email come from `CHASSIS_AGENT_NAME` / `CHASSIS_AGENT_EMAIL`.
 Unknown/read-only callers are refused after reading only policy, before record,
-lock, index, or Git access. Scoped writers additionally read the target for scope
-preflight. Denied scopes never open the lock/index or invoke Git. Under the lock,
+lock, index, template, or Git access. Scoped updates read only target frontmatter
+and check current/destination grants before reading a record body. Template creates
+check the supplied venture/type grant before any template or record I/O.
+Denied scopes never open the lock/index or invoke Git. Under the lock,
 policy and the target are reread and grants are checked again. These are local
 authorization checks, not an authentication service or a filesystem sandbox.
 
@@ -86,7 +89,8 @@ is required. Agent templates remain files; their default permission is read-only
 
 `RecordStore(root)` in `chassis.store` exposes `update_record(id, changes,
 expected_version, agent)`, `create_record(type, fields, agent)`, and
-`commit_human(path)`. The root must be an initialized Git repository with a HEAD.
+`create_from_template(template, venture, fields, agent)`, plus `commit_human(path)`.
+The root must be an initialized Git repository with a HEAD.
 The shared exclusive POSIX lock is `.chassis/write.lock`. Cache reads/rebuilds
 also use it. The kernel releases it on process exit; never unlink a live lock file.
 
@@ -119,12 +123,14 @@ commit raises `CommittedIndexError` with `committed: true`, the commit SHA, and
 current version. Rebuild the disposable index; do not blindly repeat that write.
 
 A dirty target is refused with its filename and the exact phrase
-`uncommitted human edit`. The guard checks staged/unstaged changes and compares
-content with HEAD even when Git index flags hide changes from status.
+`uncommitted human edit`. The shared guard runs `git ls-files -v -- <path>` and
+refuses `S` or any lowercase tag even on an unchanged file. Normal uppercase `H`
+is accepted. It then checks status and compares content with HEAD if status is clean.
 `chassis commit-human <path>` validates and commits only the selected record as
 `CHASSIS_HUMAN_NAME` / `CHASSIS_HUMAN_EMAIL`, then refreshes the index. It preserves
 the manual file bytes, including its version, and cannot commit policy/nonrecord
-paths. Clear assume-unchanged/skip-worktree flags first if the guard names them.
+paths. It reuses that same flag/hash check. Clear assume-unchanged/skip-worktree
+flags first if the guard names them; Chassis never clears flags implicitly.
 
 Ordinary editors and external Git commands do not honor Chassis locks. Coordinate
 manual editing and reread after the human handoff. File replacement and Git are
@@ -133,6 +139,39 @@ uncommitted record for explicit recovery. A hard exit before replace leaves the
 original intact and can leave an unused temp file, which record parsing ignores.
 Only Linux/POSIX execution has been verified; native Windows locking is not provided.
 The index remains disposable and reads working-tree edits, including uncommitted ones.
+
+## Templates (AC4)
+
+`GTM_SECTIONS` in `chassis.templates` fixes the exact ordered names: `Positioning`,
+`Audience`, `Channels`, `Offer`, `Launch checklist`, `Success metrics`.
+`templates/initiative.md` contains those headings and one named placeholder per
+section. `fields.sections` maps those exact names to nonempty strings. Expansion
+rejects missing/unknown keys, empty or markup-only content, recognized placeholder
+markers, damaged headings/order, and tokens assigned to the wrong sections.
+This validates structure and explicit markers, not the business quality of prose.
+
+`create_from_template` checks policy and the venture/type grant before opening
+the template, then calls `create_record`. That path reloads authorization before
+and inside the shared lock, validates the complete proposed record graph, writes
+atomically, creates one attributed record-only commit, and refreshes the index.
+No second persistence path or policy writer exists. Unknown template names never
+become paths; template files/directories cannot be symlinks. No template code runs.
+
+Required input fields are `id`, `title`, `owner`, `next_step`, and `sections`.
+`status` defaults to `planned`. Other existing optional record fields are accepted.
+The call controls type, venture, parent, and body; supplied overrides are refused.
+The existing create path generates version/time and rejects supplied values.
+Raw `create_record` and later updates retain the general Markdown-body contract;
+AC4's section contract applies to creation from the initiative template.
+
+`templates/agent.md` takes `Playbooks`, `Channels`, and `Data scope`; its fixed
+`Permissions` text states the read-only default and human-managed policy authority.
+It creates an `agent` record under `records/agents/`, parented to its venture.
+The new kind uses existing validation, index, update, and human-commit behavior.
+It grants no access, registers no caller, and starts no process. A human must
+explicitly grant the author `agent: write` to create these documents. A separate
+human policy edit is required to give the new ID any writes or make it assignable.
+The checked-in sample policy and original 13 records remain unchanged.
 
 ## Disposable index and read contract
 

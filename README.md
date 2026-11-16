@@ -17,9 +17,9 @@ Chassis is Andy Patterson’s command foundation for running parallel ventures.
 Its goal is a shared project state that a chief-of-staff agent can read and update,
 with a spatial view that makes the next action easy to see.
 
-**This checkout delivers Steps 1–3 of Increment 0: validated records, reads, and local writes.**
+**This checkout delivers Steps 1–4 of Increment 0: validated records, reads, local writes, and templates.**
 All venture data is fictional. SQLite is a disposable index of working-tree files.
-MCP, templates, and Miro remain in their approved later steps.
+MCP is next. The portal, layout planner, optional Miro export, and chat import follow.
 
 **Continuing in a new chat?** Read the [project handoff](CHASSIS_PROJECT_HANDOFF.md)
 and [project chat setup](docs/PROJECT_CHAT_SETUP.md). Engineering agents should
@@ -27,7 +27,7 @@ start with [AGENTS.md](AGENTS.md).
 
 ## Start here
 
-Prerequisites: **Python 3.12+, Git, uv, and a POSIX environment**. Step 3 was verified
+Prerequisites: **Python 3.12+, Git, uv, and a POSIX environment**. Step 4 was verified
 on Linux; native Windows locking is not implemented. No runtime API key is needed.
 
 ```bash
@@ -97,6 +97,51 @@ All three commands accept `--vault`. Library callers use the same methods on
 `chassis.store.RecordStore(Path(...))`; there is no MCP adapter yet.
 See [write behavior and recovery limits](docs/ARCHITECTURE.md#c6-writes-human-edits-and-the-index).
 
+### Create from a template
+
+With the fictional caller identity above, run:
+
+```bash
+uv run chassis new initiative --venture venture-acme --fields '{
+  "id": "initiative-sample-launch",
+  "title": "Fictional desk-kit pilot",
+  "owner": "Avery Quinn",
+  "next_step": "Review the fictional launch plan.",
+  "sections": {
+    "Positioning": "A compact kit for a small desk.",
+    "Audience": "Fictional remote workers with small desks.",
+    "Channels": "A draft product page and an opt-in sample email.",
+    "Offer": "One illustrative starter kit.",
+    "Launch checklist": "- [ ] Review ten fictional interviews.",
+    "Success metrics": "Sample target: three expressions of interest."
+  }
+}'
+```
+
+The six case-sensitive section names and their order are fixed in `GTM_SECTIONS`.
+Every section needs content. Missing values, blanks, markup-only lists, unresolved
+`{{...}}`/`${...}` tokens, TODO/TBD/TBC/PLACEHOLDER markers, and insert/replace/fill
+markers in brackets are refused. An edited template must retain its headings,
+order, and each section's own placeholder. Expansion does not evaluate code.
+
+`RecordStore(root).create_from_template(template, venture, fields, agent)` is the
+same library entry point used by `chassis new`. Both delegate to `create_record`:
+exact grant check, lock, validation, generated version/time, one record-only Git
+commit, and index refresh. `status` defaults to `planned`; type, venture, parent,
+and body are controlled by the template call. `--vault` selects another vault,
+which must also contain the two files in `templates/`.
+
+`chassis new agent` takes the same record fields with `sections` named `Playbooks`,
+`Channels`, and `Data scope`. It adds the fixed read-only `Permissions` section.
+The result is a descriptive file at `records/agents/<id>.md`, parented to its
+venture. It neither spawns nor registers an agent and never changes `agents.yaml`.
+Its ID remains read-only unless a human explicitly configures grants there.
+
+Authoring an agent document is itself scoped: a human must add `agent: write`
+under the existing author's venture policy. The sample policy is unchanged and
+contains no such grant. This permits document creation, not writes by the new
+document's ID. `assigned_agent` continues to require a known policy agent ID.
+
 **For a visual browse:** open the repository folder as an Obsidian vault and open
 [HOME.md](HOME.md). Obsidian is optional; the records are ordinary Markdown.
 The actual Obsidian UI check is tracked in the acceptance evidence.
@@ -105,7 +150,7 @@ The actual Obsidian UI check is tracked in the acceptance evidence.
 
 | Capability | Current status |
 | :--- | :--- |
-| One Markdown file per venture, initiative, or task | Implemented |
+| One Markdown file per venture, initiative, task, or agent document | Implemented |
 | Strict frontmatter schema, including sensitivity and assigned agent | Implemented |
 | Relationship and dependency validation | Implemented |
 | Local validation command and automated tests | Implemented |
@@ -113,7 +158,8 @@ The actual Obsidian UI check is tracked in the acceptance evidence.
 | Agent policy and write authorization | Strict known venture/type grants; unknown/read-only agents cannot write |
 | Disposable SQLite and list/get/search | Implemented, including automatic refresh and recovery |
 | Versioned create/update and human commits | Implemented; process lock, atomic files, record-only Git commits |
-| MCP, templates, and Miro | Planned in the approved build order |
+| Initiative and read-only agent templates | Implemented; AC4 passes through the library and CLI |
+| MCP, portal, layout, optional Miro, chat import | Later steps; portal code requires prototype approval |
 
 ## Explore the sample
 
@@ -142,8 +188,9 @@ what has actually been verified.
 
 | Path | Purpose |
 | :--- | :--- |
-| `records/` | Authoritative ventures, initiatives, and tasks |
+| `records/` | Authoritative ventures, initiatives, tasks, and agent documents |
 | `agents.yaml` | Agent access policy |
+| `templates/` | Constrained initiative and agent Markdown templates |
 | `src/chassis/` | Schema, parsing, policy, index, write transactions, and local commands |
 | `tests/` | Tests of the implemented behavior |
 | `docs/` | Architecture and project presentation |
@@ -153,10 +200,11 @@ what has actually been verified.
 
 ## Next in the build
 
-Step 3 is complete. Step 4, initiative and agent templates, starts only after
-Joe's next go. Agent templates remain files with read-only defaults. MCP follows.
-A scratch-board contract probe precedes layout,
-Miro rendering, and the complete read → write → render acceptance demo.
+Step 4 is complete. Step 5 is MCP tools verified through a real stdio client,
+starting only after Joe's go. Next is a read-only command-center portal over the
+library and index, with design prototype approval before any portal code.
+Layout and change planning follow; Miro becomes an optional export. Chat import
+has a separate later step. See the handoff for the sequence and open data decisions.
 
 Keep secrets in environment variables. `.env` is ignored; `.env.example`
 documents the author identity and later Miro configuration.
