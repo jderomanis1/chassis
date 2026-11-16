@@ -17,9 +17,9 @@ Chassis is Andy Patterson’s command foundation for running parallel ventures.
 Its goal is a shared project state that a chief-of-staff agent can read and update,
 with a spatial view that makes the next action easy to see.
 
-**This checkout delivers Steps 1 and 2 of Increment 0: validated records and local reads.**
+**This checkout delivers Steps 1–3 of Increment 0: validated records, reads, and local writes.**
 All venture data is fictional. SQLite is a disposable index of working-tree files.
-Record mutations, MCP, templates, and Miro remain in their approved later steps.
+MCP, templates, and Miro remain in their approved later steps.
 
 **Continuing in a new chat?** Read the [project handoff](CHASSIS_PROJECT_HANDOFF.md)
 and [project chat setup](docs/PROJECT_CHAT_SETUP.md). Engineering agents should
@@ -27,7 +27,8 @@ start with [AGENTS.md](AGENTS.md).
 
 ## Start here
 
-Prerequisites: **Python 3.12+, Git, and uv**. No runtime API key is needed for Steps 1–2.
+Prerequisites: **Python 3.12+, Git, uv, and a POSIX environment**. Step 3 was verified
+on Linux; native Windows locking is not implemented. No runtime API key is needed.
 
 ```bash
 git clone https://github.com/jderomanis1/chassis.git
@@ -60,6 +61,42 @@ Deleting `.chassis/index.sqlite` is safe: the next read rebuilds it. Damaged
 caches also rebuild. Invalid source records fail with a filename and reason.
 See the [read contract](docs/ARCHITECTURE.md#disposable-index-and-read-contract).
 
+### Write a fictional record
+
+Writes require a configured caller with an exact venture/type grant in `agents.yaml`.
+Use a local checkout of the sample vault and set the author identity explicitly:
+
+```bash
+export CHASSIS_AGENT_ID=chief-of-staff
+export CHASSIS_AGENT_NAME="Fictional Homer"
+export CHASSIS_AGENT_EMAIL=homer@chassis.local
+uv run chassis get task-launch-budget
+uv run chassis update task-launch-budget --expected-version 1 --changes '{"status":"blocked"}'
+uv run chassis create task --fields '{"id":"task-fictional-review","title":"Review the fictional launch","status":"planned","owner":"Example Owner","venture":"venture-acme","parent":"initiative-d2c-launch","next_step":"Review the sample plan","body":"Fictional sample only.\n"}'
+```
+
+Use the version returned by `get`. Successful writes return the complete record
+and commit SHA, commit only that file as the agent, and refresh the index. A stale
+write returns exit 3 and a JSON conflict with `current_version`, without changing
+the record or history. Version and timestamp are generated; callers cannot change
+ID, version, or timestamp on updates. New venture scopes require human provisioning.
+
+Manual edits block agent writes with the filename and `uncommitted human edit`.
+Commit an explicitly selected manual edit with the human identity, then reread it:
+
+```bash
+export CHASSIS_HUMAN_NAME="Fictional Human"
+export CHASSIS_HUMAN_EMAIL=human@chassis.local
+uv run chassis commit-human records/tasks/task-launch-budget.md
+uv run chassis get task-launch-budget
+```
+
+`commit-human` validates and commits the manual bytes, including their version,
+without rewriting them. It cannot commit `agents.yaml` or other nonrecord files.
+All three commands accept `--vault`. Library callers use the same methods on
+`chassis.store.RecordStore(Path(...))`; there is no MCP adapter yet.
+See [write behavior and recovery limits](docs/ARCHITECTURE.md#c6-writes-human-edits-and-the-index).
+
 **For a visual browse:** open the repository folder as an Obsidian vault and open
 [HOME.md](HOME.md). Obsidian is optional; the records are ordinary Markdown.
 The actual Obsidian UI check is tracked in the acceptance evidence.
@@ -73,9 +110,10 @@ The actual Obsidian UI check is tracked in the acceptance evidence.
 | Relationship and dependency validation | Implemented |
 | Local validation command and automated tests | Implemented |
 | Fictional sample vault | 2 ventures, 3 initiatives, 8 tasks, 2 dependencies |
-| Agent policy validation | Strict grants and known assignment IDs; write enforcement is Step 3 |
+| Agent policy and write authorization | Strict known venture/type grants; unknown/read-only agents cannot write |
 | Disposable SQLite and list/get/search | Implemented, including automatic refresh and recovery |
-| MCP, Git-backed record mutations, templates, and Miro | Planned in the approved build order |
+| Versioned create/update and human commits | Implemented; process lock, atomic files, record-only Git commits |
+| MCP, templates, and Miro | Planned in the approved build order |
 
 ## Explore the sample
 
@@ -90,7 +128,7 @@ Names, owners, plans, and records are demonstration data.
 ## Design commitments
 
 - **Files carry the truth.** YAML frontmatter and Markdown stay readable without a service.
-- **History stays explicit.** Record writes will use version checks and attributed Git commits.
+- **History stays explicit.** Record writes use version checks and attributed Git commits.
 - **Permissions have a home.** `agents.yaml` defines scoped grants; unknown agents are read-only.
 - **Private work stays private.** Restricted records will be excluded from rendered graphs.
 - **The canvas can change.** A renderer-neutral graph will keep layout independent of Miro.
@@ -106,22 +144,22 @@ what has actually been verified.
 | :--- | :--- |
 | `records/` | Authoritative ventures, initiatives, and tasks |
 | `agents.yaml` | Agent access policy |
-| `src/chassis/` | Schema, parsing, policy validation, index, and local commands |
+| `src/chassis/` | Schema, parsing, policy, index, write transactions, and local commands |
 | `tests/` | Tests of the implemented behavior |
 | `docs/` | Architecture and project presentation |
 | `evidence/` | Acceptance status and recorded checks |
 | `render/miro/` | Tracked board mappings for the later renderer |
-| `.chassis/` | Ignored, disposable `index.sqlite` and rebuild temporary files |
+| `.chassis/` | Ignored, disposable `index.sqlite` and shared `write.lock`; do not unlink a live lock |
 
 ## Next in the build
 
-Step 3 starts only after Joe's go: safe record mutations, permissions, version
-checks, attributed Git commits, and `commit-human`. Templates and MCP follow.
+Step 3 is complete. Step 4, initiative and agent templates, starts only after
+Joe's next go. Agent templates remain files with read-only defaults. MCP follows.
 A scratch-board contract probe precedes layout,
 Miro rendering, and the complete read → write → render acceptance demo.
 
 Keep secrets in environment variables. `.env` is ignored; `.env.example`
-documents the configuration contract for later steps.
+documents the author identity and later Miro configuration.
 
 ---
 

@@ -2,10 +2,11 @@
 
 ## Current boundary
 
-Steps 1–2 implement the source-record schema, safe parsing, relationship and policy
-validation, fictional records, and a disposable SQLite read index. Commands are
-`validate`, `index rebuild`, `list`, `get`, and `search`. Later contracts below
-remain planned, not implemented. All Chassis execution stays local; the later
+Steps 1–3 implement the source-record schema, safe parsing, relationship and policy
+validation, fictional records, a disposable SQLite index, and versioned local
+record writes. Commands include `validate`, `index rebuild`, `list`, `get`,
+`search`, `update`, `create`, and `commit-human`. Templates, MCP, and rendering
+remain planned. All Chassis execution stays local; the later
 scratch Miro connection is the only external runtime integration in Increment 0.
 
 ## Source records
@@ -64,9 +65,18 @@ Status changes must not move neighboring cards or alter parent summaries.
 grant permits reads too. Unknown agents are read-only. Missing or invalid policy
 must deny writes. Reload and check the policy on every write, including old and
 new scope when relevant. A record's `assigned_agent` never supplies caller identity.
-Record tools cannot edit the policy file. Step 2 validates policy shape with
-Pydantic and rejects unknown assignment IDs. Caller authentication and write-time
-authorization remain in Step 3; valid assignment metadata never authorizes a write.
+Record tools cannot edit the policy file. Policy validation rejects grants other
+than read/write, unknown venture references, and unknown assignment IDs. Step 3
+enforces exact venture/type write grants, including old and new scope on a move.
+Restricted records use the same write-grant rule; sensitivity is not an identity.
+
+CLI identity comes from `CHASSIS_AGENT_ID`; the library accepts an explicit trusted
+caller ID. Author name/email come from `CHASSIS_AGENT_NAME` / `CHASSIS_AGENT_EMAIL`.
+Unknown/read-only callers are refused after reading only policy, before record,
+lock, index, or Git access. Scoped writers additionally read the target for scope
+preflight. Denied scopes never open the lock/index or invoke Git. Under the lock,
+policy and the target are reread and grants are checked again. These are local
+authorization checks, not an authentication service or a filesystem sandbox.
 
 Tool handlers are transport-agnostic functions. A thin MCP adapter will expose
 them through stdio. No model SDK, model credential, HTTP server, or agent spawning
@@ -74,17 +84,55 @@ is required. Agent templates remain files; their default permission is read-only
 
 ## C6: writes, human edits, and the index
 
-The later write path locks, rereads the file, checks permissions and version,
-validates changes, atomically replaces, and commits only the target record.
-Failed commits must not produce false success. The agent identity comes from
-process configuration. Unrelated changes must never enter a record commit.
+`RecordStore(root)` in `chassis.store` exposes `update_record(id, changes,
+expected_version, agent)`, `create_record(type, fields, agent)`, and
+`commit_human(path)`. The root must be an initialized Git repository with a HEAD.
+The shared exclusive POSIX lock is `.chassis/write.lock`. Cache reads/rebuilds
+also use it. The kernel releases it on process exit; never unlink a live lock file.
+
+After authorization preflight, an update locks, rereads the source, rechecks grants
+and `expected_version`, rejects a dirty target, and validates the proposed schema,
+references, assignments, and graph. It bumps version by exactly one and advances
+`updated_at`, writes atomically, commits only that record, refreshes the index,
+and releases the lock. Body bytes are preserved unless explicitly changed.
+Create uses the same transaction, starts at version 1 with a generated timestamp,
+and rejects duplicate IDs, missing references, and cycles before writing.
+
+`id`, `version`, and `updated_at` cannot be supplied in update changes. Create
+requires an ID but generates version/time. Type changes are refused because they
+would move the stable record path. Supplied new venture scopes cannot bootstrap
+their own grants: A2 requires policy venture references to already exist. Human
+provisioning of a venture and its policy remains separate from record tools.
+
+Success returns `{"record": <full record plus body>, "commit": <SHA>}`. A stale
+write raises `ConflictError` with `as_dict()` containing `error: conflict`, `id`,
+`expected_version`, and `current_version`. No record/cache write or commit occurs.
+Other write refusals also expose `as_dict()`. The CLI prints success JSON to
+stdout, refusal JSON to stderr, and uses exit 3 for conflicts, 1 for other errors,
+and argparse's exit 2 for usage errors. Schema/parser errors retain their reasons.
+
+All replacements go through `atomic.write_atomic`: sibling temp file, flush,
+file fsync, `os.replace`, then directory fsync. A failed Git commit restores the
+original bytes (or removes a new file) when HEAD and the file have not changed
+externally. Unrelated staging is preserved. A cache failure after a successful
+commit raises `CommittedIndexError` with `committed: true`, the commit SHA, and
+current version. Rebuild the disposable index; do not blindly repeat that write.
 
 A dirty target is refused with its filename and the exact phrase
-`uncommitted human edit`. `chassis commit-human <path>` will commit an explicitly
-selected path as `CHASSIS_HUMAN_NAME` / `CHASSIS_HUMAN_EMAIL`. It is not available
-in Steps 1–2. Ordinary editors do not honor Chassis locks; concurrent manual editing
-requires coordination. The disposable SQLite index reads working-tree files,
-including uncommitted edits. Rebuilds must reproduce identical query results.
+`uncommitted human edit`. The guard checks staged/unstaged changes and compares
+content with HEAD even when Git index flags hide changes from status.
+`chassis commit-human <path>` validates and commits only the selected record as
+`CHASSIS_HUMAN_NAME` / `CHASSIS_HUMAN_EMAIL`, then refreshes the index. It preserves
+the manual file bytes, including its version, and cannot commit policy/nonrecord
+paths. Clear assume-unchanged/skip-worktree flags first if the guard names them.
+
+Ordinary editors and external Git commands do not honor Chassis locks. Coordinate
+manual editing and reread after the human handoff. File replacement and Git are
+not one crash-atomic transaction: a hard exit after replace can leave a complete,
+uncommitted record for explicit recovery. A hard exit before replace leaves the
+original intact and can leave an unused temp file, which record parsing ignores.
+Only Linux/POSIX execution has been verified; native Windows locking is not provided.
+The index remains disposable and reads working-tree edits, including uncommitted ones.
 
 ## Disposable index and read contract
 
@@ -132,10 +180,11 @@ record JSON, and row-content digests detect cache damage; a read rebuilds and
 retries once. Locked databases and other storage errors are reported, not treated
 as corruption. Cache symlinks are rejected. Invalid sources never yield old data.
 
-Each read costs a full source-byte scan plus graph validation. This is an explicit
-local-increment tradeoff, not a large-vault performance claim. Reads do not provide
-an atomic snapshot across concurrent edits to multiple files. Write locking and
-version control remain Step 3 work.
+Each read costs a full source-byte scan plus graph validation. Rebuilds serialize
+an in-memory SQLite database through the same atomic writer. This is an explicit
+local-increment tradeoff, not a large-vault performance claim. The shared lock
+coordinates Chassis operations but cannot provide an atomic snapshot across
+multiple files edited concurrently by ordinary editors.
 
 ## C7: review and delivery
 
