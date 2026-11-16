@@ -5,10 +5,11 @@ from starlette.routing import Route
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from chassis.audit import record_event
-from chassis.errors import AuthorizationError
+from chassis.errors import AuthorizationError, NotFoundError
 from chassis.index import RecordIndex
 from chassis.policy import authorize_reader
 from chassis.portal.config import validate_bind, version_etag
+from chassis.portal.api import routes
 
 
 def error(code, message, status):
@@ -29,7 +30,7 @@ def create_app(config, *, clock=None):
     async def http_error(request, exc):
         return error("not_found", "Not found", 404)
 
-    app = Starlette(routes=[Route("/api/version", version, methods=["GET"])],
+    app = Starlette(routes=[Route("/api/version", version, methods=["GET"]), *routes],
                     exception_handlers={404: http_error})
     app.state.index, app.state.config, app.state.clock = index, config, clock
 
@@ -46,6 +47,8 @@ def create_app(config, *, clock=None):
                 response = error("not_found", "Not found", 404)
             else:
                 response = await call_next(request)
+        except NotFoundError:
+            response = error("not_found", "Not found", 404)
         except Exception:
             response = error("internal", "Request could not be completed", 500)
         response.headers["Cache-Control"] = "private, no-store"
