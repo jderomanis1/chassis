@@ -36,9 +36,18 @@ class RecordStore:
             raise WriteError(f"{identifier}: {reason}", id=identifier)
         return paths[0]
 
+    def _read_current(self, identifier: str) -> tuple[ParsedRecord, bytes]:
+        path = self._find_path(identifier)
+        original = path.read_bytes()
+        try:
+            return parse_record(original.decode("utf-8"), path), original
+        except (RecordFileError, UnicodeError):
+            ensure_clean(self.root, path)
+            raise
+
     def update_record(self, identifier: str, changes: Mapping, expected_version: int,
                       agent: str) -> dict:
-        authorize_writer(self.root, agent)
+        policy = authorize_writer(self.root, agent)
         if not isinstance(changes, Mapping):
             raise WriteError("changes must be an object")
         changes = dict(changes)
@@ -48,16 +57,20 @@ class RecordStore:
         TypeAdapter(RecordId).validate_python(identifier)
         if type(expected_version) is not int or expected_version < 1:
             raise WriteError("expected_version must be a positive integer")
+        if "body" in changes and not isinstance(changes["body"], str):
+            raise WriteError("body must be a string")
+        # Read only the target for scope preflight. Recheck from disk under lock.
+        preliminary, _ = self._read_current(identifier)
+        require_grant(policy, agent, preliminary.record.venture, preliminary.record.type)
+        venture = changes.get("venture", preliminary.record.venture)
+        kind = changes.get("type", preliminary.record.type)
+        if isinstance(venture, str) and isinstance(kind, str):
+            require_grant(policy, agent, venture, kind)
         identity = Identity.from_env("AGENT")
         with vault_lock(self.root):
             policy = authorize_writer(self.root, agent)
-            path = self._find_path(identifier)
-            original = path.read_bytes()
-            try:
-                current = parse_record(original.decode("utf-8"), path)
-            except (RecordFileError, UnicodeError):
-                ensure_clean(self.root, path)
-                raise
+            current, original = self._read_current(identifier)
+            path = current.path
             require_grant(policy, agent, current.record.venture, current.record.type)
             if current.record.version != expected_version:
                 raise ConflictError(identifier, expected_version, current.record.version)
