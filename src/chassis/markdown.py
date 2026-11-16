@@ -59,3 +59,11 @@ def read_record(path: Path) -> ParsedRecord:
             return parse_record(source.read(), path)
     except (OSError, UnicodeError) as exc:
         raise RecordFileError(f"{path.as_posix()}: {exc}") from exc
+
+
+def serialize_record(record: Record, body: str) -> bytes:
+    """Normalize frontmatter and retain the supplied body byte for byte."""
+    if not isinstance(body, str):
+        raise ValueError("body must be a string")
+    header = yaml.safe_dump(record.model_dump(mode="json"), sort_keys=False, allow_unicode=True)
+    return f"---\n{header}---\n{body}".encode("utf-8")

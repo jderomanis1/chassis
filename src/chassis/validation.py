@@ -1,14 +1,15 @@
 """Validate the working-tree vault; no index or Git state is consulted."""
 
 from pathlib import Path
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 
 from chassis.graph import fail, validate_graph
 from chassis.markdown import ParsedRecord, RecordFileError, read_record
-from chassis.policy import load_policy, validate_policy_references
+from chassis.policy import Policy, load_policy, validate_policy_references
 
 
-def load_vault(root: Path, *, reader: Callable[[Path], ParsedRecord] = read_record) -> dict[str, ParsedRecord]:
+def read_vault(root: Path, *, reader: Callable[[Path], ParsedRecord] = read_record) -> list[ParsedRecord]:
+    """Read schemas/paths without checking relationships until a proposal is complete."""
     record_root = root / "records"
     if record_root.is_symlink():
         raise RecordFileError(f"{record_root}: record directory cannot be a symlink")
@@ -25,11 +26,19 @@ def load_vault(root: Path, *, reader: Callable[[Path], ParsedRecord] = read_reco
         records.append(item)
     if not records:
         raise RecordFileError(f"{record_root}: No record files found")
+    return records
+
+
+def validate_records(root: Path, items: Iterable[ParsedRecord], policy: Policy) -> dict[str, ParsedRecord]:
+    records = list(items)
     by_id = validate_graph(records)
-    policy = load_policy(root)
     validate_policy_references(root, policy, by_id)
     for item in records:
         agent = item.record.assigned_agent
         if agent is not None and agent not in policy.agents:
             fail(item, f"assigned_agent {agent!r} is not a known agent id")
     return by_id
+
+
+def load_vault(root: Path, *, reader: Callable[[Path], ParsedRecord] = read_record) -> dict[str, ParsedRecord]:
+    return validate_records(root, read_vault(root, reader=reader), load_policy(root))
