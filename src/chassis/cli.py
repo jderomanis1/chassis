@@ -12,6 +12,7 @@ from chassis.index import FILTER_FIELDS, RecordIndex
 from chassis.errors import AuthorizationError, ConflictError, WriteError
 from chassis.models import RECORD_TYPES
 from chassis.store import RecordStore
+from chassis.templates import TEMPLATE_SECTIONS
 from chassis.validation import load_vault
 
 
@@ -43,15 +44,19 @@ def main(argv=None) -> int:
     create = commands.add_parser("create", help="Create a validated record")
     create.add_argument("type", choices=RECORD_TYPES)
     create.add_argument("--fields", required=True, help="JSON object; omit type, version, updated_at")
+    new = commands.add_parser("new", help="Create a record from a filled template")
+    new.add_argument("template", choices=tuple(TEMPLATE_SECTIONS))
+    new.add_argument("--venture", required=True, help="Existing venture ID with an explicit write grant")
+    new.add_argument("--fields", required=True, help="JSON record fields and an exact-name sections object")
     human = commands.add_parser("commit-human", help="Commit one manual record edit as the human")
     human.add_argument("path", type=Path)
-    for command in (rebuild, listing, get, search, update, create, human):
+    for command in (rebuild, listing, get, search, update, create, new, human):
         command.add_argument("--vault", type=Path, default=Path.cwd())
     args = parser.parse_args(argv)
     try:
         if args.command == "validate":
             return _validate(args.vault)
-        if args.command in {"update", "create", "commit-human"}:
+        if args.command in {"update", "create", "new", "commit-human"}:
             print(json.dumps(_write(args), ensure_ascii=False, sort_keys=True, indent=2))
             return 0
         index = RecordIndex(args.vault)
@@ -90,6 +95,8 @@ def _write(args) -> dict:
         raise AuthorizationError("CHASSIS_AGENT_ID must identify the configured caller")
     if args.command == "update":
         return store.update_record(args.identifier, json.loads(args.changes), args.expected_version, agent)
+    if args.command == "new":
+        return store.create_from_template(args.template, args.venture, json.loads(args.fields), agent)
     return store.create_record(args.type, json.loads(args.fields), agent)
 
 
