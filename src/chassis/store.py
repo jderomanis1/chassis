@@ -10,7 +10,7 @@ from chassis.atomic import vault_lock
 from chassis.errors import ConflictError, WriteError
 from chassis.git import Identity, commit_file, ensure_clean, ensure_repository, has_record_changes
 from chassis.markdown import ParsedRecord, RecordFileError, parse_record, read_frontmatter
-from chassis.models import Record, RecordId, RecordType
+from chassis.models import RECORD_TYPES, Record, RecordId, RecordType
 from chassis.policy import authorize_writer, require_grant
 from chassis.transactions import persist_record, refresh_committed
 from chassis.validation import load_vault, read_vault, validate_records
@@ -24,7 +24,7 @@ class RecordStore:
 
     def _find_path(self, identifier: str) -> Path:
         paths = []
-        for kind in ("venture", "initiative", "task"):
+        for kind in RECORD_TYPES:
             path = self.root / "records" / f"{kind}s" / f"{identifier}.md"
             for part in (path.parent.parent, path.parent, path):
                 if part.is_symlink():
@@ -136,7 +136,7 @@ class RecordStore:
         except ValueError as exc:
             raise WriteError("commit-human requires a record path within the vault") from exc
         if (len(relative.parts) != 3 or relative.parts[0] != "records"
-                or relative.parts[1] not in {"ventures", "initiatives", "tasks"}
+                or relative.parts[1] not in {f"{kind}s" for kind in RECORD_TYPES}
                 or path.suffix != ".md" or ".." in relative.parts):
             raise WriteError("commit-human requires a canonical record path under records/")
         identity = Identity.from_env("HUMAN")

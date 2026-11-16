@@ -10,6 +10,7 @@ from pathlib import Path
 
 from chassis.index import FILTER_FIELDS, RecordIndex
 from chassis.errors import AuthorizationError, ConflictError, WriteError
+from chassis.models import RECORD_TYPES
 from chassis.store import RecordStore
 from chassis.validation import load_vault
 
@@ -23,7 +24,7 @@ def main(argv=None) -> int:
     actions = index.add_subparsers(dest="index_command", required=True)
     rebuild = actions.add_parser("rebuild", help="Rebuild from authoritative working-tree files")
     listing = commands.add_parser("list", help="List records matching all supplied filters")
-    choices = {"type": ("venture", "initiative", "task"),
+    choices = {"type": RECORD_TYPES,
                "status": ("planned", "in_progress", "blocked", "done"),
                "sensitivity": ("normal", "restricted")}
     for field in FILTER_FIELDS:
@@ -40,7 +41,7 @@ def main(argv=None) -> int:
     update.add_argument("--expected-version", type=int, required=True)
     update.add_argument("--changes", required=True, help="JSON object of fields to change")
     create = commands.add_parser("create", help="Create a validated record")
-    create.add_argument("type", choices=("venture", "initiative", "task"))
+    create.add_argument("type", choices=RECORD_TYPES)
     create.add_argument("--fields", required=True, help="JSON object; omit type, version, updated_at")
     human = commands.add_parser("commit-human", help="Commit one manual record edit as the human")
     human.add_argument("path", type=Path)
@@ -98,7 +99,7 @@ def _validate(root: Path) -> int:
     dependencies = sum(len(item.record.depends_on) for item in records.values())
     print(f"VALID: {len(records)} records | {counts['venture']} ventures | "
           f"{counts['initiative']} initiatives | {counts['task']} tasks | "
-          f"{dependencies} dependencies")
+          f"{dependencies} dependencies" + (f" | {counts['agent']} agent documents" if counts['agent'] else ""))
     return 0
 
 

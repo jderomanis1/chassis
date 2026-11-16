@@ -1,7 +1,7 @@
 """Record schema shared by every transport and renderer."""
 
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Literal, get_args
 
 from pydantic import (AwareDatetime, BaseModel, ConfigDict, Field,
                       StringConstraints, field_validator)
@@ -10,7 +10,8 @@ RecordId = Annotated[str, StringConstraints(strict=True, max_length=80,
                        pattern=r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")]
 Nonempty = Annotated[str, StringConstraints(strict=True, strip_whitespace=True,
                                           min_length=1)]
-RecordType = Literal["venture", "initiative", "task"]
+RecordType = Literal["venture", "initiative", "task", "agent"]
+RECORD_TYPES = get_args(RecordType)
 
 
 class Record(BaseModel):

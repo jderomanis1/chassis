@@ -7,7 +7,10 @@ from pathlib import Path
 from chassis.errors import WriteError
 
 GTM_SECTIONS = ("Positioning", "Audience", "Channels", "Offer", "Launch checklist", "Success metrics")
-TEMPLATE_SECTIONS = {"initiative": GTM_SECTIONS}
+AGENT_SECTIONS = ("Playbooks", "Channels", "Data scope")
+READ_ONLY_PERMISSIONS = ("Read-only by default. This document grants no access.\n"
+                         "Only a human can change access grants in agents.yaml.")
+TEMPLATE_SECTIONS = {"initiative": GTM_SECTIONS, "agent": AGENT_SECTIONS}
 TOKEN = re.compile(r"\{\{([^{}\n]+)\}\}")
 PLACEHOLDER = re.compile(
     r"\{\{|\}\}|\$\{|\b(?:TODO|TBD|TBC|PLACEHOLDER)\b|"
@@ -58,7 +61,10 @@ def expand_template(root: Path, template: str, fields: Mapping) -> dict:
     if TOKEN.findall(source) != ["title", *names]:
         raise WriteError(f"{path}: invalid template placeholders")
     body = TOKEN.sub(lambda match: values[match[1]], source)
-    if tuple(re.findall(r"(?m)^## ([^\r\n]+)$", body)) != names:
+    headings = (*names, "Permissions") if template == "agent" else names
+    if tuple(re.findall(r"(?m)^## ([^\r\n]+)$", body)) != headings:
         raise WriteError(f"{path}: invalid template section names or order")
+    if template == "agent" and body.split("\n## Permissions\n")[-1].strip() != READ_ONLY_PERMISSIONS:
+        raise WriteError(f"{path}: agent template permissions must remain read-only")
     _filled(body, "rendered template")
     return {"status": "planned", **fields, "body": body}

@@ -31,7 +31,7 @@ def test_every_required_field_is_required(fields, key):
 
 
 @pytest.mark.parametrize(("key", "value"), [
-    ("id", "../escape"), ("id", "Title With Spaces"), ("type", "agent"),
+    ("id", "../escape"), ("id", "Title With Spaces"), ("type", "unknown"),
     ("title", "  "), ("owner", ""), ("next_step", ""), ("status", "unknown"),
     ("version", 0), ("version", True), ("version", 1.0), ("version", "1"),
     ("updated_at", "2026-11-16T12:00:00"), ("updated_at", 1794830400),

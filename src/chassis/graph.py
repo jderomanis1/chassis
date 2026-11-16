@@ -30,7 +30,7 @@ def validate_graph(items: Iterable[ParsedRecord]) -> dict[str, ParsedRecord]:
             parent = by_id.get(record.parent)
             if parent is None:
                 fail(item, f"parent {record.parent!r} does not exist")
-            expected = "venture" if record.type == "initiative" else "initiative"
+            expected = "venture" if record.type in {"initiative", "agent"} else "initiative"
             if parent.record.type != expected:
                 article = "an" if expected == "initiative" else "a"
                 fail(item, f"parent must be {article} {expected}: {record.parent}")
