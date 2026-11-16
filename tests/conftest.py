@@ -39,3 +39,11 @@ def git_repo(vault, monkeypatch):
     git(vault, "add", ".")
     git(vault, "commit", "-qm", "Fictional baseline")
     return vault
+
+
+@pytest.fixture
+def template_repo(git_repo):
+    shutil.copytree(ROOT / "templates", git_repo / "templates")
+    git(git_repo, "add", "templates")
+    git(git_repo, "commit", "-qm", "Fictional template baseline")
+    return git_repo

@@ -34,9 +34,7 @@ def agent_repo(git_repo):
 
 def test_agent_document_created_from_template_grants_no_access(agent_repo):
     policy_bytes = (agent_repo / "agents.yaml").read_bytes()
-    fields = expand_template(agent_repo, "agent", agent_fields()) | {
-        "venture": "venture-acme", "parent": "venture-acme"}
-    result = RecordStore(agent_repo).create_record("agent", fields, "chief-of-staff")
+    result = RecordStore(agent_repo).create_from_template("agent", "venture-acme", agent_fields(), "chief-of-staff")
     assert "## Permissions\nRead-only by default." in result["record"]["body"]
     assert result["record"]["type"] == "agent" and result["record"]["assigned_agent"] is None
     assert git(agent_repo, "show", "--format=", "--name-only") == "records/agents/agent-sample-reader.md"

@@ -12,6 +12,7 @@ from chassis.git import Identity, commit_file, ensure_clean, ensure_repository, 
 from chassis.markdown import ParsedRecord, RecordFileError, parse_record, read_frontmatter
 from chassis.models import RECORD_TYPES, Record, RecordId, RecordType
 from chassis.policy import authorize_writer, require_grant
+from chassis.templates import expand_template, template_sections
 from chassis.transactions import persist_record, refresh_committed
 from chassis.validation import load_vault, read_vault, validate_records
 
@@ -125,6 +126,16 @@ class RecordStore:
             ensure_repository(self.root)
             return persist_record(self.root, proposed, None, identity,
                                   f"chassis: create {record.id} v1 by {agent}")
+
+    def create_from_template(self, template: str, venture: str, fields: Mapping,
+                             agent: str) -> dict:
+        """Authorize before template I/O, then use the sole record-create transaction."""
+        policy = authorize_writer(self.root, agent)
+        template_sections(template)
+        TypeAdapter(RecordId).validate_python(venture)
+        require_grant(policy, agent, venture, template)
+        expanded = expand_template(self.root, template, fields)
+        return self.create_record(template, expanded | {"venture": venture, "parent": venture}, agent)
 
     def commit_human(self, path: str | Path) -> dict:
         """Commit one validated manual edit exactly as written, as the human."""
