@@ -21,6 +21,10 @@ with a spatial view that makes the next action easy to see.
 All venture data is fictional. The MCP server, SQLite index, write operations,
 and Miro renderer follow in later steps.
 
+**Continuing in a new chat?** Read the [project handoff](CHASSIS_PROJECT_HANDOFF.md)
+and [project chat setup](docs/PROJECT_CHAT_SETUP.md). Engineering agents should
+start with [AGENTS.md](AGENTS.md).
+
 ## Start here
 
 Prerequisites: **Python 3.12+, Git, and uv**. No API key is needed for Step 1.
