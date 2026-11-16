@@ -12,6 +12,7 @@ READ_ONLY_PERMISSIONS = ("Read-only by default. This document grants no access.\
                          "Only a human can change access grants in agents.yaml.")
 TEMPLATE_SECTIONS = {"initiative": GTM_SECTIONS, "agent": AGENT_SECTIONS}
 TOKEN = re.compile(r"\{\{([^{}\n]+)\}\}")
+HEADING = re.compile(r"^## ([^\r\n]+)\r?$", re.MULTILINE)
 PLACEHOLDER = re.compile(
     r"\{\{|\}\}|\$\{|\b(?:TODO|TBD|TBC|PLACEHOLDER)\b|"
     r"[\[<]\s*(?:insert|replace|fill)\b[^\]>]*[\]>]", re.IGNORECASE)
@@ -21,7 +22,7 @@ def _filled(value, label: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise WriteError(f"{label}: missing or empty template content")
     visible = re.sub(r"<!--.*?-->", "", value, flags=re.DOTALL)
-    visible = re.sub(r"(?m)^\s*[-*+]\s*\[[ xX]\]\s*", "", visible)
+    visible = re.sub(r"(?m)^\s*(?:[-*+]|\d+[.)])(?:[ \t]+|$)(?:\[[ xX]\][ \t]*)?", "", visible)
     if not re.search(r"\w", visible):
         raise WriteError(f"{label}: empty template content")
     if PLACEHOLDER.search(value):
@@ -60,10 +61,19 @@ def expand_template(root: Path, template: str, fields: Mapping) -> dict:
     source = path.read_text(encoding="utf-8")
     if TOKEN.findall(source) != ["title", *names]:
         raise WriteError(f"{path}: invalid template placeholders")
-    body = TOKEN.sub(lambda match: values[match[1]], source)
     headings = (*names, "Permissions") if template == "agent" else names
-    if tuple(re.findall(r"(?m)^## ([^\r\n]+)$", body)) != headings:
+    parts = HEADING.split(source)
+    if tuple(parts[1::2]) != headings:
         raise WriteError(f"{path}: invalid template section names or order")
+    for name, content in zip(parts[1::2], parts[2::2]):
+        if name in names and TOKEN.findall(content) != [name]:
+            raise WriteError(f"{path}: {name} has invalid section placeholders")
+    body = TOKEN.sub(lambda match: values[match[1]], source)
+    parts = HEADING.split(body)
+    if tuple(parts[1::2]) != headings:
+        raise WriteError(f"{path}: invalid template section names or order")
+    for name, content in zip(parts[1::2], parts[2::2]):
+        _filled(content, name)
     if template == "agent" and body.split("\n## Permissions\n")[-1].strip() != READ_ONLY_PERMISSIONS:
         raise WriteError(f"{path}: agent template permissions must remain read-only")
     _filled(body, "rendered template")

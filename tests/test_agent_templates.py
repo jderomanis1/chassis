@@ -6,7 +6,7 @@ from conftest import ROOT, git
 
 from chassis.errors import AuthorizationError
 from chassis.index import RecordIndex
-from chassis.policy import authorize_writer, load_policy
+from chassis.policy import load_policy
 from chassis.store import RecordStore
 from chassis.templates import expand_template
 
@@ -41,7 +41,8 @@ def test_agent_document_created_from_template_grants_no_access(agent_repo):
     policy = load_policy(agent_repo)
     assert policy.unknown_agent == "read" and "agent-sample-reader" not in policy.agents
     with pytest.raises(AuthorizationError, match="agent-sample-reader.*no write grant"):
-        authorize_writer(agent_repo, "agent-sample-reader")
+        RecordStore(agent_repo).update_record("task-launch-budget", {"status": "blocked"}, 1, "agent-sample-reader")
+    assert git(agent_repo, "rev-parse", "HEAD") == result["commit"]
     assert (agent_repo / "agents.yaml").read_bytes() == policy_bytes
     assert RecordIndex(agent_repo).get_record("agent-sample-reader") == result["record"]
 
