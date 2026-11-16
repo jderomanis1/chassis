@@ -47,19 +47,18 @@ Write plainly, professionally, and without em dashes or hype.
 
 ## Next build chat
 
-Suggested title: **Chassis Step 5 MCP tools through a real stdio client**
+Suggested title: **Chassis portal design prototype**
 
-Step 4 is complete; AC3, AC4, and AC9 pass. Start only after Joe's next go. Copy the full
+Step 5 is complete; AC2, AC3, AC4, and AC9 pass. Start only after Joe's next go. Copy the full
 starting prompt from [the current handoff](../CHASSIS_PROJECT_HANDOFF.md#next-chat-starting-prompt).
 
-Start Step 5 only. Read the current handoff and repository instructions. Step 4
-implementation is at `176478a0ae56c718c2683fd5fb5f885a15554508`, with 343 tests
-passing from a clean checkout. Preserve later documentation and inspect current HEAD.
-Implement the official Python MCP SDK stdio adapter around transport-independent
-library handlers. Prove AC2 with a real client/server process doing list/read/create/
-update and meaningful refusal checks. Retain template and write contracts and
-configured caller identity. Keep portal, layout, optional Miro, and chat import
-in later steps. Portal code requires Joe's approval of its design prototype.
-Use tests first, small increments, a push after each completed increment, and the
-required four-part reports. Update the handoff and stop at Step 5; this checkpoint
-does not authorize starting it automatically.
+Start with the portal design prototype only. Read the current handoff and
+repository instructions. Step 5 runtime/tests are at
+`6ab3b14a759e1e3d5f8e9beae08bf8943b7c8d5d`, with 431 tests passing from a clean
+checkout and a recorded real stdio session. Preserve later documentation and
+inspect current HEAD. Milestone/date/blocker fields and derived Git activity exist.
+Resolve health explanations/unknowns, freshness, C2 filtering, and read-only agent
+connection semantics in the design. Present the prototype to Joe before writing
+any portal implementation code. Keep layout, optional Miro, chat import, spawning,
+real-data work, and deployment outside this step. Update the handoff and use the
+required four-part report. This checkpoint does not authorize starting automatically.
