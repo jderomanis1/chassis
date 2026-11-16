@@ -136,6 +136,62 @@ ordinary-editor concurrency, crash-recovery, and read-isolation limits still app
 Obsidian UI, real MCP client, portal, and optional Miro evidence remain pending.
 Next chat, only after Joe's go: **Step 5, MCP tools via a real stdio client (AC2).**
 
+## Step 5: observed
+
+- Started at accepted `a26a093`; remote HEAD and clean local tree matched. The
+  uploaded handoff was an older Step 1 snapshot. The 343-test baseline passed.
+  Part A was pushed separately as `c3cb106`, Part B as `42a8056`, and the final
+  runtime/test checkpoint is `6ab3b14a759e1e3d5f8e9beae08bf8943b7c8d5d`.
+- A fresh detached checkout with no environment/cache passed `uv sync --locked`,
+  **431 tests in 29.94s**, validation of all 13 records, and an index rebuild.
+  Git status remained empty. Sample policy is unchanged; the sole sample-record
+  change is the blocked Ridgeview task's required reason.
+- Template metadata now uses the same strict record constraints before expansion.
+  FIXME/XXX and NFKC compatibility forms are rejected. Eighteen regressions failed
+  before the fix. NFKC does not claim to recognize every possible Unicode homoglyph.
+- Optional milestone/due fields validate strict date-only values. Task blockers
+  are required when blocked and must be cleared with the status transition.
+  Older records can omit optional fields; legacy blocked tasks need a reason.
+- `last_activity_at` is derived at index time from the latest touching commit's
+  committer timestamp, normalized to UTC. Both human and agent commits count.
+  An unrelated commit or uncommitted edit does not advance it. A human edit and
+  byte/mtime-identical restoration still refresh history. No commit history means
+  null. Activity never enters frontmatter; schema-2 caches rebuild as schema 3.
+- The official MCP Python SDK is locked at 2.3.0. Six strict tool schemas and
+  transport-neutral handlers call the CLI's existing libraries. Caller identity
+  comes from server environment configuration. Extra caller arguments are rejected;
+  assigning a record to another known agent does not change commit attribution.
+- One real subprocess/client session initialized, listed tools, and exercised
+  list/read/search/create/template/update. Exactly three writes produced three
+  single-record commits by the configured fictional author. Stale and invalid
+  requests preserved every source byte, cache byte, and HEAD. A second integration
+  test connects using the official SDK client over actual stdio.
+- Dirty/staged targets, unchanged/edited hidden Git flags, denied scopes,
+  unknown/read-only callers, missing/invalid/revoked policy, and unsafe lock paths
+  all retain their refusals through MCP. No duplicate mutation path was introduced.
+- Two real MCP clients were blocked by one held OS lock, then raced the same
+  version: one success, one conflict/current version 2, exactly one commit, and
+  source/index/author matching the winner. Both server process groups ended cleanly.
+- Every stdout line parsed as JSON-RPC while startup/tool/shutdown logs went to
+  stderr. Closing clients ended servers with exit 0 and no surviving process group.
+  The kernel lock was immediately reacquirable. The stable lock inode remains by
+  design; deleting it would split synchronization across concurrent waiters.
+- Error review reproduced a Git hook traceback reaching the client and loss of
+  uncertain-commit metadata. Three regressions failed before the fix. Raw hook/cache
+  diagnostics now stay on stderr, with committed/current-version/SHA facts retained.
+- `evidence/mcp-session.jsonl` records a real clean-checkout session: 25 paired
+  wire messages, all six tools, and representative failures, with fictional data
+  and no environment secrets. Its capture test passed again in 1.56s.
+- README has a placeholder-only Claude Desktop configuration. No desktop UI,
+  Obsidian UI, HTTP, portal, health calculation, Miro, or deployment pass is claimed.
+
+Step 5 limits: Linux/POSIX execution is verified; native Windows locking is not
+implemented. Reads still expose restricted records according to the existing
+library contract; renderer/portal filtering remains a later gate. Ordinary editors
+do not honor the process lock, and file replacement plus Git remain separate crash
+boundaries. Source scans now also consult Git history; no large-vault benchmark
+has been performed. Next: wait for Joe's go on the portal design prototype.
+
 ## Miro frame-deletion experiment
 
 **Not run. Outcome unknown.** Part of revised optional Step 8, on disposable scratch items.

@@ -1,7 +1,104 @@
 # Acceptance evidence
 
-**Snapshot:** Increment 0, Step 4 complete. **Date:** 2026-11-16.
-All source records and people are fictional. AC3, AC4, and AC9 pass; later gates remain pending.
+**Snapshot:** Increment 0, Step 5 complete. **Date:** 2026-11-16.
+All source records and people are fictional. AC2, AC3, AC4, and AC9 pass; later gates remain pending.
+
+## Step 5 executed checks
+
+Start: accepted `main` at **`a26a093f959824a0df4db3a79433fc39fc17c1bc`**.
+Remote HEAD matched that SHA and the existing working tree was clean. The uploaded
+handoff was the older Step 1 snapshot; current repository guidance and Joe's Step 5
+request governed. The accepted 343-test baseline was rerun and passed in 13.32s.
+
+Part A fixes were pushed separately as **`c3cb10680a8853a8447ec3ba4df9dc427bcb7b7a`**.
+Part B portal fields were pushed separately as **`42a80567a24cda55d4b19292800108851923e810`**.
+Final runtime/test checkpoint: **`6ab3b14a759e1e3d5f8e9beae08bf8943b7c8d5d`**.
+Connection documentation and the real session transcript follow at **`b2fc347`**.
+
+Final verification used a fresh detached worktree at `6ab3b14`, initially containing
+neither `.venv` nor `.chassis`. Runtime: Python 3.12.14, Linux, official MCP SDK
+2.3.0. Subsequent commits change documentation/evidence only.
+
+| Check | Observed result |
+| :--- | :--- |
+| `uv sync --locked` | Passed from the clean checkout; committed dependency lock unchanged |
+| `uv run pytest -q` | **431 passed in 29.94s** |
+| `uv run chassis validate` | 13 records, 2 ventures, 3 initiatives, 8 tasks, 2 dependencies |
+| `uv run chassis index rebuild` | All 13 authoritative records indexed |
+| Clean checkout/source boundary | Empty Git status and `git diff --exit-code`; sample policy unchanged from `a26a093`; only sample-record change is Ridgeview's required blocker reason |
+| Installed entry point | Clean environment's `.venv/bin/chassis-mcp --help` exited successfully |
+| Part A metadata | Owner, sensitivity, and assignment rejected before expansion when invalid; same record constraints used; valid metadata roundtrips |
+| Part A placeholders | FIXME, XXX, fullwidth/compatibility tokens and letters rejected after NFKC matching; no file/cache/commit changes |
+| Portal schema | Strict date-only parsing; fields scoped to record types; blocked reason required and must be cleared on unblocking; derived activity rejected as source metadata |
+| Migration/index/filters | Optional fields may be omitted; old cache schema rebuilds; stored portal-field filters through library/CLI and null activity filtering pass; existing blocked fixture migrated |
+| Git activity | Agent and human commits count; uncommitted/unrelated changes do not advance activity; byte/mtime-identical restore still refreshes; no history yields null |
+| Earlier gates | AC3, AC4, and AC9 regressions remain green, including real-process races and crash recovery |
+
+### AC2: real stdio process and client proof
+
+The adapter uses the official Python SDK, not a simulated server. The acceptance
+client launches a real subprocess, sends newline-delimited JSON-RPC over stdin,
+and parses every stdout line. Its single session initializes protocol `2025-11-25`,
+lists exactly six tools, and exercises every operation. A separate official SDK
+`Client` also connects to a real stdio process, lists tools, and reads a record.
+No in-process transport supplies these results.
+
+| Required proof | Observed result and executable location |
+| :--- | :--- |
+| M1 initialize and tools/list | `tests/test_mcp_stdio.py`: one client initializes, lists exactly the six named tools, and verifies strict schemas without caller identity arguments |
+| M2 six tools end to end | `tests/test_mcp_session.py::test_real_stdio_session_all_six_tools`: list/read/search/create/template/update on one client; each of the three writes has exactly one parent-to-child, record-only commit by `Fictional Homer <homer@chassis.local>` |
+| M3 stale version | Same session returns `conflict`, expected version 1/current version 2; all record bytes, cache bytes, and HEAD unchanged |
+| M4 invalid input | Same session returns `validation` with field `due_at` and a reason, with unchanged records/cache/HEAD; strict argument/schema and impersonation refusals also pass |
+| M5 existing protections | `tests/test_mcp_refusals.py`: dirty/staged targets, unchanged/edited skip-worktree and assume-unchanged flags, unknown/read-only/wrong-scope callers, missing/invalid/revoked policy, and a symlink lock are refused through MCP |
+| M5 shared lock | `tests/test_mcp_concurrency.py`: both server handlers begin their writes while another process holds the real vault lock; neither returns or writes until release |
+| M6 protocol-clean stdout | `tests/mcp_client.py` parses every stdout line as JSON-RPC; the full session also verifies startup, all six tool logs, and shutdown appear on stderr |
+| M7 shutdown | Closing client stdin ends each tested server with exit 0; its process group has no survivors; the kernel lock can be reacquired immediately; no Git index lock or write temp remains |
+| M8 recorded session | `evidence/mcp-session.jsonl`: 25 actual wire messages, including initialization, tools/list, all six tools, stale/invalid/missing refusals; no environment secrets |
+| M9 two-client race | Two real server subprocesses with distinct fictional author names race expected version 1: exactly one success, one structured conflict/current version 2, one record-only commit, and matching winning source/index/author |
+| Error safety/recovery | `tests/test_mcp_error_safety.py`: a real rejecting Git hook's traceback stays on stderr; record rollback holds; committed/unknown outcome details survive error mapping |
+
+The persistent `.chassis/write.lock` file is the stable shared inode, not an active
+lock. Tests verify release of the kernel lock; they intentionally do not unlink
+the inode, which would let concurrent waiters lock different files.
+
+### Transcript provenance
+
+The clean checkout ran the full-session test again with
+`CHASSIS_MCP_TRANSCRIPT` pointing to the evidence file: **1 passed in 1.56s**.
+The recorder saved actual requests/responses rather than constructing a sample
+conversation. There are 13 client messages (including the initialized notification)
+and 12 server responses; request/response IDs pair exactly. All six tool names
+appear. Size: 22,403 bytes. SHA-256:
+`5a9f2d35b232837c766f71b8c98d8e72316e91967fec0df43fc14320c36bd07c`.
+
+### Test-first and publication record
+
+Eighteen Part A regressions failed before the fix. Ten portal-schema checks and
+eight index/activity checks failed before their implementations. Handler tests
+first failed on the absent module; both initial subprocess tests failed before
+the server existed. Later end-to-end/refusal tests exercised the shared paths
+without introducing another persistence implementation. The two-client race passed;
+three final diagnostic/recovery regressions failed before the containment fix.
+
+| Increment | Published commit | Full-suite tests after increment |
+| :--- | :--- | ---: |
+| Part A, separately | `c3cb106` | 362 |
+| Part B, separately | `42a8056` | 403 |
+| Transport-independent handlers | `959f115` | 411 |
+| Official SDK stdio adapter and client lifecycle | `8faa3b0` | 413 |
+| Six-tool session and refusal proof | `3955eb6` | 427 |
+| Two-client race and diagnostic containment | `6ab3b14` | 431 |
+
+Each increment was published to private `main` through the connected GitHub API
+with its expected parent and no force. Remote trees and reconstructed commit
+objects matched local Git object IDs; accepted history was preserved. Hand-authored
+increments were kept small; Part B was one dedicated field-migration commit as
+requested. Generated lock/transcript data is additional to handwritten changes.
+
+No desktop UI, Obsidian UI, live Miro API, HTTP transport, portal, health calculation,
+real venture, or deployment check is claimed. Next is the prototype-gated portal,
+only after Joe's go. Native Windows locking, ordinary-editor coordination, and the
+existing file/Git crash-atomicity limitations remain.
 
 ## Step 4 executed checks
 
@@ -275,11 +372,11 @@ the fix and now pass.
 | AC | Requirement | Status and evidence |
 | :--- | :--- | :--- |
 | 1 | Obsidian vault and valid records | All records validate. Actual Obsidian open-and-browse check pending; see below. |
-| 2 | MCP client list/read/create/update | Pending Step 5 |
+| 2 | MCP client list/read/create/update | **Passed Step 5** at `6ab3b14`: all six tools through one real stdio client; official SDK interoperability; structured refusals; attributed commits; two-client race; transcript recorded |
 | 3 | Stale write rejection, version bump, Git commit | **Passed Step 3** at `24ddcc7`: two real processes, exactly one commit, structured stale rejection, agent attribution, and installed CLI proof |
 | 4 | Filled initiative template | **Passed Step 4** at `176478a`: six populated sections, shared transaction, one attributed commit, library and installed CLI proof |
 | 5 | Ridgeview rendered on Miro | Pending optional Miro export in revised Step 8 |
-| 6 | MCP status update changes one card | Pending Step 5 and optional Miro export in Step 8 |
+| 6 | MCP status update changes one card | MCP status update proved in Step 5; card update still awaits optional Miro export in Step 8 |
 | 7 | Unchanged render has zero writes | Pending planner Step 7 and optional Miro export Step 8 |
 | 8 | Delete-frame behavior observed | Pending optional Step 8 scratch probe; no result has been inferred |
 | 9 | SQLite deletion/rebuild preserves query results | **Passed Step 2**, library and installed CLI byte-equivalence proofs at `39b5b2e` |
