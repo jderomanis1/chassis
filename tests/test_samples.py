@@ -24,3 +24,14 @@ def test_agents_file_has_explicit_venture_and_type_scopes():
     assert all(scopes == {"venture": "write", "initiative": "write", "task": "write"}
                for scopes in chief.values())
     assert policy["unknown_agent"] == "read"
+
+
+def test_ridgeview_has_five_tasks_and_two_dependencies():
+    records = load_vault(ROOT)
+    tasks = [item.record for item in records.values()
+             if item.record.venture == "venture-ridgeview" and item.record.type == "task"]
+    assert len(tasks) == 5
+    edges = {(task.id, dependency) for task in tasks for dependency in task.depends_on}
+    assert edges == {("task-maintenance-quotes", "task-maintenance-inventory"),
+                     ("task-maintenance-plan", "task-maintenance-quotes")}
+    assert all(task.sensitivity == "normal" for task in tasks)
