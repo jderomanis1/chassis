@@ -21,3 +21,7 @@ Explore a direct-to-consumer desk-accessory offer through a small, measurable la
 ## Desired outcome
 
 Learn whether the proposed audience understands the offer and wants to try it.
+
+## Initiative
+
+- [Shape the first desk-accessory launch](../initiatives/initiative-d2c-launch.md)
