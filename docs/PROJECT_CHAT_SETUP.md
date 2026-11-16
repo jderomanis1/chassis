@@ -47,18 +47,19 @@ Write plainly, professionally, and without em dashes or hype.
 
 ## Next build chat
 
-Suggested title: **Chassis Step 4 initiative and agent templates**
+Suggested title: **Chassis Step 5 MCP tools through a real stdio client**
 
-Step 3 is complete; AC3 and AC9 pass. Start only after Joe's next go. Copy the full
+Step 4 is complete; AC3, AC4, and AC9 pass. Start only after Joe's next go. Copy the full
 starting prompt from [the current handoff](../CHASSIS_PROJECT_HANDOFF.md#next-chat-starting-prompt).
 
-Start Step 4 only. Read the current handoff and repository instructions. Step 3
-implementation is at `24ddcc790a228a822bb6b4b57829302116211811`, with 236 tests
+Start Step 5 only. Read the current handoff and repository instructions. Step 4
+implementation is at `176478a0ae56c718c2683fd5fb5f885a15554508`, with 343 tests
 passing from a clean checkout. Preserve later documentation and inspect current HEAD.
-Implement populated initiative templates and file-only agent templates with
-read-only defaults. Template-backed records must use the existing validated,
-authorized, locked, atomic, attributed Git write path. Prove AC4 with fictional
-content in every required section. Keep MCP and Miro in their later steps.
+Implement the official Python MCP SDK stdio adapter around transport-independent
+library handlers. Prove AC2 with a real client/server process doing list/read/create/
+update and meaningful refusal checks. Retain template and write contracts and
+configured caller identity. Keep portal, layout, optional Miro, and chat import
+in later steps. Portal code requires Joe's approval of its design prototype.
 Use tests first, small increments, a push after each completed increment, and the
-required four-part reports. Update the handoff and stop at Step 4; this checkpoint
+required four-part reports. Update the handoff and stop at Step 5; this checkpoint
 does not authorize starting it automatically.

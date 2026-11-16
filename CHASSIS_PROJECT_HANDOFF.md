@@ -1,6 +1,6 @@
 # Chassis project handoff
 
-**Checkpoint date: 2026-11-16. Step 3 complete. Next build: Step 4, awaiting Joe's go.**
+**Checkpoint date: 2026-11-16. Step 4 complete. Next build: Step 5, awaiting Joe's go.**
 This file preserves the approved build decisions and evidence so each step can
 continue in a separate chat. Read current repository HEAD before making changes.
 
@@ -76,16 +76,33 @@ tokenized invitation/tracking links are not copied into the repository.
   A separate temporary sample repo passed installed create/update/commit-human,
   stale/dirty refusal, attribution, record-only commits, and index checks.
   Earlier 72-test and 151-test baselines remain historical evidence.
+- Joe accepted Step 3 at `9774ed4`: QE PASS, 236 tests, and a reported 20/20
+  repeated real-process T1 races; Code Reviewer PASS WITH NITS. Step 4 started
+  from that exact main. Its 236-test baseline was rerun successfully.
+- Step 4 Part A fixes were published first, separately, as
+  `9f0259917fedb3ed503e549e6da6975997497577`: Git flags, shared human hash/flag
+  guard, authorization before body reads, and the explicit atomic replace assertion.
+- Step 4 implementation: `176478a0ae56c718c2683fd5fb5f885a15554508`.
+  Usage/contracts follow at `f035b6b`, the revised roadmap at `5cb6e6e`, and
+  AC4 evidence/findings at `541abdf`. Preserve subsequent checkpoint documentation.
+- Fresh-checkout Step 4 proof: `uv sync --locked`, **343 tests in 13.83s**,
+  validation and rebuild of the original 13 records, and clean Git status.
+  A separate installed CLI proof created an initiative and agent document with
+  exactly one attributed commit each, refused writes as the new agent ID, and
+  rebuilt all 15 temporary records after cache deletion. Original sample records,
+  `agents.yaml`, dependency configuration, and lock remained unchanged.
 - Implemented: strict schema, safe frontmatter parsing, body preservation,
   relationship/dependency and policy validation, fictional fixtures, the disposable
   SQLite index, automatic refresh/recovery, local reads, and versioned create/update
   with exact write grants, process locking, atomic writes, Git, and commit-human.
+  Step 4 adds constrained templates, `create_from_template`, `chassis new`, and
+  descriptive agent documents. Template creation uses the existing create transaction.
 - `agents.yaml` has a strict Pydantic model. Only read/write scoped grants are
   allowed, policy ventures must exist, and unknown assignment IDs are rejected.
   Step 3 checks configured caller identity and old/new venture/type write grants.
 - `src/chassis/graph.py` validates record relationships; it is not the future
   renderer-neutral JSON graph or layout planner.
-- MCP, template expansion, and Miro rendering are pending.
+- MCP, the prototype-gated portal, layout, optional Miro export, and chat import are pending.
 
 Read [AGENTS.md](AGENTS.md), [architecture](docs/ARCHITECTURE.md),
 [acceptance evidence](evidence/acceptance.md), and [findings](FINDINGS.md).
@@ -98,7 +115,7 @@ Read [AGENTS.md](AGENTS.md), [architecture](docs/ARCHITECTURE.md),
 | Index | Disposable SQLite rebuilt from working-tree files, including uncommitted edits |
 | Connector | Python 3.12, official MCP SDK, stdio initially; transport-agnostic handlers and no model-specific SDK dependency |
 | Tools | `list_records(filter)`, `get_record(id)`, `search(query)`, `create_record(type, fields, template?)`, `update_record(id, changes, expected_version)` |
-| Templates | `templates/initiative.md` and `templates/agent.md`; planned in Step 4 |
+| Templates | `templates/initiative.md` and `templates/agent.md`; implemented in Step 4, AC4 passed |
 | Graph/layout | Renderer-neutral JSON; coordinates and layout logic owned by Chassis |
 | Canvas | Read-only portal after MCP, with prototype approval before code; Miro REST API v2 becomes an optional later export |
 
@@ -107,13 +124,16 @@ Required fields: `id`, `type`, `title`, `status`, `owner`, `venture`, `parent`,
 `sensitivity: normal | restricted` (default normal), `assigned_agent` (default null).
 Statuses: `planned`, `in_progress`, `blocked`, `done`. IDs and filenames are stable.
 A venture references itself and has a null parent; initiatives parent to their
-venture; tasks parent to an initiative in the same venture. Dependencies may cross
-ventures but cannot be missing, duplicated, self-referential, or cyclic.
+venture; tasks parent to an initiative in the same venture. An `agent` record is
+a descriptive document parented to its venture. Dependencies may cross ventures
+but cannot be missing, duplicated, self-referential, or cyclic.
 
-The initiative template must populate positioning, audience, channels, offer,
-launch checklist, and success metrics. Empty headings do not satisfy acceptance.
-The agent template holds playbooks, channels, data scope, and permissions, with
-read-only defaults. Agent templates are files only; no spawning in this build.
+`GTM_SECTIONS` fixes the exact ordered initiative headings: `Positioning`,
+`Audience`, `Channels`, `Offer`, `Launch checklist`, `Success metrics`. Missing,
+empty, markup-only, or placeholder sections are refused. The agent template takes
+`Playbooks`, `Channels`, and `Data scope` and adds fixed read-only `Permissions`.
+It neither registers a caller nor changes policy. Agent templates remain files;
+no spawning is implemented or authorized in this build.
 
 ## C1–C7 implementation contracts
 
@@ -168,7 +188,7 @@ should contain one venture frame, seven cards, and two dependency connectors.
 | 1 | Obsidian opens cleanly; every record validates | Schema/relationships pass; actual Obsidian UI check pending after a desktop launch problem |
 | 2 | Real MCP client lists, reads, creates, updates | Pending Step 5 |
 | 3 | Stale rejection; good version bump and attributed Git commit | Passed Step 3 at `24ddcc7`: two real processes, one winner/commit, structured conflict, and agent attribution |
-| 4 | Initiative created from template with filled go-to-market sections | Pending Step 4 |
+| 4 | Initiative created from template with filled go-to-market sections | Passed Step 4 at `176478a`: six filled sections, one attributed commit, library and installed CLI proof |
 | 5 | Scratch Miro frame, contained cards, colors, connectors | Pending live verification |
 | 6 | MCP status change updates exactly one existing card | Pending live verification |
 | 7 | Repeat render produces zero mutating Miro API calls | Pending live verification |
@@ -190,8 +210,8 @@ operations are the authorized exception needed for this proof.
 | 1 | Skeleton, schema, parser, relationships, sample records | Implemented; Obsidian demo gap remains |
 | 2 | Disposable SQLite index and working-tree queries | Complete; AC9 passed |
 | 3 | Create/update, policy enforcement, concurrency, Git, commit-human | Complete; AC3 passed |
-| 4 | Initiative and agent templates | Next, only after Joe's go |
-| 5 | MCP tools and real stdio client integration | Pending |
+| 4 | Initiative and agent templates | Complete; AC4 passed |
+| 5 | MCP tools and real stdio client integration | Next, only after Joe's go |
 | 6 | Read-only command-center portal over the library/index | New scope; Joe must approve the design prototype before any portal code |
 | 7 | Neutral graph layout and per-item change planner | After the portal |
 | 8 | Optional Miro export, including scratch contract/deletion probe before adapter and live proofs | Optional; existing C1–C7 still apply |
@@ -237,7 +257,7 @@ than treated as corruption. No large-vault benchmark or atomic snapshot across
 concurrent multi-file edits has been established. Restricted read results are
 intentional; renderer exclusion remains pending. Step 3 write authorization is enforced.
 
-## Step 3 write contract and limits
+## Current write contract and limits
 
 `RecordStore(root)` exposes `update_record(id, changes, expected_version, agent)`,
 `create_record(type, fields, agent)`, and `commit_human(path)`. CLI commands are
@@ -247,8 +267,10 @@ CLI caller ID is `CHASSIS_AGENT_ID`; authors come from `CHASSIS_AGENT_NAME` and
 `CHASSIS_AGENT_EMAIL`. The library's explicit agent argument is trusted caller
 configuration, not `assigned_agent` metadata or an authentication service.
 
-Unknown/read-only agents are denied after policy-only reads. Scope checks also
-read target metadata, then refuse denied grants before lock/index/Git access.
+Unknown/read-only agents are denied after policy-only reads. Scoped updates check
+current/destination grants using frontmatter before reading a record body.
+Template creates check the explicit venture/type grant before template/record I/O.
+Denied scopes never access the lock, index, or Git.
 Under `.chassis/write.lock`, policy and source are reread; version, dirtiness,
 schema, references, assignments, and cycles are checked before replacement.
 `atomic.write_atomic` is the only replacement primitive: sibling temp, fsync,
@@ -264,15 +286,31 @@ Git failure restores the old source when safe; post-commit index failure reports
 
 `commit-human` preserves manual file bytes and their version, commits as the human,
 and refreshes the index. It cannot commit policy/nonrecord paths. Reread after that
-handoff. Git flags hiding dirty content do not bypass the guard. A2 requires known
+handoff. Both agent and human paths reject `S` or any lowercase `git ls-files -v`
+tag even if the file is unchanged; uppercase `H` is normal. They share the content
+hash check as well. A2 requires known
 ventures in policy, so humans provision new venture scopes; agent record tools
-cannot grant themselves access. Templates remain Step 4.
+cannot grant themselves access.
+
+`create_from_template(template, venture, fields, agent)` is also a `RecordStore`
+method. CLI: `chassis new initiative|agent --venture ID --fields '<JSON>' [--vault PATH]`.
+Fields require `id`, `title`, `owner`, `next_step`, and an exact-name `sections`
+object; status defaults to `planned`. The call controls type, venture, parent,
+and body. Version/time remain generated by `create_record`. Templates must be
+present under the selected vault's `templates/` directory. See README for a full example.
+
+Agent documents live under `records/agents/`, share existing record validation,
+queries, update, and human-commit behavior, and grant nothing. To author one, a
+human must explicitly grant the existing writer `agent: write` for that venture.
+The new document ID remains read-only unless a human separately grants access
+in `agents.yaml`; assignment still requires a known policy ID. Sample policy is unchanged.
 
 The lock is POSIX and was verified on Linux. Ordinary editors/external Git do not
 honor it. A hard exit after replace but before commit can leave a complete dirty
 record needing explicit recovery; a pre-replace crash can leave an unused temp.
 Do not unlink a live lock. No unrestricted concurrent manual-editing or filesystem
-isolation claim is made. Obsidian UI, MCP, and live Miro gates remain unverified.
+isolation claim is made. Template validation checks structure and explicit markers,
+not business quality. Obsidian UI, real MCP, portal, and live Miro remain unverified.
 
 Use [project instructions and the next-step prompt](docs/PROJECT_CHAT_SETUP.md).
 At each step's end, update this checkpoint, acceptance evidence, and findings with
@@ -282,29 +320,30 @@ Do not assume a prior scratch filesystem, installed app, or credential persists.
 
 ## Next chat starting prompt
 
-Use only after Joe authorizes Step 4:
+Use only after Joe authorizes Step 5:
 
 ```text
-Start Step 4 only: initiative and agent templates (AC4). Pull current main and
+Start Step 5 only: MCP tools via a real stdio client (AC2). Pull current main and
 read AGENTS.md, CHASSIS_PROJECT_HANDOFF.md, docs/ARCHITECTURE.md,
-evidence/acceptance.md, and FINDINGS.md. Step 3 implementation is at
-24ddcc790a228a822bb6b4b57829302116211811; preserve all later documentation.
-Retain all 236 tests and the established read, authorization, and write contracts.
+evidence/acceptance.md, and FINDINGS.md. Step 4 implementation is at
+176478a0ae56c718c2683fd5fb5f885a15554508; preserve all later documentation.
+Retain the 343-test suite and established read, template, authorization, and write contracts.
 
-Implement the approved templates/initiative.md and templates/agent.md workflows.
-An initiative created from its template must contain populated positioning,
-audience, channels, offer, launch checklist, and success metrics. Use fictional
-values; empty headings do not satisfy AC4. Agent templates contain playbooks,
-channels, data scope, and permissions with read-only defaults. They are files
-only: no spawning and no automatic change to agents.yaml grants.
+Use the official Python MCP SDK and stdio. Keep handlers transport-independent.
+Expose the approved list_records, get_record, search, create_record, and
+update_record operations through the existing library paths. Route any template
+creation through create_from_template/create_record. Bind caller identity to
+trusted configuration, never assigned_agent or model-supplied impersonation.
 
-Template-backed record creation must use the existing RecordStore validation,
-authorization, interprocess lock, atomic persistence, agent-attributed record-only
-Git commit, and index refresh path. Keep immutable fields and generated metadata.
-Do not bypass those contracts or begin MCP; MCP belongs to Step 5.
+Prove list/read/create/update through a real stdio client and server process,
+including exact record commits, stale conflicts, and unauthorized write refusal.
+Mocked handler tests alone do not prove AC2. Preserve C1-C7 and use only local
+execution and fictional records. No portal, layout, Miro, chat import, spawning,
+or deployment work in Step 5. The portal is the following step, and Joe must
+approve its design prototype before any portal code.
 
-Use fictional records and local execution only. No MCP, Miro, custom UI, agent
-spawning, or deployment. Tests first, roughly 150-line increments, push each
-completed increment without force. Prove AC4, update evidence/findings/handoff,
-report DELIVERED / VERIFIED / RISKS-OPEN / NEXT, then stop for Joe's Step 5 go.
+Use tests first, roughly 150-line increments, and push each completed increment
+without force. Run the full suite from a clean checkout with uv sync --locked.
+Update evidence, findings, and the handoff; report DELIVERED / VERIFIED (table) /
+RISKS-OPEN / NEXT, then stop for Joe's next go.
 ```
