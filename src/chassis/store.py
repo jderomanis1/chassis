@@ -77,3 +77,33 @@ class RecordStore:
                                          for item in items], policy)
             return persist_record(self.root, proposed, original, identity,
                                   f"chassis: update {identifier} v{record.version} by {agent}")
+
+    def create_record(self, record_type: str, fields: Mapping, agent: str) -> dict:
+        policy = authorize_writer(self.root, agent)
+        if not isinstance(fields, Mapping):
+            raise WriteError("fields must be an object")
+        fields = dict(fields)
+        forbidden = sorted({"version", "updated_at"}.intersection(fields))
+        if forbidden:
+            raise WriteError(f"immutable fields: {', '.join(forbidden)}", fields=forbidden)
+        if "type" in fields:
+            raise WriteError("type must be supplied only as the create_record type argument")
+        body = fields.pop("body", "")
+        if not isinstance(body, str):
+            raise WriteError("body must be a string")
+        record = Record.model_validate(fields | {"type": record_type, "version": 1,
+                                                "updated_at": datetime.now(timezone.utc)})
+        require_grant(policy, agent, record.venture, record.type)
+        identity = Identity.from_env("AGENT")
+        with vault_lock(self.root):
+            policy = authorize_writer(self.root, agent)
+            require_grant(policy, agent, record.venture, record.type)
+            items = read_vault(self.root)
+            if any(item.record.id == record.id for item in items):
+                raise WriteError(f"{record.id}: duplicate ID", id=record.id)
+            path = self.root / "records" / f"{record.type}s" / f"{record.id}.md"
+            proposed = ParsedRecord(path, record, body)
+            validate_records(self.root, [*items, proposed], policy)
+            ensure_repository(self.root)
+            return persist_record(self.root, proposed, None, identity,
+                                  f"chassis: create {record.id} v1 by {agent}")
