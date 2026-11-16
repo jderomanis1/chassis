@@ -8,12 +8,12 @@ from pydantic import TypeAdapter
 
 from chassis.atomic import vault_lock
 from chassis.errors import ConflictError, WriteError
-from chassis.git import Identity, ensure_clean, ensure_repository
+from chassis.git import Identity, commit_file, ensure_clean, ensure_repository, run_git
 from chassis.markdown import ParsedRecord, RecordFileError, parse_record
 from chassis.models import Record, RecordId
 from chassis.policy import authorize_writer, require_grant
-from chassis.transactions import persist_record
-from chassis.validation import read_vault, validate_records
+from chassis.transactions import persist_record, refresh_committed
+from chassis.validation import load_vault, read_vault, validate_records
 
 IMMUTABLE = {"id", "version", "updated_at"}
 
@@ -107,3 +107,29 @@ class RecordStore:
             ensure_repository(self.root)
             return persist_record(self.root, proposed, None, identity,
                                   f"chassis: create {record.id} v1 by {agent}")
+
+    def commit_human(self, path: str | Path) -> dict:
+        """Commit one validated manual edit exactly as written, as the human."""
+        path = Path(path)
+        if not path.is_absolute():
+            path = self.root / path
+        try:
+            relative = path.relative_to(self.root)
+        except ValueError as exc:
+            raise WriteError("commit-human requires a record path within the vault") from exc
+        if (len(relative.parts) != 3 or relative.parts[0] != "records"
+                or relative.parts[1] not in {"ventures", "initiatives", "tasks"}
+                or path.suffix != ".md" or ".." in relative.parts):
+            raise WriteError("commit-human requires a canonical record path under records/")
+        identity = Identity.from_env("HUMAN")
+        with vault_lock(self.root):
+            ensure_repository(self.root)
+            records = load_vault(self.root)
+            item = next((item for item in records.values() if item.path == path), None)
+            if item is None:
+                raise WriteError(f"{relative}: record path not found")
+            if not run_git(self.root, "status", "--porcelain=v1", "--", relative.as_posix()):
+                raise WriteError(f"{relative}: no uncommitted human edit to commit")
+            commit = commit_file(self.root, path, identity, f"chassis: human edit {item.record.id}")
+            refresh_committed(self.root, item, commit)
+            return {"path": relative.as_posix(), "commit": commit}
