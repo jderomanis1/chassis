@@ -14,13 +14,14 @@ dependencies = [
 
 [project.optional-dependencies]
 mcp = ["mcp>=2.3,<3"]
+portal = ["starlette>=1.10,<2", "uvicorn>=0.54,<1"]
 
 [project.scripts]
 chassis = "chassis.cli:main"
 chassis-mcp = "chassis.mcp_server:main"
 
 [dependency-groups]
-dev = ["pytest>=8,<10"]
+dev = ["pytest>=8,<10", "httpx>=0.28,<1"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

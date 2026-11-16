@@ -21,6 +21,9 @@ from chassis.validation import load_vault
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="chassis", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
+    portal = commands.add_parser("portal", help="Serve the local read-only JSON API")
+    portal.add_argument("--host", default="127.0.0.1")
+    portal.add_argument("--port", type=int, default=8765)
     token_command = commands.add_parser("agent-token", help="Manage local per-agent credentials")
     token_actions = token_command.add_subparsers(dest="token_command", required=True)
     token_create = token_actions.add_parser("create", help="Print a fresh token once and save only its hash")
@@ -56,10 +59,12 @@ def main(argv=None) -> int:
     new.add_argument("--fields", required=True, help="JSON record fields and an exact-name sections object")
     human = commands.add_parser("commit-human", help="Commit one manual record edit as the human")
     human.add_argument("path", type=Path)
-    for command in (rebuild, listing, get, search, update, create, new, human, token_create):
+    for command in (rebuild, listing, get, search, update, create, new, human, token_create, portal):
         command.add_argument("--vault", type=Path, default=Path.cwd())
     args = parser.parse_args(argv)
     try:
+        if args.command == "portal":
+            return _portal(args)
         if args.command == "agent-token":
             print(create_agent_token(args.vault, args.agent_id))
             return 0
@@ -107,6 +112,18 @@ def _write(args) -> dict:
     if args.command == "new":
         return store.create_from_template(args.template, args.venture, json.loads(args.fields), agent)
     return store.create_record(args.type, json.loads(args.fields), agent)
+
+
+def _portal(args):
+    from chassis.portal.config import PortalConfig
+    config = PortalConfig.from_env(args.vault, args.host, args.port)
+    try:
+        import uvicorn
+        from chassis.portal.app import create_app
+    except ModuleNotFoundError:
+        raise ValueError('Portal support is not installed. Run: uv sync --extra portal (or pip install "chassis[portal]").') from None
+    uvicorn.run(create_app(config), host=config.host, port=config.port, access_log=False)
+    return 0
 
 
 def _validate(root: Path) -> int:
