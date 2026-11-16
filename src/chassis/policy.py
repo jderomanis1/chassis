@@ -1,4 +1,4 @@
-"""Validate policy configuration; write-time authorization belongs to Step 3."""
+"""Validated policy and exact venture/type authorization for configured callers."""
 
 from pathlib import Path
 from typing import Annotated, Literal
@@ -6,6 +6,7 @@ from typing import Annotated, Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
+from chassis.errors import AuthorizationError
 from chassis.markdown import ParsedRecord, RecordFileError, UniqueKeyLoader
 from chassis.models import RecordId, RecordType
 
@@ -41,3 +42,23 @@ def validate_policy_references(root: Path, policy: Policy, records: dict[str, Pa
                 raise RecordFileError(
                     f"{root / 'agents.yaml'}: agent {agent!r} venture {venture!r} "
                     "must reference an existing venture")
+
+
+def authorize_writer(root: Path, agent: str) -> Policy:
+    """Policy read is required; deny unknown/read-only agents before record I/O."""
+    try:
+        policy = load_policy(root)
+    except RecordFileError as exc:
+        raise AuthorizationError(f"Writes denied: {exc}") from exc
+    grants = policy.agents.get(agent)
+    if grants is None or not any(grant == "write" for types in grants.ventures.values()
+                                 for grant in types.values()):
+        raise AuthorizationError(f"{agent}: no write grant", agent=agent)
+    return policy
+
+
+def require_grant(policy: Policy, agent: str, venture: str, record_type: str) -> None:
+    grants = policy.agents.get(agent)
+    if grants is None or grants.ventures.get(venture, {}).get(record_type) != "write":
+        raise AuthorizationError(f"{agent}: no write grant for {venture}/{record_type}",
+                                 agent=agent, venture=venture, type=record_type)
