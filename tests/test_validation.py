@@ -29,6 +29,8 @@ def vault(tmp_path):
     path.parent.mkdir(parents=True)
     path.write_text(TEXT, encoding="utf-8")
     (tmp_path / "README.md").write_text("Not a record", encoding="utf-8")
+    (tmp_path / "agents.yaml").write_text(
+        "version: 1\nunknown_agent: read\nagents: {}\n", encoding="utf-8")
     return tmp_path
 
 

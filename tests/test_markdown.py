@@ -28,17 +28,20 @@ def test_frontmatter_parses_and_body_is_preserved():
     assert parsed.path == PATH
 
 
-@pytest.mark.parametrize("text", [
-    "# Missing frontmatter\n", "---\ntitle: missing end fence\n",
-    "---\n- not a mapping\n---\n", "---\n[\n---\n",
-    HEADER.replace("version: 1", "version: 1\nversion: 2"),
-    HEADER.replace("version: 1", "version: true"),
-    HEADER.replace("version: 1", "version: !!python/object:builtins.object {}"),
-    HEADER.replace("owner: Morgan Vale\n", ""),
-    HEADER.replace("owner: Morgan Vale", "owner: {<<: {name: Morgan}}"),
+@pytest.mark.parametrize(("text", "reason"), [
+    ("# Missing frontmatter\n", "opening YAML frontmatter fence"),
+    ("---\ntitle: missing end fence\n", "closing YAML frontmatter fence"),
+    ("---\n- not a mapping\n---\n", "YAML mapping"),
+    ("---\n[\n---\n", "expected the node content"),
+    (HEADER.replace("version: 1", "version: 1\nversion: 2"), "duplicate YAML key"),
+    (HEADER.replace("version: 1", "version: true"), "version"),
+    (HEADER.replace("version: 1", "version: !!python/object:builtins.object {}"),
+     "could not determine a constructor"),
+    (HEADER.replace("owner: Morgan Vale\n", ""), "owner"),
+    (HEADER.replace("owner: Morgan Vale", "owner: {<<: {name: Morgan}}"), "merge keys"),
 ])
-def test_invalid_frontmatter_has_file_context(text):
-    with pytest.raises(RecordFileError) as exc:
+def test_invalid_frontmatter_has_file_context(text, reason):
+    with pytest.raises(RecordFileError, match=reason) as exc:
         parse_record(text, PATH)
     assert PATH.as_posix() in str(exc.value)
 

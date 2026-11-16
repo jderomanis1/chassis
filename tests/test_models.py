@@ -26,7 +26,7 @@ def test_valid_record_has_safe_defaults(fields):
                                 "parent", "next_step", "updated_at", "version"])
 def test_every_required_field_is_required(fields, key):
     del fields[key]
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match=key):
         Record.model_validate(fields)
 
 
@@ -42,7 +42,7 @@ def test_every_required_field_is_required(fields, key):
     ("unexpected", "not allowed"),
 ])
 def test_malformed_values_are_rejected(fields, key, value):
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError, match=key):
         Record.model_validate(fields | {key: value})
 
 
