@@ -1,0 +1,25 @@
+# Policy contract. Runtime enforcement is implemented with the mutation layer.
+# assigned_agent on a record never supplies caller identity or permissions.
+version: 1
+unknown_agent: read
+agents:
+  chief-of-staff:
+    ventures:
+      venture-ridgeview:
+        venture: write
+        initiative: write
+        task: write
+      venture-acme:
+        venture: write
+        initiative: write
+        task: write
+  reviewer:
+    ventures:
+      venture-ridgeview:
+        venture: read
+        initiative: read
+        task: read
+      venture-acme:
+        venture: read
+        initiative: read
+        task: read
