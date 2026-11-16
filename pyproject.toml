@@ -7,10 +7,15 @@ name = "chassis"
 version = "0.0.1"
 description = "A local command foundation for parallel ventures."
 requires-python = ">=3.12"
-dependencies = ["pydantic>=2.12,<3", "PyYAML>=6,<7"]
+dependencies = [
+    "mcp>=2.3,<3",
+    "pydantic>=2.12,<3",
+    "PyYAML>=6,<7",
+]
 
 [project.scripts]
 chassis = "chassis.cli:main"
+chassis-mcp = "chassis.mcp_server:main"
 
 [dependency-groups]
 dev = ["pytest>=8,<10"]
