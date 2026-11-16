@@ -28,7 +28,10 @@ the repo, reconcile the dated checkpoint with current evidence before acting.
 Follow the approved Increment 0 scope and C1-C7. Local execution and fictional
 records only. The broader discovery brief and supplied Miro board are reference
 context. Do not reopen approved architecture choices or introduce real venture
-data, live business-account writes, custom UI, agent spawning, or deployment.
+data, live business-account writes, agent spawning, or deployment. The read-only
+portal follows MCP and requires Joe's prototype approval before any portal code.
+Layout/change planning follows the portal, Miro is optional export, and chat
+import is a separate later step. Complete only the named build step.
 Explicitly designated scratch Miro API operations remain in the approved scope.
 
 Complete only the build step named in this chat. Work tests first in roughly

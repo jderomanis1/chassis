@@ -231,3 +231,49 @@ Use tests first and approximately 150-line increments. Commit and push each
 completed increment to the private repository, preserving existing repository
 instructions and work. Never force-push. Secrets come from the environment;
 `.env` stays ignored. Report delivery, verification, open risks, and the next step.
+
+## Approved roadmap change, 2026-11-16
+
+Joe moved the portal into scope after MCP. This supersedes the earlier Miro-first
+sequence. Step 4 records the decision only; no portal, graph-export, layout, Miro,
+agent integration, or chat-import implementation is included in this step.
+
+| Order | Scope and gate |
+| :--- | :--- |
+| Step 5 | Transport-independent MCP tools, proved through a real stdio client |
+| Step 6 | Read-only command-center web portal over the Chassis library and index; Joe must approve its design prototype before any portal code |
+| Step 7 | Renderer-neutral layout and change planner |
+| Step 8, optional | Miro export: designated scratch API contract/deletion probe first, then adapter and live export proofs |
+| Step 9, separately scoped later | Chat import |
+
+Portal requirements: home shows every venture's health; navigation drills from
+venture to initiative to tasks; a dependency map consumes the neutral JSON graph;
+an ask-anything bar is wired to the agent. The portal and its ask flow are read-only.
+The prototype review must settle information hierarchy, health definitions, and
+the agent connection/identity before implementation. It does not authorize deployment.
+
+The portal needs a minimal renderer-neutral nodes/edges projection before the
+later layout planner exists. Define that read contract during the portal step;
+leave position planning and per-item change planning for Step 7. The present
+`graph.py` validates relationships and is not that JSON export. C2 filtering of
+restricted nodes and revealing edges still applies. The index alone does not
+provide read isolation. C1 and the other Miro contracts still govern an optional export.
+
+### Portal health fields flagged for decision
+
+These are proposals, not schema additions or implemented health calculations.
+
+| Information | Current support | Decision needed before the health view |
+| :--- | :--- | :--- |
+| Lifecycle, responsibility, next action | `status`, `owner`, `assigned_agent`, `next_step` | Define health separately from lifecycle status |
+| Drilldown and dependencies | `venture`, `parent`, `depends_on` | Define rollups and hidden-record handling in the neutral read projection |
+| Next milestone | No structured milestone fields | Consider optional `next_milestone` and `milestone_due_at` on ventures/initiatives |
+| Overdue tasks | No due date | Consider optional task `due_at` if lateness should affect health |
+| Reason for a blocker or risk | Body and `next_step` only | Consider `blocker_reason`; decide whether a separate risk summary is needed |
+| Last meaningful activity | `updated_at`; Git history and internal file metadata | Prefer deriving `last_activity_at`; human commits preserve `updated_at`, so that field alone can be stale |
+| Overall health and explanation | No health model | Define computed health, reason, freshness, and an unknown state before assigning colors |
+
+Recommendation for Joe's decision: add only milestone/date and blocker fields
+that the approved prototype needs; derive activity and aggregate health where
+possible. Decide how uncommitted human edits affect activity. Step 4 changes no
+portal-related record fields and implements no health heuristics.

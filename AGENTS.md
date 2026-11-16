@@ -22,8 +22,10 @@ one-build-step-per-chat workflow. Read the current user request first.
 - Prove one real read/write/render loop using fictional records and local execution.
 - The broader paid-discovery brief eventually calls for real ventures; it does
   not authorize real data, live accounts, or deployment in Increment 0.
-- No custom portal UI, agent spawning, chat-history ingestion, two-way Miro sync,
-  paid infrastructure, or model-specific dependency in this increment.
+- The read-only portal is now a later approved step after MCP. Joe must approve
+  its design prototype before any portal code. Implement only the named step.
+- No agent spawning, two-way Miro sync, paid infrastructure, or model-specific
+  dependency. Chat import has its own separately scoped later step.
 - Live business-account writes remain out of scope. Explicitly designated scratch
   Miro API operations are part of the approved proof.
 
@@ -67,7 +69,9 @@ one-build-step-per-chat workflow. Read the current user request first.
 
 ## Delivery and continuity
 
-- Keep the approved nine-step order in the handoff. Write tests first for behavior.
+- Keep the revised build order in the handoff: MCP, prototype-gated read-only
+  portal, layout/change planner, optional Miro export, then separate chat import.
+  Write tests first for behavior.
   Work in roughly 150-line increments; generated locks/assets may be additional.
 - Push each completed increment to the private repo. Preserve history and never
   force-push. If access fails, retain local commits and state the publication gap.

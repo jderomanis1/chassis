@@ -14,8 +14,9 @@ has been requested. Homer is intended to co-develop projects, not just summarize
 Andy runs roughly seven parallel ventures and describes about 45 disconnected
 AI chat threads plus siloed projects. He wants one agent that can read and write
 across structured venture, initiative, and task state, with a zoomable visual view.
-The access layer is the primary value. Miro is the initial visual window; a later
-custom portal should reuse the same data and connector plumbing.
+The access layer is the primary value. On 2026-11-16 Joe moved the read-only
+command-center portal into scope after MCP. It reuses the same library/index and
+neutral graph; Miro follows the layout planner as an optional export.
 
 The broader engagement is paid discovery plus a working mock, with the full build
 gated on the outcome. Its eventual demonstration on 1–2 real ventures is separate
@@ -99,7 +100,7 @@ Read [AGENTS.md](AGENTS.md), [architecture](docs/ARCHITECTURE.md),
 | Tools | `list_records(filter)`, `get_record(id)`, `search(query)`, `create_record(type, fields, template?)`, `update_record(id, changes, expected_version)` |
 | Templates | `templates/initiative.md` and `templates/agent.md`; planned in Step 4 |
 | Graph/layout | Renderer-neutral JSON; coordinates and layout logic owned by Chassis |
-| Canvas | Miro REST API v2 adapter now; custom portal such as React Flow later |
+| Canvas | Read-only portal after MCP, with prototype approval before code; Miro REST API v2 becomes an optional later export |
 
 Required fields: `id`, `type`, `title`, `status`, `owner`, `venture`, `parent`,
 `next_step`, `updated_at`, `version`. Optional: `depends_on: []`,
@@ -191,10 +192,29 @@ operations are the authorized exception needed for this proof.
 | 3 | Create/update, policy enforcement, concurrency, Git, commit-human | Complete; AC3 passed |
 | 4 | Initiative and agent templates | Next, only after Joe's go |
 | 5 | MCP tools and real stdio client integration | Pending |
-| 6 | Scratch Miro contract probe and frame-deletion experiment | Pending |
-| 7 | Neutral JSON graph, layout, per-item change planner | Pending |
-| 8 | Miro adapter, mapping persistence, rate limits, rendering | Pending |
-| 9 | Live read/write/render proof and final handoff | Pending |
+| 6 | Read-only command-center portal over the library/index | New scope; Joe must approve the design prototype before any portal code |
+| 7 | Neutral graph layout and per-item change planner | After the portal |
+| 8 | Optional Miro export, including scratch contract/deletion probe before adapter and live proofs | Optional; existing C1–C7 still apply |
+| 9 | Chat import as its own separately scoped step | Later |
+
+The portal home must show venture health, allow venture → initiative → task
+drilldown, provide a dependency map from neutral JSON, and include an ask-anything
+bar wired to the agent. The portal and ask flow are read-only. The prototype gate
+also needs to settle the agent connection/identity and health semantics. Step 4
+records this roadmap only; the prototype and all portal code remain future work.
+
+A minimal neutral nodes/edges read projection is needed during the portal step,
+before Step 7 adds layout and change planning. `graph.py` currently validates
+relationships only. Apply C2 filtering before graph emission and retain the Miro
+ownership/reconciliation contracts if the optional export is selected.
+
+Portal fields flagged for Joe's decision: optional `next_milestone` and
+`milestone_due_at`, task `due_at`, and `blocker_reason`. `status`, `owner`,
+`next_step`, `parent`, and `depends_on` already support basic summaries and drilldown.
+Prefer derived `last_activity_at` and aggregate health with an explanation/unknown
+state. `updated_at` alone is insufficient because human commits preserve manual
+timestamps. Decide how uncommitted edits count as activity. No portal fields or
+health logic are added in Step 4; see the architecture's decision table.
 
 Step 2 indexes authoritative working-tree Markdown, including uncommitted edits.
 `RecordIndex(root)` exposes `list_records(filters)`, `get_record(id)`, `search(query)`,
