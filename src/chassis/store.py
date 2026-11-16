@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from pydantic import TypeAdapter
+from pydantic import TypeAdapter, ValidationError
 
 from chassis.atomic import vault_lock
 from chassis.errors import ConflictError, WriteError
@@ -134,6 +134,25 @@ class RecordStore:
         template_sections(template)
         TypeAdapter(RecordId).validate_python(venture)
         require_grant(policy, agent, venture, template)
+        if not isinstance(fields, Mapping):
+            raise WriteError("fields must be an object")
+        fields = dict(fields)
+        # Reuse the create schema, including strict strings and owner trimming.
+        # The complete proposal and policy are checked again by create_record.
+        for name in ("owner", "sensitivity", "assigned_agent"):
+            if name not in fields:
+                continue
+            field = Record.model_fields[name]
+            try:
+                fields[name] = TypeAdapter(field.rebuild_annotation()).validate_python(
+                    fields.get(name, field.default))
+            except ValidationError as exc:
+                reason = exc.errors(include_input=False)[0]["msg"]
+                raise WriteError(f"{name}: {reason}", field=name, reason=reason) from exc
+        assigned = fields.get("assigned_agent")
+        if assigned is not None and assigned not in policy.agents:
+            raise WriteError(f"assigned_agent {assigned!r} is not a known agent id",
+                             field="assigned_agent", reason="must be a known agent id")
         expanded = expand_template(self.root, template, fields)
         return self.create_record(template, expanded | {"venture": venture, "parent": venture}, agent)
 

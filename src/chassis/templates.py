@@ -1,6 +1,7 @@
 """Constrained Markdown templates. Expansion never edits policy or writes files."""
 
 import re
+import unicodedata
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -14,7 +15,7 @@ TEMPLATE_SECTIONS = {"initiative": GTM_SECTIONS, "agent": AGENT_SECTIONS}
 TOKEN = re.compile(r"\{\{([^{}\n]+)\}\}")
 HEADING = re.compile(r"^## ([^\r\n]+)\r?$", re.MULTILINE)
 PLACEHOLDER = re.compile(
-    r"\{\{|\}\}|\$\{|\b(?:TODO|TBD|TBC|PLACEHOLDER)\b|"
+    r"\{\{|\}\}|\$\{|\b(?:TODO|TBD|TBC|FIXME|XXX|PLACEHOLDER)\b|"
     r"[\[<]\s*(?:insert|replace|fill)\b[^\]>]*[\]>]", re.IGNORECASE)
 
 
@@ -25,7 +26,7 @@ def _filled(value, label: str) -> str:
     visible = re.sub(r"(?m)^\s*(?:[-*+]|\d+[.)])(?:[ \t]+|$)(?:\[[ xX]\][ \t]*)?", "", visible)
     if not re.search(r"\w", visible):
         raise WriteError(f"{label}: empty template content")
-    if PLACEHOLDER.search(value):
+    if PLACEHOLDER.search(unicodedata.normalize("NFKC", value)):
         raise WriteError(f"{label}: leftover placeholder text")
     return value.strip()
 
