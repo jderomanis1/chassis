@@ -8,6 +8,8 @@ from contextlib import closing
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
+from pydantic import ValidationError
+
 from chassis.markdown import ParsedRecord, RecordFileError, parse_record
 from chassis.models import Record
 from chassis.validation import load_vault
@@ -38,10 +40,23 @@ COLUMNS = FIELDS + ("body", "record_json", "source_path", "mtime_ns", "content_h
 INSERT = "INSERT OR REPLACE INTO records VALUES (" + ", ".join("?" for _ in COLUMNS) + ")"
 
 
+class IndexFileError(ValueError):
+    """An index storage failure with its filename, distinct from source errors."""
+
+
+class _InvalidIndex(Exception):
+    """Disposable cache schema or integrity is invalid."""
+
+
 class RecordIndex:
     def __init__(self, root: Path):
         self.root = Path(root).resolve()
         self.path = self.root / ".chassis" / "index.sqlite"
+
+    def _check_path(self):
+        for path in (self.path.parent, self.path):
+            if path.is_symlink():
+                raise IndexFileError(f"{path}: index paths cannot be symlinks")
 
     def _source_rows(self, cached=None) -> dict[str, tuple]:
         cached, rows = cached or {}, {}
@@ -73,6 +88,7 @@ class RecordIndex:
 
     def rebuild(self) -> int:
         """Replace the entire cache only after all source records validate."""
+        self._check_path()
         rows = self._source_rows()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with NamedTemporaryFile(dir=self.path.parent, prefix="index-", suffix=".sqlite",
@@ -97,9 +113,29 @@ class RecordIndex:
             connection.executemany(INSERT, changed)
 
     def _query(self, where: str = "", parameters: tuple = ()) -> list[dict]:
+        self._check_path()
+        if not self.path.exists():
+            self.rebuild()
+        for attempt in range(2):
+            try:
+                return self._read(where, parameters)
+            except (sqlite3.DatabaseError, _InvalidIndex, ValidationError, json.JSONDecodeError) as exc:
+                if isinstance(exc, sqlite3.DatabaseError) and (exc.sqlite_errorcode & 0xFF) not in {
+                        sqlite3.SQLITE_CORRUPT, sqlite3.SQLITE_NOTADB}:
+                    raise IndexFileError(f"{self.path}: {exc}") from exc
+                if attempt:
+                    raise IndexFileError(f"{self.path}: cache remains invalid after rebuild: {exc}") from exc
+                self.rebuild()
+
+    def _read(self, where, parameters):
         with closing(sqlite3.connect(self.path)) as connection:
             connection.row_factory = sqlite3.Row
             connection.create_function("casefold", 1, str.casefold, deterministic=True)
+            columns = tuple(row["name"] for row in connection.execute("PRAGMA table_info(records)"))
+            version = connection.execute("PRAGMA user_version").fetchone()[0]
+            checks = [row[0] for row in connection.execute("PRAGMA quick_check")]
+            if version != 1 or columns != COLUMNS or checks != ["ok"]:
+                raise _InvalidIndex("unexpected cache schema, version, or integrity check")
             self._refresh(connection)
             rows = connection.execute(
                 "SELECT record_json, body FROM records " + where + " ORDER BY id",

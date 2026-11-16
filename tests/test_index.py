@@ -1,22 +1,10 @@
 import json
 import os
-import shutil
-from pathlib import Path
 
 import pytest
 
 from chassis.index import RecordIndex
 from chassis.markdown import RecordFileError
-
-ROOT = Path(__file__).resolve().parents[1]
-
-
-@pytest.fixture
-def vault(tmp_path):
-    shutil.copytree(ROOT / "records", tmp_path / "records")
-    shutil.copyfile(ROOT / "agents.yaml", tmp_path / "agents.yaml")
-    return tmp_path
-
 
 def query_bytes(index):
     results = [index.list_records(), index.get_record("task-launch-budget"),
