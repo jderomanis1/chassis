@@ -62,7 +62,7 @@ def validation_error(exc: ValueError, fallback: str) -> dict:
         cause = cause.__cause__
     details = exc.details if isinstance(exc, WriteError) else {}
     field = details.get("field") or ", ".join(details.get("fields", [])) or fallback
-    return {"error": "validation", "field": field, "reason": details.get("reason", str(exc))}
+    return {**details, "error": "validation", "field": field, "reason": details.get("reason", str(exc))}
 
 
 class ToolHandlers:
@@ -83,6 +83,12 @@ class ToolHandlers:
         try:
             return self._call(name, args)
         except WriteError as exc:
+            if exc.code in {"git_error", "committed_index_error"}:
+                # Hooks and storage failures can contain arbitrary diagnostics.
+                # Keep recovery facts, including successful/uncertain commits.
+                logger.error("%s: %s", exc.code, exc)
+                return {**exc.details, "error": exc.code,
+                        "reason": "Git or index operation failed; inspect server stderr before retrying."}
             if exc.code != "write_refused":
                 return exc.as_dict()
             return validation_error(exc, "record")

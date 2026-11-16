@@ -7,12 +7,14 @@ import signal
 import subprocess
 import sys
 import threading
+import time
 
 
 class StdioClient:
     def __init__(self, root, **environment):
         self.transcript, self.stdout_lines, self.stderr_lines = [], [], []
         self.responses, self.sequence = queue.Queue(), 0
+        self.log_events = queue.Queue()
         self.process = subprocess.Popen(
             [sys.executable, "-m", "chassis.mcp_server", "--vault", str(root)],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -34,7 +36,14 @@ class StdioClient:
         self.responses.put(EOFError("Server stdout closed"))
 
     def _read_stderr(self):
-        self.stderr_lines.extend(self.process.stderr)
+        for line in self.process.stderr:
+            self.stderr_lines.append(line)
+            self.log_events.put(line)
+
+    def wait_for_log(self, text, timeout=5):
+        deadline = time.monotonic() + timeout
+        while text not in self.log_events.get(timeout=max(0, deadline - time.monotonic())):
+            pass
 
     def send(self, method, params=None, *, notification=False):
         self.sequence += 1
