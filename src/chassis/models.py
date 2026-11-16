@@ -33,6 +33,11 @@ class Record(BaseModel):
     @field_validator("updated_at", mode="before")
     @classmethod
     def require_datetime_or_string(cls, value):
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value)
+            except ValueError as exc:
+                raise ValueError("updated_at must be a timezone-aware ISO datetime") from exc
         if not isinstance(value, (str, datetime)):
             raise ValueError("updated_at must be a timezone-aware ISO datetime")
         return value
