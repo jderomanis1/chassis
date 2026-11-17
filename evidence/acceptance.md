@@ -1,7 +1,108 @@
 # Acceptance evidence
 
-**Snapshot:** Increment 0, Step 6 complete: read security and portal backend P1–P4. **Date:** 2026-11-17.
+**Snapshot:** Increment 0, Step 7 PARTIAL: C-1/C0/C3 complete; required source files missing. **Date:** 2026-11-17.
 All source records and people are fictional. AC2, AC3, AC4, and AC9 pass; later gates remain pending.
+
+## Step 7 executed checks: partial checkpoint
+
+Started from verified private main **523a8a58b9a28c9d977d0512b14fc4b995ac5d21**.
+Joe's [Step 7 scope](../docs/STEP7-CANVAS-SCOPE.md) supersedes the older P5–P8
+port. C-1, C0, and C3 are delivered. C1/C2/F1–F6 remain unimplemented because the
+required security/design sources are absent. **Step 7 is not complete.**
+
+Final runtime is **6e1ec10ced4688d98c40f9ec33661a17dbfcd9cd**. Final tests/evidence
+are **f297db302150cc2f991c84e97b0234ab2e9b0828**. Three new detached checkouts
+started without virtual environments and installed the unchanged dependency lock.
+The [verification JSON](step7-verification.json) records counts and provenance,
+without record bodies or credentials.
+
+| Clean installation | Observed test result | Isolation |
+| :--- | :--- | :--- |
+| `uv sync --locked --all-extras` | **598 passed in 136.91s** | MCP and portal present; no skips or warnings |
+| `uv sync --locked` | **512 passed, 8 modules skipped in 67.08s** | MCP, Starlette, and uvicorn absent |
+| `uv sync --locked --extra portal` | **563 passed, 7 modules skipped, 1 warning in 77.75s** | MCP absent; portal present |
+
+Each suite ran with `.venv/bin/pytest -q` in its clean checkout. All three Git
+statuses stayed empty. `uv.lock` SHA-256 remains
+`68c9c88f407c84e838c5db81889db37dbb4d378229c0603c58c3c22573640932`.
+Records, sample policy, pyproject.toml, and lock are unchanged from 523a8a5.
+The portal-only warning is the existing development TestClient/httpx warning.
+
+### Delivered increments and test-first evidence
+
+| Increment | Commit on private main | Executed checks |
+| :--- | :--- | :--- |
+| C-1 review fixes | [45be742](https://github.com/jderomanis1/chassis/commit/45be7427780ed066cc47f9fbd200d51429cfc503) | 18 regressions failed first; 29 focused checks passed, then **588 passed** in one in-tree pytest run |
+| C0 session and versions | [cb26ed9](https://github.com/jderomanis1/chassis/commit/cb26ed926da7d670f1943c2128db55159f80097b) | 6 contract checks failed first; all **50 portal tests passed** |
+| C3 demo generator | [6e1ec10](https://github.com/jderomanis1/chassis/commit/6e1ec10ced4688d98c40f9ec33661a17dbfcd9cd) | 4 regressions failed first; focused checks and **594 full-suite tests passed** |
+| Partial-body/CSRF evidence controls and demo API | [f297db3](https://github.com/jderomanis1/chassis/commit/f297db302150cc2f991c84e97b0234ab2e9b0828) | 3 evidence checks failed first; **4 focused checks passed**, then the **50-test leak run passed** |
+
+The initial 576-test baseline also passed. Its ordinary in-tree collection
+worked in this environment; a deliberately reversed conftest search order
+reproduced the reported import collision. Moving issue/EphemeralToken/git into
+`tests/portal/helpers.py` removes that dependency without weakening assertions.
+
+C-1 rejects all binds except 127.0.0.1 (localhost normalizes to it), even with the
+legacy override set. Normal etags stay unchanged after hidden uncommitted edits,
+hidden commits, and unrelated documentation commits; privileged etags observe
+hidden edits when authorized. Visible changes still refresh and concurrent-read
+retry remains tested. A real index symlink returns generic internal_error over
+all three MCP read tools, with no absolute path in protocol or stderr. Six
+handler tests cover the error mapping for every tool.
+
+C0 checks current versions throughout snapshot/detail/graph responses, task
+next_step, and the exact session shape. CSRF is fresh per app launch, stable
+within it, absent from disk/audit, and distinct from the viewer credential.
+The session is subject to the existing Host/Origin/method/identity checks.
+Writes remain disabled and there is no PATCH or layout endpoint.
+
+C3 generates 7 ventures, 14 initiatives, 42 tasks, and 29 dependency edges,
+including one cross-venture edge and one restricted task. CLI validate passes
+all 63 records. Normal API viewers see 62 nodes and 41 tasks, with 7 venture
+cards and green/yellow/red health. Existing destinations are refused. Only token
+hashes persist, mode 0600; no credentials enter the single fictional baseline
+commit. A normal editor's library update succeeds and its restricted update is
+refused. This is backend/library evidence, not a canvas edit demonstration.
+
+### Expanded restricted-content probe
+
+The 50-test CLI/MCP/portal run passed in **34.44s**. It checks raw and JSON-escaped
+restricted id, title, owner, full body, and a partial body sentence. A planted
+partial snippet is detected by a positive regression. Session responses are
+checked in memory before CSRF redaction for evidence capture.
+
+| Surface | Captured files | Output segments | Literal matches |
+| :--- | ---: | ---: | ---: |
+| CLI | 3 | 66 | **0** |
+| Real stdio MCP | 10 | 90 | **0** |
+| Portal API, including session and demo vault | 16 | 42 | **0** |
+| Total | **29** | **198** | **0** |
+
+Reproduce after `uv sync --locked --all-extras`:
+
+```bash
+PYTHONPATH=evidence CHASSIS_LEAK_PROBE_DIR=/tmp/chassis-step7-leaks \
+  .venv/bin/pytest -q -p step6_leak_probe \
+  tests/test_security_cli.py tests/test_mcp_read_security.py \
+  tests/portal/test_api.py tests/portal/test_graph_search.py \
+  tests/portal/test_boundary.py tests/portal/test_static.py \
+  tests/portal/test_session.py tests/portal/test_demo.py
+```
+
+### Open gates
+
+The approved prototype index/README/tokens/screens, SECOPS-STEP6.md section 4,
+ANDY-CHECK-02.md, and CODEX_STEP6_REPORT.md were not provided or located. The
+older ADR and SecOps checkpoint are available and are not substitutes for them.
+No write branch, C1/C2 implementation, frontend build, Playwright run, screenshot,
+UI/MCP live loop, npm/license check, or DOM/layout/bundle leak pass is claimed.
+C1/C2 still require independent SecOps review before merging to main.
+
+All commits were published with an expected-parent check and no force, with local
+Git tree and reconstructed commit-object hashes matching the remote objects.
+Joe's reported Step 6 reviews remain distinct from these engineering checks.
+No independent Step 7 Code Reviewer, QE, or SecOps signoff is claimed. Continue
+only Step 7 once its required sources are supplied; no real data or deployment.
 
 ## Step 6 executed checks
 

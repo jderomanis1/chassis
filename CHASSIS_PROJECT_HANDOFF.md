@@ -1,6 +1,6 @@
 # Chassis project handoff
 
-**Checkpoint date: 2026-11-17. Step 6 complete: read security and portal backend P1–P4. Next: approved frontend port P5–P8.**
+**Checkpoint date: 2026-11-17. Step 7 PARTIAL: C-1, C0, C3 complete; required security/design sources missing.**
 This file preserves the approved build decisions and evidence so each step can
 continue in a separate chat. Read current repository HEAD before making changes.
 
@@ -14,15 +14,17 @@ has been requested. Homer is intended to co-develop projects, not just summarize
 Andy runs roughly seven parallel ventures and describes about 45 disconnected
 AI chat threads plus siloed projects. He wants one agent that can read and write
 across structured venture, initiative, and task state, with a zoomable visual view.
-The access layer is the primary value. On 2026-11-16 Joe moved the read-only
-command-center portal into scope after MCP. It reuses the same library/index and
-neutral graph; Miro follows the layout planner as an optional export.
+The access layer is the primary value. Joe's November 17 Step 7 instruction records
+Andy's November 16 pivot to one zoomable card canvas over the same library and
+neutral graph. Gated local edits and view layout are in scope. Miro is optional
+export; the old five-screen dashboard and ask endpoint are superseded.
 
 The broader engagement is paid discovery plus a working mock, with the full build
 gated on the outcome. Its eventual demonstration on 1–2 real ventures is separate
 from the approved **Increment 0: local execution and fictional data only**.
-No price, delivery deadline, payment receipt, or full-build approval is established
-by the supplied references. Do not invent commercial commitments.
+The Step 7 target is a fictional-data demo on Friday, November 20, 2026. No price,
+payment receipt, or full-build commercial approval is established by the supplied
+references. Do not invent commercial commitments.
 
 The broader discovery deliverables remain: a working mock on authorized real
 ventures, a written store recommendation addressing concurrent human/agent
@@ -41,7 +43,8 @@ to weaken a requirement. Resolve genuine contradictions with Joe before changing
 | Reference | What it contributes |
 | :--- | :--- |
 | Joe's approved build instructions and C1–C7 | Current scope, architecture, acceptance criteria, and delivery rules |
-| `docs/PORTAL-ADR.md` | Approved one-process portal, API v1, health rules, and P1–P10 sequence |
+| `docs/STEP7-CANVAS-SCOPE.md` | Joe's complete Step 7 authorization, overrides, gates, and demo checks |
+| `docs/PORTAL-ADR.md` | Updated canvas decision, API contract, unchanged health rules, and current limits |
 | `evidence/SECOPS-CHECKPOINT-1.md` | Historical NO-GO at `384931f`; Step 6 implements its requested read controls, without granting real-data approval |
 | Pasted Build Engagement brief | Business problem, discovery deliverables, ownership, future agent templates |
 | `Re_ Chassis _ The build spec + Miro notes.msg`, 2026-11-16 | Andy emphasizes cross-project read/write and spatial navigation; Joe proposes plain files, optional Obsidian, search index, MCP, own-side layout, templates, and scoped access |
@@ -156,6 +159,29 @@ tokenized invitation/tracking links are not copied into the repository.
   The restricted fixture's owner is now a unique fictional name for an unambiguous
   leak scan. No real data, frontend, ask endpoint, Miro call, or deployment was used.
 
+## Step 7 partial checkpoint
+
+- Start: verified current main 523a8a58b9a28c9d977d0512b14fc4b995ac5d21. The uploaded
+  project handoff was an older Step 1 snapshot; this request and current repo govern.
+- C-1: 45be7427780ed066cc47f9fbd200d51429cfc503. Bind override removed, viewer-only
+  etags, unambiguous portal helpers, and generic MCP index errors. Eighteen checks
+  failed first; one in-tree pytest run then passed 588 tests.
+- C0: cb26ed926da7d670f1943c2128db55159f80097b. Session/version contracts and task
+  next_step projection. Six checks failed first; all 50 portal tests passed.
+- C3: 6e1ec10ced4688d98c40f9ec33661a17dbfcd9cd. demo-init creates 63 validated
+  fictional records, three separate policy agents, and hashed local credentials.
+  Four checks failed first; the full suite then passed 594 tests.
+- Final test/evidence checkpoint: f297db302150cc2f991c84e97b0234ab2e9b0828. Partial
+  body leak control, CSRF-safe evidence capture, and live demo API checks added.
+  Clean installations passed 598 all-extras, 512 core, and 563 portal-only tests.
+- Leak probe: 50 tests, 29 captured files / 198 output segments, zero literal
+  matches for restricted id/title/owner/full body/partial body in raw or escaped form.
+- Main contains no HTTP record-write route, layout store, frontend build, or
+  Playwright evidence. Step 7 is incomplete. Required prototype/security sources
+  were absent from main, available attachments, and the source search.
+- Resume C1/C2/F1–F6 after those sources are supplied; the existing authorization
+  remains valid. Keep the independent SecOps merge gate and fictional-data limit.
+
 Read [AGENTS.md](AGENTS.md), [architecture](docs/ARCHITECTURE.md),
 [acceptance evidence](evidence/acceptance.md), and [findings](FINDINGS.md).
 
@@ -169,8 +195,8 @@ Read [AGENTS.md](AGENTS.md), [architecture](docs/ARCHITECTURE.md),
 | MCP tools | `list_records(filters)`, `read_record(id)`, `search(query)`, `create_record(type, fields)`, `create_from_template(template, venture, fields)`, `update_record(id, changes, expected_version)` |
 | Templates | `templates/initiative.md` and `templates/agent.md`; implemented in Step 4, AC4 passed |
 | Graph/layout | Authorized neutral nodes/edges JSON exists; position and change planning remain later work |
-| Portal | Optional Starlette/uvicorn, one local process, six read-only GET routes; approved frontend port P5–P8 next |
-| Canvas | Approved prototype; Miro REST API v2 is an optional later export |
+| Portal | Optional Starlette/uvicorn, one local process, seven GET routes with session/version contracts; gated writes pending |
+| Canvas | React 18 + React Flow v12 + Vite authorized; prototype is the visual source; source assets missing |
 
 Required fields: `id`, `type`, `title`, `status`, `owner`, `venture`, `parent`,
 `next_step`, `updated_at`, `version`. Optional: `depends_on: []`,
@@ -277,21 +303,20 @@ operations are the authorized exception needed for this proof.
 | 3 | Create/update, policy enforcement, concurrency, Git, commit-human | Complete; AC3 passed |
 | 4 | Initiative and agent templates | Complete; AC4 passed |
 | 5 | MCP tools and real stdio client integration | Complete; AC2 passed |
-| 6 | Read security and read-only portal backend P1–P4 | Complete; stop here. Next named step: approved frontend port P5–P8 |
-| 7 | Neutral graph layout and per-item change planner | After the portal |
+| 6 | Read security and portal backend P1–P4 | Complete; Joe reports local/sample-only review GO |
+| 7 | Live command canvas, gated edits, and per-viewer layout | C-1/C0/C3 complete; C1/C2/F1–F6 remain open |
 | 8 | Optional Miro export, including scratch contract/deletion probe before adapter and live proofs | Optional; existing C1–C7 still apply |
 | 9 | Chat import as its own separately scoped step | Later |
 
-The portal home must show venture health, allow venture → initiative → task
-drilldown, provide a dependency map from neutral JSON, and include an ask-anything
-bar with a read-only answer flow. The prototype and backend contracts are approved.
-P1–P4 supply the JSON backend; P5–P8 will port the existing prototype and add the
-stub ask flow. Model-backed ask remains gated under P9 and ships disabled.
+The authorized canvas uses live venture tiles, drill-down, hover cards, dragging,
+inline edits, conflict recovery, and undo. React Flow replaces the five dashboard
+screens. No ask endpoint or model call is in Step 7. The optional deterministic
+command bar is X2, after F1–F6 pass. Use the complete preserved Step 7 scope.
 
-A minimal neutral nodes/edges read projection now exists in `read_model.py` and
-`RecordIndex.graph()`. `graph.py` validates relationships. Step 7 adds layout and
-change planning. Keep C2 filtering before graph emission and retain the Miro
-ownership/reconciliation contracts if the optional export is selected.
+`read_model.neutral_graph()` and `RecordIndex.graph()` remain renderer-neutral.
+C2 layout coordinates are view state, stored per viewer outside records and Git.
+Keep library visibility before graph emission. Any optional Miro work still
+requires the original ownership/reconciliation contracts and separate scope.
 
 Joe approved and Step 5 implemented `next_milestone`, `milestone_due_at`, task
 `due_at`/`blocker_reason`, and derived `last_activity_at`. Existing `status`, `owner`,
@@ -395,8 +420,9 @@ wraps the library's existing `get_record`; the tool is `update_record`, never up
 `ToolHandlers` is independent of the MCP transport and delegates to the CLI's
 existing library methods. The read-only portal calls those authorized library reads. Errors are
 structured (`conflict` with current_version, unauthorized, dirty_record,
-validation with field/reason, not_found). Git/index/internal failures remain
-distinct, and committed/unknown outcomes keep recovery metadata. Raw hook and
+validation with field/reason, not_found). Git and post-commit failures retain their recovery codes; IndexFileError maps
+to generic internal_error without absolute index paths. Committed/unknown
+outcomes keep recovery metadata. Raw hook and
 exception diagnostics go only to stderr. Stdout contains protocol traffic only.
 The stable lock inode remains after clean process exit, but the kernel lock is
 released; never unlink it to clear contention. Malformed JSON returns -32700;
@@ -409,24 +435,32 @@ Desktop UI or MCP HTTP transport pass is claimed.
 
 ## Current portal and SecOps boundary
 
-`chassis portal [--port 8765]` defaults to loopback only. The optional `portal`
-extra contains only Starlette and uvicorn. The configured viewer defaults to
-`reviewer` via CHASSIS_PORTAL_VIEWER_AGENT and uses CHASSIS_AGENT_TOKEN. No request
-can select a more privileged viewer. All six GET routes, origin/method refusal,
-generic errors, visible counts, health tables, and leak scans pass. There is no
-frontend or ask endpoint. "Agent writes today" is omitted rather than fabricated.
+`chassis portal [--port 8765]` binds only 127.0.0.1. The legacy remote override is
+removed. The configured viewer defaults to reviewer via
+CHASSIS_PORTAL_VIEWER_AGENT and uses CHASSIS_AGENT_TOKEN. Host/Origin, token,
+grant, clearance, generic-error, and no-store controls remain in force.
 
-Read/write audit uses ignored `.chassis/audit.jsonl`; credentials use ignored
-`.chassis/agent-tokens.yaml` with hashes only. `chassis agent-token create ID` is
-local operator provisioning, prints once, and is never an MCP tool. No token is
-committed or logged. A failed read audit withholds the result; post-commit failures
-retain recovery facts. See acceptance S1–S6 and the body-free verification report.
+Seven GET routes are implemented. Session returns an in-memory per-launch CSRF
+and writes_enabled:false. Venture/task projections and graph nodes include source
+versions. Task details also include next_step. Etags cover only visible records
+and their activity; a hidden edit or commit leaves a normal viewer's etag stable.
+All mutation methods remain refused. No canvas bundle or ask endpoint exists.
 
-Real Andy data and agent-to-agent channels remain NO-GO pending SecOps review and
-the remaining checkpoint requirements: hosted/user authentication, disclosure and
-prompt-injection boundaries, rate limits, and filesystem/backups/retention/encryption.
-The vault, Git history, and cache remain plaintext. No new independent SecOps,
-Code Reviewer, or QE signoff is claimed by the engineering verification.
+Read/write audit uses ignored .chassis/audit.jsonl; credentials use ignored
+.chassis/agent-tokens.yaml with hashes only. Session CSRF never enters disk or
+logs. The leak collector checks the raw response in memory before redacting CSRF
+from temporary evidence captures. Post-commit recovery facts are preserved.
+
+Joe's supplied status reports Step 6 Code Reviewer PASS WITH NITS, QE PASS, and
+SecOps GO for the local backend with fictional samples. The underlying Step 6
+review files were not available here; this is Joe's reported status, not a new
+independent review. Real Andy data and agent-to-agent channels remain NO-GO.
+The vault, Git history, and cache remain plaintext.
+
+Step 7 C1/C2 must meet SECOPS-STEP6.md section 4 and receive independent SecOps
+review before merge. That source is missing; no HTTP write implementation or
+step7-c1-write branch was created in this checkpoint. F1–F6 also need the approved
+prototype package. Existing authorization covers continuation once sources arrive.
 
 Use [project instructions and the next-step prompt](docs/PROJECT_CHAT_SETUP.md).
 At each step's end, update this checkpoint, acceptance evidence, and findings with
@@ -436,28 +470,37 @@ Do not assume a prior scratch filesystem, installed app, or credential persists.
 
 ## Next chat starting prompt
 
-Use for the next separately authorized frontend chat:
-
 ```text
-Start the frontend port, P5–P8 from docs/PORTAL-ADR.md, using the approved
-portal-prototype v2 index.html and tokens.json. Pull current private main and read
-AGENTS.md, CHASSIS_PROJECT_HANDOFF.md, docs/ARCHITECTURE.md, evidence/acceptance.md,
-FINDINGS.md, docs/PORTAL-ADR.md, and evidence/SECOPS-CHECKPOINT-1.md. Step 6 runtime/tests are at
-7d152c51e8e123c860067e08e94e24c6bba5347f, with 576 all-extras tests passing from a
-clean locked checkout; preserve every later documentation/evidence commit.
+Resume the already authorized Step 7 command canvas, not the superseded P5–P8
+five-screen port. Pull current private main and read AGENTS.md,
+CHASSIS_PROJECT_HANDOFF.md, docs/ARCHITECTURE.md, evidence/acceptance.md,
+FINDINGS.md, docs/PORTAL-ADR.md, and docs/STEP7-CANVAS-SCOPE.md. Preserve history.
 
-Keep fictional data and local execution only. Use the approved prototype files;
-if they are not present, obtain them before porting. Do not invent a replacement
-design. The backend is complete and read-only. Every library read requires a
-token, grant, and clearance. Restricted records the viewer cannot read are hidden
-completely, including counts, edges, search, and health; do not restore placeholders.
+C-1 is 45be742; C0 is cb26ed9; C3 is 6e1ec10. Runtime is at 6e1ec10, and the
+final test/evidence checkpoint is f297db302150cc2f991c84e97b0234ab2e9b0828.
+Clean locked checkouts passed 598 all-extras tests, 512 core tests (8 modules
+skipped), and 563 portal-only tests (7 modules skipped, 1 warning). The 50-test
+CLI/MCP/API leak run found zero matches in 29 captures, including partial body
+text. Preserve subsequent documentation commits. The original fixtures, policy,
+pyproject.toml, and uv.lock remain unchanged from 523a8a5.
 
-Port P5 shell/theme/API/router/overview, P6 drilldowns/hover cards, P7 the neutral
-graph map, and P8 the deterministic stub ask flow. Escape all record content to
-prevent XSS. Design empty, loading, and error states. Add Playwright tests against
-the approved prototype and live backend. Preserve the ADR API and health rules.
-No model-backed ask, layout/change planner, Miro work, chat import, agent spawning,
-real data, or deployment. Keep tests green, commit/push each increment, update the
-handoff/evidence/findings, report DELIVERED / VERIFIED (table) / RISKS-OPEN / NEXT,
-and stop when P5–P8 are done.
+Supply and read the missing approved portal-prototype package: index.html,
+README.md, tokens.json, and screens/, including its fonts/theme/contrast assets.
+Also read SECOPS-STEP6.md section 4, ANDY-CHECK-02.md, and CODEX_STEP6_REPORT.md.
+Use QE-STEP6.md if it adds to the criteria already preserved in the scope.
+Do not invent the missing design or treat the older checkpoint as that review.
+
+Continue C1 on step7-c1-write, then C2 and F1–F6 against it. Writes are disabled
+by default, use a separate proven normal editor, and call the existing library
+update_record. C1/C2 cannot merge to main before independent SecOps review.
+Use React 18, React Flow v12 MIT core, Vite, exact pins and committed builds.
+Use chassis demo-init for the separate seven-venture fictional vault. Keep the
+seven read routes, visibility, audit, Host/Origin, and concurrency tests green.
+
+Prove the real stdio MCP/canvas loop, edits/undo, drag persistence, conflict UX,
+XSS defenses, live refresh, both-theme screenshots, reproducible build, license
+and audit checks, and zero API/DOM/layout/bundle leaks. Stretch X1–X3 only after
+F1–F6 are green. No ask/model, real data, Miro, gateway, hosting, or deployment.
+Push each completed tests-first increment; update evidence/findings/handoff;
+report DELIVERED / VERIFIED / RISKS-OPEN / NEXT and stop when Step 7 is complete.
 ```

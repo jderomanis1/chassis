@@ -17,7 +17,7 @@ Chassis is Andy Patterson’s command foundation for running parallel ventures.
 Its goal is a shared project state that a chief-of-staff agent can read and update,
 with a spatial view that makes the next action easy to see.
 
-## Step 6 access requirements
+## Access requirements
 
 Record reads and writes require an existing policy agent and a valid
 `CHASSIS_AGENT_TOKEN`. The local operator provisions a credential with
@@ -50,9 +50,12 @@ These controls govern Chassis APIs. Files and Git history are still plaintext,
 and anyone with direct filesystem access can read them. Real data, hosted access,
 and agent-to-agent channels remain outside this sample-only increment.
 
-**This checkout delivers Steps 1–6: the library, authenticated MCP, and the P1–P4 read-only portal backend.**
+**This checkout delivers Steps 1–6 plus Step 7 C-1, C0, and C3. Step 7 remains open.**
 All venture data is fictional. SQLite is a disposable index of working-tree files.
-Six MCP tools run over stdio. The approved frontend port, P5–P8, is next.
+Six MCP tools run over stdio. The portal has seven GET routes, visible-only
+revision fingerprints, session/version contracts, and a fictional demo generator.
+The authorized command canvas requires the approved prototype and Step 6 review
+sources. See [Step 7 scope](docs/STEP7-CANVAS-SCOPE.md).
 
 **Continuing in a new chat?** Read the [project handoff](CHASSIS_PROJECT_HANDOFF.md)
 and [project chat setup](docs/PROJECT_CHAT_SETUP.md). Engineering agents should
@@ -217,18 +220,19 @@ uv run --locked --extra portal chassis portal --port 8765
 ```
 
 This provisions or rotates the sample viewer token. The server binds to
-`127.0.0.1:8765`. A non-loopback host is refused unless
-`CHASSIS_PORTAL_ALLOW_REMOTE=1`; remote operation is outside this increment.
+`127.0.0.1:8765`. Other bind addresses are refused, including with the obsolete
+remote override set. `localhost` is normalized to `127.0.0.1`.
 The viewer is configured on the server, never selected by a request. Invalid
 credentials prevent startup, and token/grant revocation applies to later reads.
 
 | GET endpoint | Response |
 | :--- | :--- |
-| `/api/version` | `{etag}`: Git HEAD plus a hash of nonignored working-tree files |
-| `/api/snapshot` | Venture cards, visible counts, health, and generation time |
+| `/api/session` | `{csrf, writes_enabled:false, viewer}`; fresh in-memory token per app launch |
+| `/api/version` | `{etag}`: SHA-256 of this viewer's authorized records and their derived activity |
+| `/api/snapshot` | Venture cards with versions, visible counts, health, and generation time |
 | `/api/ventures/{id}` | Venture and its visible initiatives, progress, and GTM sections |
-| `/api/initiatives/{id}` | Initiative and its visible tasks |
-| `/api/graph?venture=` | Neutral nodes and dependency edges, with health and no layout |
+| `/api/initiatives/{id}` | Initiative and its visible tasks, including version and next_step |
+| `/api/graph?venture=` | Neutral nodes with versions/health and visible dependency edges; no layout |
 | `/api/search?q=` | Visible hits containing only id, type, and title |
 
 Every endpoint is GET-only, checks Host/Origin, and returns private, nonstored
@@ -239,6 +243,28 @@ There is no frontend or ask endpoint in P1–P4. The unimplemented "Agent writes
 today" field is omitted. See the [ADR](docs/PORTAL-ADR.md) for API v1, with Joe's
 Step 6 override: complete library-level hiding replaces masked placeholders and
 removes hidden children from counts and health.
+
+### Create the seven-venture demo
+
+```bash
+uv run --locked chassis demo-init /tmp/chassis-demo
+```
+
+The destination must not exist. The command creates its own Git vault with
+7 ventures, 14 initiatives, 42 tasks, 29 dependencies, and one restricted task.
+It leaves this checkout's 13-record fixtures unchanged. Every demo name is
+fictional; no files are copied from a user's ventures.
+
+The JSON output prints fresh credentials once for `reviewer`, `canvas-editor`,
+and `chief-of-staff`. Only hashes are persisted in the ignored credential file.
+Use the reviewer token as `CHASSIS_AGENT_TOKEN` for the portal and set
+`CHASSIS_PORTAL_VIEWER_AGENT=reviewer`; pass `--vault /tmp/chassis-demo` to
+`chassis portal`. For CLI validation or a separate MCP process, use the
+chief-of-staff ID and its own token. Normal viewers see 62 records and 41 tasks.
+The editor has normal clearance and write grants limited to these sample ventures.
+
+The current portal remains GET-only. `--allow-writes`, PATCH, layout persistence,
+and the built canvas await C1/C2 and F1–F6, including the independent SecOps gate.
 
 ### Connect an MCP client
 
@@ -321,8 +347,10 @@ The actual Obsidian UI check is tracked in the acceptance evidence.
 | Initiative and read-only agent templates | Implemented; AC4 passes through the library and CLI |
 | Milestones, task due dates/blockers, and derived Git activity | Implemented; pure portal health with frozen-clock tables |
 | Six official SDK MCP tools over stdio | Implemented; AC2 real-client and concurrent-writer proof |
-| Read-only portal backend P1–P4 | Six GET endpoints; library filtering, origin checks, error envelopes, and leak tests |
-| Frontend P5–P8, layout, optional Miro, chat import | Subsequent steps |
+| Portal backend and Step 7 C-1/C0 | Seven GET endpoints; visible-only etags, session/version contracts, and leak tests |
+| Step 7 C3 demo vault | Seven fictional ventures with separate viewer, editor, and chief credentials |
+| Step 7 C1/C2 and F1–F6 | Authorized; blocked on required security/design source files, then SecOps merge review |
+| Optional Miro and chat import | Later, separately scoped work |
 
 ## Explore the sample
 
@@ -363,10 +391,11 @@ what has actually been verified.
 
 ## Next in the build
 
-Step 6 is complete. The next named step is the approved prototype's frontend port,
-P5–P8. It must escape record content, include empty/loading/error states, and add
-Playwright checks against the prototype. Layout and change planning follow; Miro
-is an optional export and chat import is separate. See the handoff's next prompt.
+Resume the authorized Step 7 command canvas after supplying the approved prototype
+package and `SECOPS-STEP6.md`, plus the referenced client/review notes. C-1, C0,
+and C3 are complete. Build C1/C2 and the frontend on `step7-c1-write`; keep writes
+off main until independent SecOps review. No ask endpoint or model call belongs
+in this step. See the handoff's next prompt and the preserved Step 7 scope.
 
 Keep secrets in environment variables. `.env` is ignored; `.env.example`
 documents the author identity and later Miro configuration.

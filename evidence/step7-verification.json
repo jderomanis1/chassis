@@ -1,0 +1,94 @@
+{
+  "date": "2026-11-17",
+  "timezone": "America/Phoenix",
+  "status": "STEP_7_PARTIAL_BLOCKED_ON_REQUIRED_SOURCES",
+  "start_commit": "523a8a58b9a28c9d977d0512b14fc4b995ac5d21",
+  "runtime_commit": "6e1ec10ced4688d98c40f9ec33661a17dbfcd9cd",
+  "verified_commit": "f297db302150cc2f991c84e97b0234ab2e9b0828",
+  "commits": {
+    "C-1": "45be7427780ed066cc47f9fbd200d51429cfc503",
+    "C0": "cb26ed926da7d670f1943c2128db55159f80097b",
+    "C3": "6e1ec10ced4688d98c40f9ec33661a17dbfcd9cd",
+    "leak_controls": "f297db302150cc2f991c84e97b0234ab2e9b0828"
+  },
+  "environment": {
+    "python": "3.12.14",
+    "platform": "Linux/POSIX"
+  },
+  "clean_checkouts": [
+    {
+      "install": "uv sync --locked --all-extras",
+      "test": ".venv/bin/pytest -q",
+      "passed": 598,
+      "skipped": 0,
+      "warnings": 0,
+      "seconds": 136.91,
+      "clean": true,
+      "mcp_present": true,
+      "portal_present": true
+    },
+    {
+      "install": "uv sync --locked",
+      "test": ".venv/bin/pytest -q",
+      "passed": 512,
+      "skipped": 8,
+      "warnings": 0,
+      "seconds": 67.08,
+      "clean": true,
+      "mcp_present": false,
+      "portal_present": false
+    },
+    {
+      "install": "uv sync --locked --extra portal",
+      "test": ".venv/bin/pytest -q",
+      "passed": 563,
+      "skipped": 7,
+      "warnings": 1,
+      "seconds": 77.75,
+      "clean": true,
+      "mcp_present": false,
+      "portal_present": true
+    }
+  ],
+  "lock_sha256": "68c9c88f407c84e838c5db81889db37dbb4d378229c0603c58c3c22573640932",
+  "unchanged_from_start": [
+    "records/",
+    "agents.yaml",
+    "pyproject.toml",
+    "uv.lock"
+  ],
+  "leak_probe": {
+    "passed": 50,
+    "seconds": 34.44,
+    "captures": 29,
+    "output_segments": 198,
+    "matching_files": 0,
+    "coverage": "restricted id, title, owner, complete body and partial body sentence; raw and JSON-escaped forms",
+    "csrf_captures": "redacted after in-memory leak checks"
+  },
+  "not_implemented": [
+    "C1 HTTP record writes",
+    "C2 layout store",
+    "F1-F6 canvas",
+    "X1-X3 stretch"
+  ],
+  "not_verified": [
+    "Playwright",
+    "UI screenshots",
+    "MCP-to-canvas refresh",
+    "canvas-to-MCP writes",
+    "npm audit/licenses",
+    "bundle reproducibility",
+    "DOM/layout/bundle leak checks"
+  ],
+  "missing_sources": [
+    "portal-prototype/index.html",
+    "portal-prototype/README.md",
+    "tokens.json",
+    "screens/",
+    "SECOPS-STEP6.md",
+    "ANDY-CHECK-02.md",
+    "CODEX_STEP6_REPORT.md"
+  ],
+  "independent_step7_reviews": "not performed; SecOps review required before C1/C2 merge"
+}

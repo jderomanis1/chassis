@@ -22,9 +22,11 @@ one-build-step-per-chat workflow. Read the current user request first.
 - Prove one real read/write/render loop using fictional records and local execution.
 - The broader paid-discovery brief eventually calls for real ventures; it does
   not authorize real data, live accounts, or deployment in Increment 0.
-- Joe approved the portal prototype and P1–P4 backend in Step 6. The next named
-  step is its frontend port, P5–P8. Preserve the approved design and implement only
-  the step requested in the current chat.
+- Joe's Step 7 canvas authorization supersedes the five-screen P5–P8 port.
+  Read `docs/STEP7-CANVAS-SCOPE.md` and the current handoff. Use the approved
+  prototype as the visual source for React 18, React Flow v12, and Vite.
+  C1/C2 writes stay off main until independent SecOps review; continue on
+  `step7-c1-write` after the required source documents are available.
 - No agent spawning, two-way Miro sync, paid infrastructure, or model-specific
   dependency. Chat import has its own separately scoped later step.
 - Live business-account writes remain out of scope. Explicitly designated scratch
@@ -73,8 +75,8 @@ one-build-step-per-chat workflow. Read the current user request first.
 
 ## Delivery and continuity
 
-- Keep the revised build order in the handoff: MCP, prototype-gated read-only
-  portal, layout/change planner, optional Miro export, then separate chat import.
+- Keep the revised build order in the handoff: MCP, the local command canvas
+  with gated edits and view layout, optional Miro export, then separate chat import.
   Write tests first for behavior.
   Work in roughly 150-line increments; generated locks/assets may be additional.
 - Push each completed increment to the private repo. Preserve history and never

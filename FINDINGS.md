@@ -251,10 +251,57 @@ prompt-injection requirements. Existing POSIX, ordinary-editor, and file/Git cra
 boundaries remain. Portal-only tests emit one development-only Starlette warning
 about its compatibility with httpx; no runtime dependency was added to suppress it.
 
-Next chat: **P5–P8, the approved prototype's frontend port**. Escape record content,
+Historical Step 6 next step, superseded by Step 7 below: **P5–P8, the approved prototype's frontend port**. Escape record content,
 include empty/loading/error states, and run Playwright against the prototype and
 backend. Keep hidden rows absent during refresh and after sensitivity changes.
 Do not reopen the design or start P9/model ask, later layout, Miro, import, or deployment.
+
+## Step 7: observed, partial delivery
+
+- Started from verified 523a8a5. The uploaded shared handoff was a historical
+  Step 1 snapshot. Joe's new canvas authorization and current repository governed.
+- C-1 45be742 removes the remote-bind bypass and global-HEAD activity signal.
+  Visible-only etags remain stable across hidden changes/commits and unrelated
+  files; authorized visible changes and concurrent snapshot retries still work.
+- The MCP IndexFileError leak was reproduced with an actual symlink, including
+  the absolute cache path in a validation response. It now maps to internal_error
+  without the path. All three real stdio read tools and all six handler mappings
+  are checked. Recovery metadata for committed/uncertain writes remains intact.
+- The normal baseline collected/passed 576 tests here. Reversing conftest search
+  order reproduced the reported import collision. Shared helpers now live in
+  tests/portal/helpers.py; a single in-tree C-1 suite passed 588 tests.
+- C0 cb26ed9 supplies session/version contracts, with an ephemeral in-memory CSRF
+  and writes_enabled:false. Task details include next_step for future editing.
+  Existing GET Host/Origin/identity checks apply to the session. All 50 portal
+  tests passed after six first-failing contract checks.
+- C3 6e1ec10 creates a separate 63-record fictional vault: seven ventures,
+  fourteen initiatives, forty-two tasks, and twenty-nine dependency edges. One
+  edge crosses ventures and one task is restricted. The source fixtures and
+  sample policy stay unchanged. Existing destinations, including symlinks, are
+  refused. Fresh credentials print once and only mode-0600 hashes persist.
+- Normal demo API views contain seven venture cards, 62 nodes, and 41 tasks;
+  green/yellow/red health and the cross-venture dependency are verified. Library
+  writes as the normal editor work; restricted writes are refused. No canvas
+  has been built or exercised, so this does not establish the UI live loop.
+- f297db3 adds a positive partial-body leak control and CSRF-safe evidence capture.
+  The 50-test transport probe passed with zero matches in 29 files / 198 output
+  segments. Raw responses are checked in memory before CSRF redaction on disk.
+- Three fresh locked checkouts at f297db3 passed: 598 all-extras tests, 512 core
+  tests (8 optional modules skipped), and 563 portal-only tests (7 modules skipped,
+  1 existing development warning). Each stayed clean with the same uv.lock hash.
+  Records, agents.yaml, pyproject.toml, and uv.lock match the accepted start.
+
+**Step 7 remains incomplete.** The prototype package (index/README/tokens/screens),
+SECOPS-STEP6.md section 4, ANDY-CHECK-02.md, and CODEX_STEP6_REPORT.md are missing.
+The repository has only main and the current source set does not contain them.
+The full Step 7 authorization is preserved in docs/STEP7-CANVAS-SCOPE.md.
+
+C1/C2 have not been implemented. Resume those on step7-c1-write once the required
+security source arrives, then continue F1–F6 using the actual visual source.
+Independent SecOps review must precede merge. No UI, Playwright, screenshots,
+reproducible frontend bundle, npm audit/license list, or DOM/layout/bundle leak
+pass is claimed. No new independent reviewer verdict, real data, model call,
+Miro work, agent spawning, hosted gateway, or deployment occurred.
 
 ## Miro frame-deletion experiment
 

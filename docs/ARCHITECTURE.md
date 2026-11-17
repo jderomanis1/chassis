@@ -9,7 +9,8 @@ rebuild`, `list`, `get`, `search`, `update`, `create`, `new`, and `commit-human`
 `chassis-mcp` exposes six tools using the optional official MCP SDK, locked at 2.3.0.
 Step 6 adds authenticated, scoped library reads, clearance, audit, token provisioning,
 and the optional Starlette/uvicorn P1–P4 portal backend with pure health calculations.
-The frontend P5–P8, layout, and rendering remain later work.
+Step 7 C-1/C0/C3 add review fixes, session/version contracts, and a demo vault.
+The authorized React Flow canvas and gated write/layout endpoints remain open.
 Execution and data remain local and fictional; any Miro proof uses designated scratch space.
 
 ## Source records
@@ -135,8 +136,8 @@ and `structuredContent`. Failures set `isError: true`: `conflict` includes the
 expected/current versions, `unauthorized` is generic, `dirty_record` retains actionable
 details, `validation` includes a field and reason (plus issues for schema errors),
 and record `not_found` never echoes the requested ID. Whole-record/relationship errors
-use `record` as the field when no narrower field is available. Git/index/internal
-failures keep separate structured codes. Raw hook/exception diagnostics go only
+use `record` as the field when no narrower field is available. Git/post-commit failures retain their recovery codes; index-path failures map
+to generic internal_error without exposing the absolute path. Raw hook/exception diagnostics go only
 to stderr. Post-commit and uncertain-commit metadata is preserved for recovery.
 
 ## C6: writes, human edits, and the index
@@ -319,54 +320,61 @@ completed increment to the private repository, preserving existing repository
 instructions and work. Never force-push. Secrets come from the environment;
 `.env` stays ignored. Report delivery, verification, open risks, and the next step.
 
-## Approved roadmap change, 2026-11-16
+## Approved canvas pivot, 2026-11-17
 
-Joe moved the portal into scope after MCP, then approved Step 6 read security and
-the P1–P4 backend using the supplied ADR. The prototype is approved. This checkpoint
-ends before its frontend port, P5–P8.
+Joe's [Step 7 authorization](STEP7-CANVAS-SCOPE.md) records the client's November
+16 decision: one zoomable card canvas over the live store. It supersedes the
+five-screen P5–P8 port and stub ask flow. The approved prototype is the visual
+source for React 18, React Flow v12, and Vite. Built assets will be committed;
+Node is not a Python runtime requirement. No frontend is implemented yet.
 
 | Order | Scope and gate |
 | :--- | :--- |
-| Step 5 | Complete: transport-independent MCP tools, proved through real stdio clients |
-| Step 6 | Complete: read security and portal backend P1–P4. Next named step: approved frontend port P5–P8 |
-| Step 7 | Renderer-neutral layout and change planner |
-| Step 8, optional | Miro export: designated scratch API contract/deletion probe first, then adapter and live export proofs |
-| Step 9, separately scoped later | Chat import |
+| Step 5 | Complete: real stdio MCP proof |
+| Step 6 | Complete: authenticated read security and portal backend P1–P4 |
+| Step 7 | C-1, C0, C3 complete; gated C1/C2 and F1–F6 open, required sources missing |
+| Optional Miro | Later export; designated scratch probe before any adapter proof |
+| Chat import | Separately scoped later work |
 
-Portal requirements: home shows every venture's health; navigation drills from
-venture to initiative to tasks; a dependency map consumes the neutral JSON graph;
-an ask-anything bar is wired to the agent. The portal and its ask flow are read-only.
-The supplied ADR governs the approved design. It does not authorize deployment.
-
-### Portal backend P1–P4
+### Current portal backend
 
 `chassis portal` runs one Starlette/uvicorn process with the optional `portal`
-extra. Default bind is `127.0.0.1:8765`; non-loopback requires the explicit remote
-environment flag and remains outside the sample-only deployment scope.
-`CHASSIS_PORTAL_VIEWER_AGENT` defaults to `reviewer`, with `CHASSIS_AGENT_TOKEN`.
-Every request rechecks that identity and calls authorized library reads. There is
-no portal redact bypass or request-selected clearance. Host/Origin must match the
-configured authority when Origin is present. Only GET is accepted, including on
-unknown paths; errors use the ADR envelope without traces and responses are private,
-nonstored JSON. The package asset directory is mounted for the approved P5 port;
-it contains no frontend UI yet. The vault is never mounted, and API misses keep
-their JSON envelope. There is no ask endpoint in this backend step.
+extra. It binds only `127.0.0.1`; `localhost` is normalized and the remote override
+is removed. The configured viewer defaults to `reviewer` and is proven with
+`CHASSIS_AGENT_TOKEN`. Requests cannot choose another identity or clearance.
+Exact Host and optional matching Origin checks remain; all seven current routes
+are GET-only, with private, no-store responses and generic JSON errors. The
+package static mount contains no frontend assets and never serves the vault.
 
-The six GET routes follow ADR section 6. Snapshot, drilldown, and graph read state
-retry if HEAD/working-tree fingerprints change during the read. The etag covers
-Git HEAD and nonignored working-tree bytes; token hashes, audit, and cache are
-ignored. It is repository-wide, not a per-viewer activity metric. Search delegates
-directly to library search. The "Agent writes today" field is omitted.
+`/api/session` returns a fresh per-launch CSRF token, `writes_enabled:false`, and
+the viewer ID. The token stays in memory. Cards, task projections, and portal
+graph nodes expose source versions; task projections include next_step so an
+editor can preserve it. Full venture and initiative objects already include it.
 
-`health(record, children, today)` is pure. Task priority is done, blocked, overdue,
-due within 3 days, activity older than 14 Phoenix calendar days, no signal, then
-on track. Waiting on a visible unfinished dependency adds a reason without changing
-color. Parent milestones overdue are red; within 7 days is at least yellow.
-Otherwise the worst non-done child's known color wins; all active unknown children
-yield unknown, and all completed children yield green. No children and no milestone
-yield unknown. Missing/hidden children contribute neither color nor reason.
-Thresholds are constants in config, and table tests inject the date.
+`version_etag` hashes the viewer's authorized records, including derived activity.
+It excludes global Git HEAD, hidden rows, and unrelated repository files, so
+hidden edits/commits do not signal activity. Snapshot/drilldown/graph reads retain
+concurrent-change retry behavior. Counts and health use only visible children;
+health retains the pure Phoenix-calendar 3/7/14-day rules.
 
-Next: port the approved prototype with escaped record content, empty/loading/error
-states, and Playwright tests. Model-backed ask, layout/change planning, optional
-Miro export, and chat import remain separately gated. C1–C7 still govern them.
+C1's shared local write guard and C2's per-viewer layout require the complete
+`SECOPS-STEP6.md` section 4, then independent SecOps review before merge. They
+remain unimplemented. Continue on `step7-c1-write` when the source is supplied.
+Use the existing library transaction; no second record-persistence path is
+approved. F1–F6 must preserve the prototype's theme/fonts/tokens and prove the
+real MCP-write/canvas-refresh and canvas-edit/MCP-read loop. No ask endpoint or
+model call is part of this step.
+
+### Fictional demo generator
+
+`chassis demo-init <new-directory>` creates an independent Git vault with seven
+fictional ventures, two initiatives per venture, three tasks per initiative,
+29 dependencies including one cross-venture edge, and one restricted task.
+It uses the existing schema, validation, atomic writer, and credential provisioner.
+It refuses any existing destination and leaves source fixtures unchanged.
+
+The reviewer has normal clearance/read grants, canvas-editor has normal clearance
+and write grants on the seven sample ventures, and chief-of-staff has restricted
+clearance/write grants. Fresh tokens are returned once; only hashes persist in
+ignored `.chassis/agent-tokens.yaml` with mode 0600. One fictional baseline commit
+contains records, policy, and the ignore file, with no credentials in Git.
