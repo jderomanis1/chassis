@@ -38,6 +38,29 @@ Screenshots at 1440x900 are in `evidence/step7-ui/`: dark and light overview wit
 
 Playwright after these additions: 13 passed (scaffold, canvas, live loop, X1, X2, X3). Focused graph and portal write tests passed. This is not an independent review.
 
+### Fresh locked checkout at 1cb92f4
+
+Three detached worktrees of `1cb92f44e82d55e46cc69aac69ace6b06a7d0a34` started with no virtual environment. Each used `uv sync --locked` and `.venv/bin/pytest -q`. The lock SHA-256 stayed `68c9c88f407c84e838c5db81889db37dbb4d378229c0603c58c3c22573640932`. Source status was empty in all three.
+
+| Installation | Result |
+| :--- | :--- |
+| `uv sync --locked --all-extras` | **698 passed in 1090.89s (0:18:10)** |
+| `uv sync --locked` | **513 passed, 8 skipped in 1384.70s (0:23:04)** |
+| `uv sync --locked --extra portal` | **663 passed, 7 skipped, 1 warning in 1006.48s (0:16:46)** |
+
+The core skips are 1 portal module and 7 MCP modules. The portal skips are the 7 MCP modules. The one warning is the existing Starlette `TestClient` deprecation.
+
+A fourth detached worktree, Node 24.22.1 and npm 11.9.0, ran `npm ci` then:
+
+| Check | Result |
+| :--- | :--- |
+| `npm test` | **14 passed**, 0 failed |
+| `npm run contrast` | dark 64 pairs, 0 failures, lowest 5.11; light 64 pairs, 0 failures, lowest 4.74 |
+| `npm audit --omit=dev` | info 0, low 0, moderate 0, high 0, critical 0, total 0 |
+| `npm run build` twice | both builds matched the committed 21 static files, and matched each other |
+
+Playwright then ran alone in that worktree after `uv sync --locked --all-extras`, with `CHASSIS_CHROMIUM=/usr/local/bin/google-chrome`: **13 passed in 49.3s**. No product code changed.
+
 ## Earlier Step 7 resume: C1/C2 and partial F1
 
 All source records and people are fictional. AC2, AC3, AC4, and AC9 pass; later gates remain pending.

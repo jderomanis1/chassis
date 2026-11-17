@@ -550,8 +550,11 @@ canvas tests passed, including the six command-bar phrases and task linking.
 Screenshots are in evidence/step7-ui/. Do not claim SecOps, QE, or Code Reviewer
 approval. Do not merge to main.
 
-A fresh uv sync --locked checkout of the full, core, and portal suites is still
-unrepeated for this stretch. The venture graph is dagre, not the prototype lanes.
+A fresh locked checkout of 1cb92f4 passed: all-extras 698, core 513 passed
+and 8 skipped, portal 663 passed, 7 skipped, and 1 warning. npm test was 14
+passed. Contrast and the production audit were clean. Two builds matched the
+committed 21 files. Playwright alone passed 13 tests. The venture graph is
+dagre, not the prototype lanes.
 No real data, ask/model, Miro, gateway, hosting, deployment, or secrets in code.
 Demo target remains Monday, November 23, 2026, morning, America/Phoenix.
 ```

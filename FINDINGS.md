@@ -21,6 +21,10 @@ file still passes with them.
 - Hover details sit in a strip above the canvas. The camera fits once, after
   fonts are ready. A command that changes the visible set fits again after those
   cards are on screen.
+- A fresh detached checkout of `1cb92f4` passed the locked full, core, and
+  portal suites, plus npm test, contrast, a clean production audit, two
+  identical builds, and a solo Playwright run of 13 tests. No product fix was
+  required. The counts are in `evidence/acceptance.md`.
 
 ## Step 7 canvas: observed at 60f91d1
 
