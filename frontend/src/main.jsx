@@ -177,8 +177,9 @@ function App() {
   }
   async function linkCards(connection) {
     const nodes = source?.nodes || [];
+    const visible = nodes.map(node => node.id);
     const proposal = linkChange(nodes.find(node => node.id === connection.source)?.data,
-      nodes.find(node => node.id === connection.target)?.data);
+      nodes.find(node => node.id === connection.target)?.data, visible);
     if (!proposal.ok) { setNotice(proposal.message); return; }
     if (!writes) { setNotice('Read only · editing is off'); return; }
     try {

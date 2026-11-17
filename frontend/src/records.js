@@ -78,10 +78,14 @@ export function priorValues(changes, before) {
   return prior;
 }
 
-export function linkChange(source, target) {
+export function linkChange(source, target, visibleIds) {
   if (!source || !target || source.id === target.id) return { ok: false, message: 'Choose two different tasks.' };
   if (source.kind !== 'task' || target.kind !== 'task') return { ok: false, message: 'Only tasks can be linked.' };
-  const current = target.depends_on || [];
+  const allowed = visibleIds ? new Set(visibleIds) : null;
+  if (allowed && (!allowed.has(source.id) || !allowed.has(target.id))) {
+    return { ok: false, message: 'invalid dependency' };
+  }
+  const current = (target.depends_on || []).filter(id => !allowed || allowed.has(id));
   if (current.includes(source.id)) return { ok: false, message: 'Those tasks are already linked.' };
   return { ok: true, id: target.id, version: target.version, changes: { depends_on: [...current, source.id] } };
 }

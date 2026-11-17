@@ -129,6 +129,7 @@ class RecordStore:
             require_grant(policy, agent, record.venture, record.type)
             proposed = ParsedRecord(path, record, body)
             items = self._read_sources()
+            self._require_readable_dependencies(proposed, items, policy, agent)
             self._validate_sources([proposed if item.record.id == identifier else item
                                     for item in items], policy, agent)
             references = self._visible_dependencies(proposed, items, policy, agent)
@@ -168,6 +169,7 @@ class RecordStore:
                 raise WriteError(f"{record.id}: duplicate ID", id=record.id)
             path = self.root / "records" / f"{record.type}s" / f"{record.id}.md"
             proposed = ParsedRecord(path, record, body)
+            self._require_readable_dependencies(proposed, items + [proposed], policy, agent)
             self._validate_sources([*items, proposed], policy, agent)
             ensure_repository(self.root)
             references = self._visible_dependencies(proposed, items, policy, agent)
@@ -205,6 +207,15 @@ class RecordStore:
                              field="assigned_agent", reason="must be a known agent id")
         expanded = expand_template(self.root, template, fields)
         return self._create_record(template, expanded | {"venture": venture, "parent": venture}, agent)
+
+    def _require_readable_dependencies(self, proposed, items, policy, agent):
+        """Missing and unreadable dependency ids are the same refusal, with no id in the error."""
+        rows = [item.record.model_dump(mode="json") for item in items
+                if item.record.id != proposed.record.id]
+        rows.append(proposed.record.model_dump(mode="json"))
+        visible = {row["id"] for row in visible_records(rows, policy, agent)}
+        if any(dependency not in visible for dependency in proposed.record.depends_on):
+            raise WriteError("invalid dependency")
 
     def _visible_dependencies(self, proposed, items, policy, agent):
         rows = [item.record.model_dump(mode="json") for item in items

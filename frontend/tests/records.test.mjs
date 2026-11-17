@@ -48,6 +48,8 @@ test('links are task to task and keep the earlier dependency list', () => {
   const target = { id: 'task-b', kind: 'task', version: 3, depends_on: ['task-c'] };
   assert.deepEqual(linkChange(source, target), { ok: true, id: 'task-b', version: 3, changes: { depends_on: ['task-c', 'task-a'] } });
   assert.equal(linkChange(source, { ...target, kind: 'initiative' }).message, 'Only tasks can be linked.');
+  assert.equal(linkChange(source, { ...target, depends_on: ['task-launch-budget'] }, ['task-a', 'task-b']).changes.depends_on.join(','), 'task-a');
+  assert.equal(linkChange({ ...source, id: 'task-launch-budget' }, target, ['task-a', 'task-b']).message, 'invalid dependency');
   assert.equal(linkChange(source, { ...target, depends_on: ['task-a'] }).message, 'Those tasks are already linked.');
 });
 

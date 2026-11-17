@@ -134,6 +134,21 @@ def test_middleware_audit_failure_after_commit_keeps_recovery(writer, editor_con
     assert "Committed before the audit append failed" in (root / "records/tasks/task-launch-offer.md").read_text()
 
 
+def test_hidden_and_missing_dependencies_match_and_do_not_write(writer, editor_config):
+    root = editor_config.root
+    path = root / "records/tasks/task-launch-offer.md"
+    before, original = git(root, "rev-parse", "HEAD"), path.read_bytes()
+    hidden = patch(writer, {"depends_on": ["task-launch-budget"]})
+    missing = patch(writer, {"depends_on": ["task-missing"]})
+    assert hidden.status_code == missing.status_code == 400
+    assert hidden.content == missing.content
+    assert hidden.json()["error"] == {"code": "validation", "message": "invalid dependency"}
+    assert b"task-launch-budget" not in hidden.content
+    assert b"task-missing" not in missing.content
+    assert path.read_bytes() == original
+    assert git(root, "rev-parse", "HEAD") == before
+
+
 def test_task_link_commits_and_cycle_or_cross_type_does_not(writer, editor_config):
     root = editor_config.root
     before = git(root, "rev-parse", "HEAD")

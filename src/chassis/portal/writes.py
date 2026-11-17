@@ -75,6 +75,8 @@ def patch_record(request):
             reason = "Record update could not be completed"
         return failure("validation", reason, 400)
     except WriteError as exc:
+        if str(exc) == "invalid dependency":
+            return failure("validation", "invalid dependency", 400)
         recovery = {k: v for k, v in exc.details.items()
                     if k in {"committed", "commit", "current_version", "commit_state"}}
         if recovery:

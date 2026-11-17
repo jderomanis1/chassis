@@ -26,7 +26,7 @@ def test_dirty_edits_hidden_from_git_status_are_still_refused(git_repo, flag):
 @pytest.mark.parametrize("identifier,changes,reason", [
     ("task-launch-budget", {"status": "invalid"}, "status"),
     ("task-launch-budget", {"parent": "initiative-missing"}, "parent.*does not exist"),
-    ("task-launch-budget", {"depends_on": ["task-missing"]}, "dependency.*does not exist"),
+    ("task-launch-budget", {"depends_on": ["task-missing"]}, "invalid dependency"),
     ("task-launch-budget", {"assigned_agent": "unknown-agent"}, "assigned_agent.*known agent"),
     ("task-maintenance-quotes", {"depends_on": ["task-maintenance-plan"]}, "dependency cycle"),
     ("task-launch-budget", {"type": "initiative"}, "type cannot change"),

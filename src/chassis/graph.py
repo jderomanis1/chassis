@@ -40,7 +40,7 @@ def validate_graph(items: Iterable[ParsedRecord]) -> dict[str, ParsedRecord]:
             if dependency == record.id:
                 fail(item, "a record cannot depend on itself")
             if dependency not in by_id:
-                fail(item, f"dependency {dependency!r} does not exist")
+                fail(item, "invalid dependency")
             if record.type == "task" and by_id[dependency].record.type != "task":
                 fail(item, f"dependency {dependency} must be a task")
 
