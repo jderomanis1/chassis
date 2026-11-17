@@ -118,10 +118,11 @@ test('two undos of one card stay in version order', async ({ page, demo }) => {
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.getByLabel('Next step').fill(step);
     const saved = page.waitForResponse(response => response.url().includes('/api/records/') && response.request().method() === 'PATCH');
+    const refreshed = page.waitForResponse(response => response.url().includes('/api/graph?venture=') && response.ok());
     await page.getByRole('button', { name: 'Save' }).click();
     expect((await saved).status()).toBe(200);
+    await refreshed;
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await page.waitForTimeout(400);
   }
   for (let time = 0; time < 2; time += 1) {
     const saved = page.waitForResponse(response => response.url().includes('/api/records/') && response.request().method() === 'PATCH');
