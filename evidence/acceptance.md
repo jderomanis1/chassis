@@ -1,6 +1,27 @@
 # Acceptance evidence
 
-**Snapshot:** Increment 0, Step 7 canvas loop implemented on `cursor/step7-canvas-d0a6` against `step7-c1-write`. Main remains `42f0fa0`. C1/C2 are not independently reviewed. **Date:** 2026-11-17.
+**Snapshot:** R1 hidden-dependency preservation and CI are on `cursor/r1-hidden-deps-ci-1dd7`, based on `step7-c1-write` at `f2bc7d9`. The pull request targets `step7-c1-write` and is not merged. Main remains `42f0fa0`. C1/C2 are not independently reviewed. **Date:** 2026-11-17.
+
+## R1 hidden dependencies and CI
+
+These runs used the working tree on this branch. They are not a fresh three-mode checkout, and they are not SecOps, QE, or Code Reviewer approval. Python 3.12.3. Node 24.22.1 and npm 11.9.0 for the frontend commands. The lock file was not edited.
+
+| Command | Result |
+| :--- | :--- |
+| `uv sync --locked --all-extras` then `.venv/bin/pytest -q` | **709 passed in 70.53s** |
+| `uv sync --locked` then pytest | **519 passed, 9 skipped in 30.18s** |
+| `uv sync --locked --extra portal` then pytest | **673 passed, 8 skipped, 1 warning in 44.12s** |
+| `npm test` | **16 passed**, 0 failed |
+| `npm audit --omit=dev` | 0 vulnerabilities |
+| Playwright, `CHASSIS_CHROMIUM=/usr/bin/google-chrome` | **14 passed (57.8s)** |
+
+Core skips are the portal module and 8 MCP modules. Portal skips are the 8 MCP modules. The warning is the existing `StarletteDeprecationWarning` for `TestClient` at `tests/portal/conftest.py:6`. The new stdio test is one of the MCP skips until the mcp extra is installed. It passed in the all-extras run.
+
+The behavior covered by those new tests:
+
+1. A title PATCH, and an MCP update that omits `depends_on`, saves. The stored hidden dependency stays in the file. The response and the initiative read omit it.
+2. A visible `depends_on` list, including the canvas link payload and the undo payload, merges with the stored hidden ids. Clearing the visible list still leaves the hidden id on disk. Reads omit it.
+3. A newly added hidden id and a newly added missing id return the same 400 body, `{"error":{"code":"validation","message":"invalid dependency"}}`, with neither id in the body, and with no commit. Library and MCP handler errors match each other the same way. `create_from_template` rejects a new hidden dependency and a missing one with the same `invalid dependency` error and writes nothing.
 
 ## Step 7 canvas loop
 

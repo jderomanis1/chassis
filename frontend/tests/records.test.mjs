@@ -53,6 +53,16 @@ test('links are task to task and keep the earlier dependency list', () => {
   assert.equal(linkChange(source, { ...target, depends_on: ['task-a'] }).message, 'Those tasks are already linked.');
 });
 
+test('a link undo restores the visible list and a title undo omits dependencies', () => {
+  const source = { id: 'task-a', kind: 'task' };
+  const target = { id: 'task-b', kind: 'task', version: 4, depends_on: ['task-hidden', 'task-c'] };
+  const linked = linkChange(source, target, ['task-a', 'task-b', 'task-c']);
+  assert.deepEqual(linked.changes, { depends_on: ['task-c', 'task-a'] });
+  assert.equal(linked.changes.depends_on.includes('task-hidden'), false);
+  assert.deepEqual(priorValues(linked.changes, { depends_on: ['task-c'] }), { depends_on: ['task-c'] });
+  assert.deepEqual(priorValues({ title: 'Next' }, { title: 'Old', depends_on: ['task-hidden'] }), { title: 'Old' });
+});
+
 test('a second undo of the same record uses the version from the first undo', () => {
   const stack = [
     { id: 'task-a', version: 2, changes: { title: 'First' } },

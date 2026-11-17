@@ -1,5 +1,31 @@
 # Findings
 
+## Hidden dependency updates
+
+A normal writer can hold a task whose `depends_on` already names a restricted
+record. Before this change, a title-only update returned `invalid dependency`
+and did not save. A PATCH that sent only the visible dependency list returned
+200 and deleted the hidden id from the file.
+
+`RecordStore.update_record` now splits those cases:
+
+- When `depends_on` is absent, the stored list is left unchanged and is not
+  checked again. A title or next-step edit saves.
+- When `depends_on` is present, only ids that are not already stored are
+  checked. A new missing id and a new hidden id both raise `invalid dependency`,
+  with the same body, no id in the error, no file write, and no commit.
+- The stored list is the caller's visible ids, in the caller's order, followed
+  by hidden ids that were already stored. The caller cannot remove or reveal a
+  link they cannot see. The update response and later reads still omit those ids.
+
+REST PATCH, MCP `update_record` (handler and stdio), the canvas link gesture,
+and undo all go through that update. `create_from_template` has no stored list.
+Every dependency on a new record is new, so a hidden id and a missing id still
+fail the same way and write nothing.
+
+This is local engineering evidence. It is not SecOps, QE, or Code Reviewer
+approval. Main is still `42f0fa0`.
+
 ## Review fixes: observed at a5cd405
 
 These notes are engineering evidence on `cursor/step7-canvas-d0a6`. They are not

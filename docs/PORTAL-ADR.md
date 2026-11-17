@@ -51,8 +51,14 @@ PATCH accepts only title (240 characters), status, next_step (4096), blocker_rea
 (4096), due_at, depends_on, and expected_version. Unknown fields and invalid IDs
 are refused; body and owner edits are not allowed. An existing target body above
 64 KiB is refused, and library create and update refuse a new body above 64 KiB.
-A dependency the writer cannot read, and a dependency that does not exist, both
-return the same `invalid dependency` error and do not write. `RecordStore.update_record`
+An update that omits `depends_on` leaves the stored list unchanged and does not
+check it again, so a title or other unrelated edit can save while a hidden link
+remains. When `depends_on` is sent, only ids that are not already stored are
+checked. A new id the writer cannot read and a new id that does not exist both
+return the same `invalid dependency` error, do not write, and do not include
+the id. The stored list is the caller's visible ids followed by hidden ids that
+were already stored, so the caller cannot delete a link they cannot see. Update
+responses and later reads still omit hidden ids. `RecordStore.update_record`
 remains the only record transaction. A success
 returns id/version/commit, with one record-only commit by the editor. Stale updates
 return 409/current_version with no commit; missing/hidden/ungranted IDs share 404.
