@@ -1,8 +1,11 @@
 """One-process read-only JSON API using the authenticated library view."""
+from pathlib import Path
+
 from pydantic import ValidationError
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
-from starlette.routing import Route
+from starlette.routing import Mount, Route
+from starlette.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from chassis.audit import record_event
@@ -11,6 +14,8 @@ from chassis.index import RecordIndex
 from chassis.policy import authorize_reader
 from chassis.portal.config import validate_bind, version_etag
 from chassis.portal.api import routes
+
+ASSET_ROOT = Path(__file__).with_name("static")
 
 
 def error(code, message, status):
@@ -31,7 +36,9 @@ def create_app(config, *, clock=None):
     async def http_error(request, exc):
         return error("not_found", "Not found", 404)
 
-    app = Starlette(routes=[Route("/api/version", version, methods=["GET"]), *routes],
+    app = Starlette(routes=[Route("/api/version", version, methods=["GET"]), *routes,
+                    Route("/api/{path:path}", lambda request: error("not_found", "Not found", 404), methods=["GET"]),
+                    Mount("/", app=StaticFiles(directory=ASSET_ROOT, html=True), name="static")],
                     exception_handlers={404: http_error})
     app.state.index, app.state.config, app.state.clock = index, config, clock
 
