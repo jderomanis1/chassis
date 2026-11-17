@@ -44,8 +44,11 @@ def test_invisible_ids_are_removed_before_disk_and_response(writer, editor_confi
     assert hidden not in path.read_text()
     assert hidden not in writer.get("/api/layout").text
     # Old local state from a previously visible record is filtered on every read.
-    path.write_text(json.dumps(malicious))
+    stored = json.dumps(malicious)
+    path.write_text(stored)
     assert writer.get("/api/layout").json() == EMPTY
+    assert path.read_text() == stored
+    assert writer.put("/api/layout", json=EMPTY).json() == EMPTY
     assert hidden not in path.read_text()
     assert "task-missing" not in path.read_text()
 

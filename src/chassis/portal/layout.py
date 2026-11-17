@@ -58,10 +58,6 @@ def stored_layout(path):
         return Layout(), False
 
 
-def layout_ids(layout):
-    return set(layout.positions) | set(layout.collapsed) | set(layout.hidden)
-
-
 def layout_route(request):
     config, index = request.app.state.config, request.app.state.index
     writing = request.method == "PUT"
@@ -73,12 +69,11 @@ def layout_route(request):
             editor_policy(config)
         path = layout_path(config)
         visible = {row["id"] for row in index._visible_locked()}
-        persisted = False
         if not writing:
-            proposed, persisted = stored_layout(path)
+            proposed, _stored = stored_layout(path)
         result = filtered(proposed, visible)
-        # A read drops ids that are no longer visible and removes them from disk.
-        if writing or (persisted and not layout_ids(proposed) <= visible):
+        # A read filters ids that are no longer visible. Only a save rewrites the file.
+        if writing:
             path.parent.mkdir(mode=0o700, exist_ok=True)
             write_atomic(path, json.dumps(result, sort_keys=True, separators=(",", ":")).encode())
         record_event(config.root, config.viewer_agent, "layout_write" if writing else "layout_read", "ok",
