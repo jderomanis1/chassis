@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Background, Controls, MiniMap, ReactFlow, ReactFlowProvider, useEdgesState, useNodesInitialized, useNodesState, useReactFlow } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { CardNode, HoverCard, VentureNode } from './nodes.jsx';
+import { CardNode, VentureNode } from './nodes.jsx';
 import { place, roundViewport } from './place.js';
 
 const nodeTypes = { venture: VentureNode, card: CardNode };
@@ -42,16 +42,16 @@ function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onC
   }, [model, layout.positions, writes, setNodes, setEdges]);
   useEffect(() => {
     if (!measured || !nodes.length || framed.current) return undefined;
-    framed.current = true;
-    const saved = model.nodes.some(node => layout.positions?.[node.id]);
-    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const frame = () => {
+    let cancel = false;
+    document.fonts.ready.then(() => {
+      if (cancel || framed.current) return;
+      framed.current = true;
+      const saved = model.nodes.some(node => layout.positions?.[node.id]);
+      const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (saved && layout.viewport) flow.setViewport(roundViewport(layout.viewport), { duration: 0 });
       else flow.fitView({ duration: reduce ? 0 : 350, padding: 0.18, maxZoom: 0.9 });
-    };
-    frame();
-    const fonts = document.fonts.ready.then(frame);
-    return () => { fonts.then(() => {}); };
+    });
+    return () => { cancel = true; };
   }, [measured, nodes.length, flow, model.nodes, layout.positions, layout.viewport]);
   function publish(nextNodes, viewport) {
     if (!nextNodes.length) return;
@@ -70,14 +70,11 @@ function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onC
 }
 
 export function Canvas(props) {
-  const [hover, setHover] = useState(null);
-  useEffect(() => { setHover(null); }, [props.model.view]);
   return (
     <div className="flow-wrap" data-testid="command-canvas">
       <ReactFlowProvider>
-        <Surface key={props.model.view} {...props} onHover={(record, rect) => setHover({ record, rect })} onClear={() => setHover(null)} />
+        <Surface key={props.model.view} {...props} onHover={props.onHover} onClear={props.onClear} />
       </ReactFlowProvider>
-      <HoverCard record={hover?.record} rect={hover?.rect} />
     </div>
   );
 }

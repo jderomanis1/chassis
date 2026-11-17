@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api } from './api.js';
 import { Canvas } from './canvas.jsx';
+import { HoverCard } from './nodes.jsx';
 import { Editor } from './editor.jsx';
 import { editChanges, overviewNodes, priorValues, readVenture, ventureModel } from './records.js';
 import { roundPoint } from './place.js';
@@ -22,7 +23,7 @@ function App() {
   const [ventureId, setVentureId] = useState(readVenture(location.hash));
   const [editor, setEditor] = useState(null), [fieldMessage, setFieldMessage] = useState('');
   const [notice, setNotice] = useState(''), [undo, setUndo] = useState([]), [pending, setPending] = useState(null);
-  const [query, setQuery] = useState(''), [hits, setHits] = useState([]);
+  const [query, setQuery] = useState(''), [hits, setHits] = useState([]), [hover, setHover] = useState(null);
   const ticket = useRef(0), layoutRef = useRef(null), timer = useRef(0);
   const writes = Boolean(data?.session.writes_enabled);
 
@@ -163,10 +164,11 @@ function App() {
         <button className="btn" type="submit">Search</button>
       </form>
       {hits.length ? <ul className="hits">{hits.map(hit => <li key={hit.id}><button type="button" onClick={() => { if (hit.type === 'venture') location.hash = `#/v/${hit.id}`; }}>{hit.title}</button></li>)}</ul> : null}
+      <HoverCard record={hover} />
       {error ? <section className="panel empty" role="alert"><h2>Could not load canvas</h2><p>{error}</p><button className="btn" onClick={load}>Try again</button></section>
         : !data || (ventureId && !model) ? <section className="panel empty" role="status">Loading your canvas…</section>
         : !data.snapshot.ventures.length ? <section className="panel empty"><h2>No ventures yet</h2><p>Your visible ventures will appear here.</p></section>
-        : <Canvas model={model} layout={data.layout} writes={writes} onLayout={onLayout} onOpen={id => { location.hash = `#/v/${id}`; }} onEdit={openEdit} />}
+        : <Canvas model={model} layout={data.layout} writes={writes} onLayout={onLayout} onOpen={id => { location.hash = `#/v/${id}`; }} onEdit={openEdit} onHover={setHover} onClear={() => setHover(null)} />}
     </main>
     {editor ? <Editor record={editor} message={fieldMessage} onClose={() => setEditor(null)} onSave={save} /> : null}</>;
 }

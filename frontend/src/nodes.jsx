@@ -51,23 +51,25 @@ export function CardNode({ data }) {
   );
 }
 
-export function HoverCard({ record, rect }) {
-  if (!record || !rect) return null;
-  const width = 300;
-  let x = rect.right + 12, y = Math.max(8, rect.top);
-  if (typeof window !== 'undefined' && x + width > window.innerWidth - 8) x = Math.max(8, rect.left - width - 12);
-  const counts = record.counts
-    ? `${record.counts.initiatives} initiatives, ${record.counts.tasks} tasks, ${record.counts.blocked} blocked`
-    : record.progress ? `${record.progress.done} of ${record.progress.total} tasks done` : record.kind;
+export function hoverSummary(record) {
+  if (!record) return '';
+  if (record.counts) return `${record.counts.initiatives} initiatives, ${record.counts.tasks} tasks, ${record.counts.blocked} blocked`;
+  if (record.progress) return `${record.progress.done} of ${record.progress.total} tasks done`;
+  return record.kind || '';
+}
+
+export function HoverCard({ record }) {
   return (
-    <aside className="hcard on" role="tooltip" style={{ transform: `translate(${Math.round(x)}px, ${Math.round(y)}px)` }}>
-      <p className="mono">{record.kind}</p>
-      <h4>{record.title}</h4>
-      <dl>
-        <dt>Next</dt><dd>{record.next_milestone || record.next_step || 'None'}</dd>
-        <dt>Counts</dt><dd>{counts}</dd>
-        <dt>Activity</dt><dd>{activityLabel(record.last_activity_at)}</dd>
-      </dl>
+    <aside className="hover-slot panel" role="tooltip" aria-label={record ? record.title : 'Card details'}>
+      {record ? <>
+        <p className="mono">{record.kind}</p>
+        <h4>{record.title}</h4>
+        <dl>
+          <div><dt>Next</dt><dd>{record.next_milestone || record.next_step || 'None'}</dd></div>
+          <div><dt>Counts</dt><dd>{hoverSummary(record)}</dd></div>
+          <div><dt>Activity</dt><dd>{activityLabel(record.last_activity_at)}</dd></div>
+        </dl>
+      </> : <p className="mono">Hover or focus a card. Its details stay in this strip.</p>}
     </aside>
   );
 }

@@ -35,6 +35,17 @@ test('seven live venture tiles use health colors, controls, and inert text', asy
   await expect(page.locator('.react-flow__minimap')).toBeVisible();
   await page.getByRole('button', { name: 'Ridgeview HOA', exact: true }).focus();
   await expect(page.getByRole('tooltip')).toContainText('Review the fictional delivery plan');
+  const tooltip = await page.getByRole('tooltip').boundingBox();
+  for (const id of ['venture-ridgeview', 'venture-acme', 'venture-cedar']) {
+    const tile = await page.locator(`[data-record-id="${id}"]`).boundingBox();
+    const separated = tooltip.y + tooltip.height <= tile.y || tile.y + tile.height <= tooltip.y
+      || tooltip.x + tooltip.width <= tile.x || tile.x + tile.width <= tooltip.x;
+    expect(separated, id).toBe(true);
+  }
+  await page.evaluate(() => document.fonts.ready);
+  const before = await page.locator('.react-flow__viewport').evaluate(node => node.style.transform);
+  await page.waitForTimeout(400);
+  await expect(page.locator('.react-flow__viewport')).toHaveAttribute('style', new RegExp(before.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   const path = join(demo.vault, 'records/ventures/venture-acme.md');
   const original = await readFile(path, 'utf8');
   await writeFile(path, original.replace('title: Acme D2C', 'title: "Acme <img src=x onerror=alert(1)>"'));

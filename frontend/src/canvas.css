@@ -31,4 +31,10 @@ button{font:inherit}button:disabled{opacity:.6;cursor:not-allowed}
 .editor-form label{display:grid;gap:6px;margin:0 0 14px;font:500 12px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
 .editor-form input,.editor-form select{text-transform:none;letter-spacing:0;font:400 15px var(--font-body);color:var(--text);background:var(--bg-0);border:1px solid var(--line-strong);border-radius:8px;padding:8px 10px}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+.hover-slot{display:flex;align-items:center;gap:16px;min-height:52px;margin:0 0 10px;padding:8px 14px}
+.hover-slot .mono,.hover-slot h4{margin:0}
+.hover-slot h4{font:600 15px/1.2 var(--font-display)}
+.hover-slot dl{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0}
+.hover-slot dt{color:var(--text-3);font:500 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase}
+.hover-slot dd{margin:0}
 @media(max-width:700px){header.top{padding:12px 18px}.live{display:none}main#canvas{padding:18px}.intro{align-items:start}.intro h1{font-size:23px}.mode{font-size:9px;white-space:normal}}
