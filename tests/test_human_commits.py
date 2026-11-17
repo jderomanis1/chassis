@@ -47,7 +47,7 @@ def test_invalid_manual_source_is_not_committed(git_repo):
     path = git_repo / TARGET
     path.write_text(path.read_text().replace("status: planned", "status: invalid"))
     before, original = git(git_repo, "rev-parse", "HEAD"), path.read_bytes()
-    with pytest.raises(ValueError, match="status"):
+    with pytest.raises(ValueError, match="^Records unavailable; source validation failed$"):
         RecordStore(git_repo).commit_human(TARGET)
     assert git(git_repo, "rev-parse", "HEAD") == before
     assert path.read_bytes() == original

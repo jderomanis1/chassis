@@ -128,8 +128,8 @@ class RecordIndex:
             try:
                 self._rebuild_locked()
                 return len(visible_records(self._query_locked("", ()), policy, self.agent))
-            except RecordFileError as exc:
-                raise RecordFileError("Records unavailable; source validation failed") from exc
+            except RecordFileError:
+                raise RecordFileError("Records unavailable; source validation failed") from None
 
     def _rebuild_locked(self) -> int:
         """Caller holds vault_lock, including callers in the mutation layer."""
@@ -198,9 +198,9 @@ class RecordIndex:
                 return []
             try:
                 records = self._query_locked("", ())
-            except RecordFileError as exc:
+            except RecordFileError:
                 # A malformed hidden row must not expose its name or contents.
-                raise RecordFileError("Records unavailable; source validation failed") from exc
+                raise RecordFileError("Records unavailable; source validation failed") from None
             return visible_records(records, policy, self.agent)
 
     @audited("list_records", many=True)

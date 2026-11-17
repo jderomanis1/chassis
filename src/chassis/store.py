@@ -13,10 +13,10 @@ from chassis.errors import AuthorizationError, ConflictError, NotFoundError, Wri
 from chassis.git import Identity, commit_file, ensure_clean, ensure_repository, has_record_changes
 from chassis.markdown import ParsedRecord, RecordFileError, parse_record, read_frontmatter
 from chassis.models import RECORD_TYPES, Record, RecordId, RecordType
-from chassis.policy import authorize_writer, require_grant, require_clearance, visible_records
+from chassis.policy import authorize_writer, require_grant, require_clearance, visible_records, can_read_record
 from chassis.templates import expand_template, template_sections
 from chassis.transactions import persist_record, refresh_committed
-from chassis.validation import load_vault, read_vault, validate_records
+from chassis.validation import read_vault, validate_records
 
 IMMUTABLE = {"id", "version", "updated_at"}
 
@@ -53,16 +53,32 @@ class RecordStore:
     def _check_scopes(self, identifier, changes, policy, agent) -> None:
         try:
             fields = read_frontmatter(self._find_path(identifier))
-        except NotFoundError as exc:
-            raise AuthorizationError("Write not permitted") from exc
-        require_clearance(policy, agent, fields.get("sensitivity", "normal"))
-        require_clearance(policy, agent, changes.get("sensitivity", fields.get("sensitivity", "normal")))
-        venture, kind = TypeAdapter(tuple[RecordId, RecordType]).validate_python(
-            (fields.get("venture"), fields.get("type")))
-        require_grant(policy, agent, venture, kind)
-        venture, kind = changes.get("venture", venture), changes.get("type", kind)
-        if isinstance(venture, str) and isinstance(kind, str):
+            require_clearance(policy, agent, fields.get("sensitivity", "normal"))
+            require_clearance(policy, agent, changes.get("sensitivity", fields.get("sensitivity", "normal")))
+            venture, kind = TypeAdapter(tuple[RecordId, RecordType]).validate_python(
+                (fields.get("venture"), fields.get("type")))
             require_grant(policy, agent, venture, kind)
+            venture, kind = changes.get("venture", venture), changes.get("type", kind)
+            if isinstance(venture, str) and isinstance(kind, str):
+                require_grant(policy, agent, venture, kind)
+        except (RecordFileError, WriteError, ValidationError, OSError):
+            # If target metadata cannot prove a scope, no path or parser detail escapes.
+            raise AuthorizationError("Write not permitted") from None
+
+    def _read_sources(self):
+        try:
+            return read_vault(self.root)
+        except (RecordFileError, OSError):
+            raise RecordFileError("Records unavailable; source validation failed") from None
+
+    def _validate_sources(self, items, policy, agent):
+        try:
+            return validate_records(self.root, items, policy)
+        except RecordFileError:
+            # Whole-vault validation can name records unrelated to the write target.
+            if all(can_read_record(item.record.model_dump(), policy, agent) for item in items):
+                raise
+            raise RecordFileError("Records unavailable; source validation failed") from None
 
     @audited("update_record")
     def update_record(self, identifier: str, changes: Mapping, expected_version: int,
@@ -101,9 +117,9 @@ class RecordStore:
                 raise WriteError("type cannot change the stable record path")
             require_grant(policy, agent, record.venture, record.type)
             proposed = ParsedRecord(path, record, body)
-            items = read_vault(self.root)
-            validate_records(self.root, [proposed if item.record.id == identifier else item
-                                         for item in items], policy)
+            items = self._read_sources()
+            self._validate_sources([proposed if item.record.id == identifier else item
+                                    for item in items], policy, agent)
             references = self._visible_dependencies(proposed, items, policy, agent)
             result = persist_record(self.root, proposed, original, identity,
                                     f"chassis: update {identifier} v{record.version} by {agent}")
@@ -136,12 +152,12 @@ class RecordStore:
             policy = authorize_writer(self.root, agent, self.token)
             require_grant(policy, agent, record.venture, record.type)
             require_clearance(policy, agent, record.sensitivity)
-            items = read_vault(self.root)
+            items = self._read_sources()
             if any(item.record.id == record.id for item in items):
                 raise WriteError(f"{record.id}: duplicate ID", id=record.id)
             path = self.root / "records" / f"{record.type}s" / f"{record.id}.md"
             proposed = ParsedRecord(path, record, body)
-            validate_records(self.root, [*items, proposed], policy)
+            self._validate_sources([*items, proposed], policy, agent)
             ensure_repository(self.root)
             references = self._visible_dependencies(proposed, items, policy, agent)
             result = persist_record(self.root, proposed, None, identity,
@@ -210,7 +226,7 @@ class RecordStore:
             policy = authorize_writer(self.root, agent, self.token)
             self._check_scopes(path.stem, {}, policy, agent)
             ensure_repository(self.root)
-            records = load_vault(self.root)
+            records = self._validate_sources(self._read_sources(), policy, agent)
             item = next((item for item in records.values() if item.path == path), None)
             if item is None:
                 raise WriteError(f"{relative}: record path not found")

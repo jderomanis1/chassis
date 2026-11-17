@@ -54,11 +54,14 @@ def authorize_reader(root: Path, agent: str, token=None) -> Policy | None:
     return policy if agent in policy.agents and authenticate(root, agent, token) else None
 
 
+def can_read_record(record, policy, agent):
+    grants = policy.agents.get(agent)
+    return grants is not None and grants.ventures.get(record["venture"], {}).get(record["type"]) in {"read", "write"} and (
+        record["sensitivity"] != "restricted" or grants.clearance == "restricted")
+
+
 def visible_records(records, policy, agent):
-    grants = policy.agents[agent]
-    visible = {r["id"]: r for r in records
-               if grants.ventures.get(r["venture"], {}).get(r["type"]) in {"read", "write"}
-               and (r["sensitivity"] != "restricted" or grants.clearance == "restricted")}
+    visible = {r["id"]: r for r in records if can_read_record(r, policy, agent)}
     # Hiding an ancestor also hides descendants; no dangling identifying relations.
     while hidden := [key for key, r in visible.items() if r["venture"] not in visible
                      or (r["parent"] is not None and r["parent"] not in visible)]:

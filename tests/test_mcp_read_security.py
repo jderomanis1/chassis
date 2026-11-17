@@ -10,6 +10,7 @@ from conftest import EphemeralToken, issue
 from mcp_client import StdioClient
 from chassis.read_model import neutral_graph
 from test_security_cli import assert_no_leaks, restricted_terms
+from test_read_error_safety import damage_hidden_record, normal_writer, create_arguments, template_arguments
 
 
 @pytest.mark.parametrize("mode", ["unknown", "empty", "missing-token", "wrong-token"])
@@ -76,3 +77,21 @@ def test_real_stdio_scope_clearance_and_live_revocation(git_repo):
         assert client.call("search", {"query": "fictional"}) == {"records": []}
         assert client.call("read_record", {"id": "venture-acme"}) == {
             "error": "not_found", "message": "Record not found"}
+
+
+@pytest.mark.parametrize("private_field", [0, 1, 2, 3], ids=["id", "title", "owner", "body"])
+def test_real_stdio_hidden_validation_error_cannot_reveal_private_fields(template_repo, private_field):
+    git_repo = template_repo
+    terms = restricted_terms(git_repo)
+    damage_hidden_record(git_repo, terms[private_field])
+    token = normal_writer(git_repo)
+    with StdioClient(git_repo, CHASSIS_AGENT_ID="normal-writer", CHASSIS_AGENT_TOKEN=token) as client:
+        client.initialize()
+        results = [client.call(name, args) for name, args in [
+            ("list_records", {}), ("read_record", {"id": "venture-acme"}), ("search", {"query": "fictional"}),
+            ("update_record", {"id": "task-launch-offer", "expected_version": 1, "changes": {"title": "Fictional updated offer"}}),
+            ("create_record", create_arguments(git_repo)), ("create_from_template", template_arguments())]]
+    assert_no_leaks(client.stdout_lines + client.stderr_lines, terms)
+    assert results == [{"error": "validation", "field": field,
+                        "reason": "Records unavailable; source validation failed"}
+                       for field in ["filters", "record", "record", "record", "record", "record"]]
