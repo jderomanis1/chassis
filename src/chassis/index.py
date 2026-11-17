@@ -192,16 +192,19 @@ class RecordIndex:
             mark_denied()
             return []
         with vault_lock(self.root):
-            policy = authorize_reader(self.root, self.agent, self.token)
-            if policy is None:
-                mark_denied()
-                return []
-            try:
-                records = self._query_locked("", ())
-            except RecordFileError:
-                # A malformed hidden row must not expose its name or contents.
-                raise RecordFileError("Records unavailable; source validation failed") from None
-            return visible_records(records, policy, self.agent)
+            return self._visible_locked()
+
+    def _visible_locked(self):
+        """Same authorization projection when a caller already holds the vault lock."""
+        policy = authorize_reader(self.root, self.agent, self.token)
+        if policy is None:
+            mark_denied()
+            return []
+        try:
+            records = self._query_locked("", ())
+        except RecordFileError:
+            raise RecordFileError("Records unavailable; source validation failed") from None
+        return visible_records(records, policy, self.agent)
 
     @audited("list_records", many=True)
     def list_records(self, filters: Mapping[str, str | None] | None = None) -> list[dict]:

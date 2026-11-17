@@ -16,6 +16,7 @@ from chassis.policy import authorize_reader
 from chassis.portal.config import validate_bind, version_etag
 from chassis.portal.api import routes
 from chassis.portal.writes import routes as write_routes
+from chassis.portal.layout import routes as layout_routes
 from chassis.portal.write_guard import CSP, WriteGuard, editor_policy
 
 ASSET_ROOT = Path(__file__).with_name("static")
@@ -47,7 +48,7 @@ def create_app(config, *, clock=None):
         return error("not_found", "Not found", 404)
 
     app = Starlette(routes=[Route("/api/session", session, methods=["GET"]),
-                    Route("/api/version", version, methods=["GET"]), *routes, *write_routes,
+                    Route("/api/version", version, methods=["GET"]), *routes, *write_routes, *layout_routes,
                     Route("/api/{path:path}", lambda request: error("not_found", "Not found", 404), methods=["GET"]),
                     Mount("/", app=StaticFiles(directory=ASSET_ROOT, html=True), name="static")],
                     exception_handlers={404: http_error})
@@ -75,7 +76,7 @@ def create_app(config, *, clock=None):
                 response = error("not_found", "Not found", 404)
             else:
                 response = await call_next(request)
-        except NotFoundError:
+        except (NotFoundError, AuthorizationError):
             response = error("not_found", "Not found", 404)
         except ValidationError:
             response = error("validation", "Invalid request", 400)
