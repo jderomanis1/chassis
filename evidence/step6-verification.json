@@ -1,0 +1,113 @@
+{
+  "date_utc": "2026-11-17",
+  "runtime_commit": "7d152c51e8e123c860067e08e94e24c6bba5347f",
+  "baseline_commit": "384931f23562bbf23b39451953874cb18d8df311",
+  "environment": {
+    "python": "3.12.14",
+    "platform": "Linux/POSIX",
+    "mcp": "2.3.0",
+    "starlette": "1.10.0",
+    "uvicorn": "0.54.0"
+  },
+  "uv_lock_sha256": "68c9c88f407c84e838c5db81889db37dbb4d378229c0603c58c3c22573640932",
+  "clean_checkout_matrix": [
+    {
+      "install": "uv sync --locked --all-extras",
+      "passed": 576,
+      "skipped_modules": 0,
+      "warnings": 0,
+      "seconds": 53.87,
+      "git_clean": true
+    },
+    {
+      "install": "uv sync --locked",
+      "passed": 499,
+      "skipped_modules": 8,
+      "warnings": 0,
+      "seconds": 25.79,
+      "git_clean": true,
+      "absent_modules": [
+        "mcp",
+        "starlette",
+        "uvicorn"
+      ]
+    },
+    {
+      "install": "uv sync --locked --extra portal",
+      "passed": 542,
+      "skipped_modules": 7,
+      "warnings": 1,
+      "seconds": 29.43,
+      "git_clean": true,
+      "absent_modules": [
+        "mcp"
+      ],
+      "warning": "Starlette TestClient deprecates httpx in favor of httpx2; development-only"
+    }
+  ],
+  "pytest_command": ".venv/bin/python -m pytest -q",
+  "development_full_suite": {
+    "passed": 576,
+    "seconds": 53.23
+  },
+  "leak_probe": {
+    "passed_tests": 47,
+    "seconds": 16.8,
+    "grep": "rg --fixed-strings --multiline --files-with-matches",
+    "coverage": "restricted id, title, owner, and complete body; raw and JSON-escaped forms",
+    "surfaces": {
+      "cli": {
+        "captured_files": 3,
+        "output_segments": 66,
+        "bytes": 14278,
+        "matches": 0
+      },
+      "mcp": {
+        "captured_files": 10,
+        "output_segments": 90,
+        "bytes": 36572,
+        "matches": 0
+      },
+      "portal": {
+        "captured_files": 12,
+        "output_segments": 30,
+        "bytes": 33075,
+        "matches": 0
+      }
+    },
+    "matching_files": 0,
+    "all_rg_exits": 1,
+    "note": "rg exit 1 means no literal match; only metadata is committed. Includes hidden schema/graph errors and static-path refusals."
+  },
+  "visible_fixture_totals": {
+    "normal": {
+      "records": 12,
+      "tasks": 7,
+      "acme_tasks": 2
+    },
+    "restricted_with_grants": {
+      "records": 13,
+      "tasks": 8,
+      "acme_tasks": 3
+    }
+  },
+  "scope": "Fictional data, local backend P1-P4 only; no frontend, ask endpoint, Miro, deployment, or new independent review verdict",
+  "minimal_core": {
+    "install": "uv sync --locked --no-dev",
+    "core_imports": "PASS",
+    "cli_help": "PASS",
+    "absent_modules": [
+      "mcp",
+      "starlette",
+      "uvicorn",
+      "anyio",
+      "httpx",
+      "pytest"
+    ],
+    "missing_extra_entrypoints": {
+      "mcp": "exit 1 with install message and no traceback",
+      "portal": "exit 1 with install message and no traceback"
+    }
+  },
+  "wheel_asset_check": "Built wheel includes chassis/portal/static/.gitkeep; no frontend UI supplied"
+}

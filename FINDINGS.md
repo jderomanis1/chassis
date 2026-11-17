@@ -192,6 +192,70 @@ do not honor the process lock, and file replacement plus Git remain separate cra
 boundaries. Source scans now also consult Git history; no large-vault benchmark
 has been performed. Next: wait for Joe's go on the portal design prototype.
 
+## Step 6: observed
+
+- Work began at accepted `384931f` after reading the supplied portal ADR and SecOps
+  checkpoint. Joe explicitly replaced masking with complete library-level hiding.
+  Only fictional records and local execution were used.
+- A `a02e37d` makes MCP optional, bounds stdio requests at a configurable 1 MiB,
+  returns -32700 for malformed JSON, and proves SIGTERM cleanup during an active
+  transaction. The core imports and its CLI work without the MCP SDK.
+- S `f406487` verifies SHA-256 token hashes and exact venture/type read or write
+  grants before returning records. Normal clearance is the default. Hidden rows,
+  descendants of hidden parents, and identifying dependency edges are removed in
+  the library. All public projections use those reads.
+- Token provisioning is a local operator command, not a record or MCP tool. It
+  prints a fresh token once and stores only its hash in the ignored credential
+  file. Test credentials are generated at runtime, not checked-in reusable tokens.
+- Audit appends record UTC time, caller ID, tool, returned IDs or counts, and
+  outcome. Body/token exclusion, denied access, and audit failure recovery are
+  covered. Appends use a separate file lock. A read cannot return its payload if audit
+  append fails. A write already committed reports that fact if later audit fails.
+- Final review reproduced a parser-cause leak: MCP's generic validation formatter
+  could walk a library error's cause and expose a hidden source field. Five new
+  regressions failed, including real stdio id/title/owner/body cases. Follow-up
+  `4854431` removes that private cause, contains whole-vault write validation,
+  and refuses unreadable target metadata generically. CLI and all six real MCP
+  tools now cover malformed hidden sources. The full suite passes **575 tests in
+  49.94s** after this security fix; clean-install results for the final revision
+  are in acceptance.
+- Portal P1 `3ee59cb`, P2 `9a80d95`, P3 `82e4691`, and P4 `bf270b3` were pushed
+  separately. One optional Starlette/uvicorn process serves six GET endpoints.
+  A real uvicorn process answered on loopback and shut down cleanly. Contract,
+  wrong-host/origin/method, viewer-token, revocation, and generic-error checks pass.
+- P1's static mount is completed by `7d152c5`: only the package asset directory
+  is served, while vault/policy/token paths remain unavailable. API misses keep
+  the JSON envelope. The built wheel contains the placeholder asset directory.
+  No frontend UI is added. The final development suite passes **576 tests in 53.23s**.
+- The normal viewer sees 12 records and 7 tasks. Acme contributes two visible
+  tasks; a restricted-clearance viewer with the same grants sees its third task.
+  Hidden task edits do not change visible counts or health. Search has no hidden
+  hit, and the graph has no masked node, hidden edge, or layout coordinates.
+- The restricted sample's owner is now a unique fictional name. The prior owner
+  was shared with public rows, making an owner-string leak grep ambiguous. The
+  revised fixture permits a literal zero-match check without exempting any output.
+- Health is pure with an injected Phoenix date and 3/7/14-day constants. Tables
+  cover priority, exact boundaries, unknown children, completed children, and
+  dependency reasons. Parent status alone does not determine health. Snapshot
+  reads retry a concurrent commit rather than attach a new etag to older data.
+- "Agent writes today" is omitted. There is no invented activity value, frontend,
+  ask endpoint, model call, browser/UI acceptance, Miro call, or deployment in this step.
+
+Step 6 limits: these controls protect Chassis interfaces, not direct access to
+plaintext Markdown, Git history, or SQLite. A malformed source can make a read
+unavailable with a generic error; it cannot expose the hidden source diagnostics.
+The portal serves one configured viewer to local clients and has no per-browser
+user authentication. The original SecOps real-data/channel NO-GO remains pending
+review and the remaining encryption/retention, rate-limit, disclosure, and
+prompt-injection requirements. Existing POSIX, ordinary-editor, and file/Git crash
+boundaries remain. Portal-only tests emit one development-only Starlette warning
+about its compatibility with httpx; no runtime dependency was added to suppress it.
+
+Next chat: **P5–P8, the approved prototype's frontend port**. Escape record content,
+include empty/loading/error states, and run Playwright against the prototype and
+backend. Keep hidden rows absent during refresh and after sensitivity changes.
+Do not reopen the design or start P9/model ask, later layout, Miro, import, or deployment.
+
 ## Miro frame-deletion experiment
 
 **Not run. Outcome unknown.** Part of revised optional Step 8, on disposable scratch items.

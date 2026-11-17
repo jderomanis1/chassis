@@ -283,6 +283,11 @@ that individual read fail safely. Public validation errors omit source names and
 contents so a malformed hidden row cannot expose them. Additions, edits, and removals are
 validated as a complete graph before the cache transaction updates changed rows.
 Policy validation and known-assignment checks also run on every read.
+The generic error has no private parser cause for a transport formatter to expose.
+Whole-vault validation during writes also hides diagnostics when the caller lacks
+read access to any involved source. Unreadable target metadata cannot prove a grant
+and returns the same generic write denial. Caller-supplied proposal validation
+retains field-level diagnostics when they do not expose another source.
 
 Rebuild validates all sources before replacing the database atomically. Missing
 indexes rebuild automatically. Schema version 3, column order, SQLite quick_check,
@@ -343,7 +348,9 @@ Every request rechecks that identity and calls authorized library reads. There i
 no portal redact bypass or request-selected clearance. Host/Origin must match the
 configured authority when Origin is present. Only GET is accepted, including on
 unknown paths; errors use the ADR envelope without traces and responses are private,
-nonstored JSON. There is no frontend mount or ask endpoint in this backend step.
+nonstored JSON. The package asset directory is mounted for the approved P5 port;
+it contains no frontend UI yet. The vault is never mounted, and API misses keep
+their JSON envelope. There is no ask endpoint in this backend step.
 
 The six GET routes follow ADR section 6. Snapshot, drilldown, and graph read state
 retry if HEAD/working-tree fingerprints change during the read. The etag covers

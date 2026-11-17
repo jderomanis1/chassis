@@ -29,7 +29,9 @@ Follow the approved Increment 0 scope and C1-C7. Local execution and fictional
 records only. The broader discovery brief and supplied Miro board are reference
 context. Do not reopen approved architecture choices or introduce real venture
 data, live business-account writes, agent spawning, or deployment. The read-only
-portal follows MCP and requires Joe's prototype approval before any portal code.
+portal follows MCP. Joe approved the prototype and Step 6 backend; the next named
+step is the approved frontend port, P5–P8. Keep unauthorized restricted records
+completely hidden through the library, including counts, relations, and health.
 Layout/change planning follows the portal, Miro is optional export, and chat
 import is a separate later step. Complete only the named build step.
 Explicitly designated scratch Miro API operations remain in the approved scope.
@@ -47,18 +49,19 @@ Write plainly, professionally, and without em dashes or hype.
 
 ## Next build chat
 
-Suggested title: **Chassis portal design prototype**
+Suggested title: **Chassis frontend port, P5–P8**
 
-Step 5 is complete; AC2, AC3, AC4, and AC9 pass. Start only after Joe's next go. Copy the full
-starting prompt from [the current handoff](../CHASSIS_PROJECT_HANDOFF.md#next-chat-starting-prompt).
+Step 6 read security and P1–P4 are complete. Copy the full starting prompt from
+[the current handoff](../CHASSIS_PROJECT_HANDOFF.md#next-chat-starting-prompt).
+Runtime/tests are at `7d152c51e8e123c860067e08e94e24c6bba5347f`; preserve later
+documentation and evidence commits and inspect current remote HEAD.
 
-Start with the portal design prototype only. Read the current handoff and
-repository instructions. Step 5 runtime/tests are at
-`6ab3b14a759e1e3d5f8e9beae08bf8943b7c8d5d`, with 431 tests passing from a clean
-checkout and a recorded real stdio session. Preserve later documentation and
-inspect current HEAD. Milestone/date/blocker fields and derived Git activity exist.
-Resolve health explanations/unknowns, freshness, C2 filtering, and read-only agent
-connection semantics in the design. Present the prototype to Joe before writing
-any portal implementation code. Keep layout, optional Miro, chat import, spawning,
-real-data work, and deployment outside this step. Update the handoff and use the
-required four-part report. This checkpoint does not authorize starting automatically.
+Use the approved portal-prototype v2 `index.html` and `tokens.json`, not a new
+design. Obtain those files if absent. Port the shell, views, dependency map, and
+deterministic stub ask flow against ADR API v1. Escape all record content against
+XSS, design empty/loading/error states, and add Playwright tests against the
+approved prototype and backend. Token/grant/clearance checks stay in the library;
+hidden records must never become placeholders or affect counts/health.
+Keep model-backed ask, later layout, Miro, chat import, spawning, real data, and
+deployment outside that step. Update the handoff and use the required four-part
+report, then stop at P8. This checkpoint does not start the next step automatically.

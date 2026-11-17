@@ -1,9 +1,138 @@
 # Acceptance evidence
 
-**Snapshot:** Increment 0, Step 5 complete. **Date:** 2026-11-16.
+**Snapshot:** Increment 0, Step 6 complete: read security and portal backend P1–P4. **Date:** 2026-11-17.
 All source records and people are fictional. AC2, AC3, AC4, and AC9 pass; later gates remain pending.
 
-## Step 5 executed checks
+## Step 6 executed checks
+
+Started from accepted private `main` at **`384931f23562bbf23b39451953874cb18d8df311`**.
+Joe supplied Code Reviewer PASS WITH NITS and QE PASS, including 431 tests twice
+and M9 20/20, as the accepted Step 5 evidence. Those are not new Step 6 review verdicts.
+The supplied [portal ADR](../docs/PORTAL-ADR.md) and
+[SecOps checkpoint](SECOPS-CHECKPOINT-1.md) were read before implementation.
+Joe's decision overrides ADR masking: unauthorized restricted rows are absent,
+including their status, existence placeholders, relations, counts, and health inputs.
+
+Final runtime/test revision: **`7d152c51e8e123c860067e08e94e24c6bba5347f`**.
+It includes the final-review fix for hidden parser diagnostics and the ADR's P1
+package static mount. The final development run passed **576 tests in 53.23s**.
+Three new detached checkouts of this
+exact revision then installed from `uv.lock`, starting without a virtual environment.
+The [verification JSON](step6-verification.json) records results without bodies or credentials.
+
+| Clean-checkout installation | Full applicable suite | Isolation evidence |
+| :--- | :--- | :--- |
+| `uv sync --locked --all-extras` | **576 passed in 53.87s** | MCP and portal integration included; no skips |
+| `uv sync --locked` | **499 passed, 8 modules skipped in 25.79s** | MCP, Starlette, and uvicorn absent; optional integration modules skip explicitly |
+| `uv sync --locked --extra portal` | **542 passed, 7 MCP modules skipped in 29.43s** | MCP absent; portal works independently; one development-only TestClient deprecation warning |
+| `uv sync --locked --no-dev`, after the core run | Core/library/CLI imports and CLI help pass | MCP, Starlette, uvicorn, anyio, httpx, and pytest all absent; both optional entry points give install messages with exit 1 and no trace |
+
+The suite command after each install was `.venv/bin/python -m pytest -q`.
+All three checkouts retained empty Git status and an unchanged lockfile. Lock SHA-256:
+`68c9c88f407c84e838c5db81889db37dbb4d378229c0603c58c3c22573640932`.
+Runtime: Linux/POSIX, Python 3.12.14, MCP 2.3.0, Starlette 1.10.0, uvicorn 0.54.0.
+
+### SecOps evidence: S1–S6
+
+| Requirement | Observed result and executable evidence |
+| :--- | :--- |
+| S1 default-deny reads and grants | `test_read_security.py`, `test_mcp_read_security.py`, and portal boundary tests: unknown/empty identities and missing/wrong tokens return no records; exact venture/type read or write grants scope list/read/search; revocation is rechecked, including under the lock |
+| S2 complete hiding | Normal sample viewers see **12 records, 7 tasks, and 2 Acme tasks**. Restricted clearance plus grants sees **13 records and 3 Acme tasks**. Library tests remove hidden parents/descendants and hidden dependency IDs; portal tests confirm no hidden node, edge, search hit, parent count, color, or reason |
+| S3 indistinguishable reads and generic write denials | Hidden and missing IDs return the same `not_found`; unauthorized writes contain no venture/type details. Normal writers cannot declassify a restricted record. `test_read_error_safety.py` and real CLI/MCP tests contain hidden schema/graph diagnostics during reads and all write paths |
+| S4 body-free audit | One JSON line per public library operation records UTC time, agent, tool, outcome, and returned IDs or counts. Tests assert entries, exact call sequences, no bodies/tokens, symlink refusal, read refusal on append failure, and retained post-commit recovery metadata |
+| S5 proven identity | `test_agent_tokens.py`: local create/rotation prints once, stores SHA-256 only with mode 0600, and keeps credentials ignored. Missing/wrong tokens deny access; startup rejects invalid MCP/portal viewers. Tests generate ephemeral credentials at runtime; no reusable token literals are committed |
+| S6 actual transport checks | All six tools exercised with real stdio subprocesses. Normal caller output and audit are leak-scanned; restricted/scoped callers and live revocation are verified. Additional real stdio cases use each protected field as an invalid hidden source key and verify generic results across all six tools |
+
+`agents.yaml` now defaults clearance to normal and unknown agents to deny. The
+sample chief-of-staff explicitly has restricted clearance; the reviewer does not.
+The only record change in Step 6 gives the restricted fixture a unique fictional
+owner, making an owner-string leak scan meaningful instead of matching a public
+row that previously shared that name. No real venture data was added.
+
+Final review found a real cause-chain leak: the tool formatter could traverse a
+generic library error into its private Pydantic cause. Five first regressions
+failed, including real stdio tests for id, title, owner, and body. The separate
+`4854431` fix cuts that cause at the library boundary, contains whole-vault write
+validation, and denies unreadable target metadata generically. A legacy human
+commit test now expects the generic source error while retaining its unchanged
+bytes and no-commit assertions. The final full suites include these regressions.
+
+### Literal restricted-content leak grep
+
+The separate evidence run passed **47 tests in 16.80s** at `7d152c5`. The
+[probe](step6_leak_probe.py) observes the tests' actual normal-caller output and
+runs `rg --fixed-strings --multiline --files-with-matches` against the restricted
+id, title, owner, and complete body, including their JSON-escaped forms. It checks
+stdout/stderr, real MCP wire output and audit, and every portal endpoint. It also
+captures hidden schema/graph error paths and static-path refusals. Every grep
+returned 1, meaning no match.
+
+| Surface | Captured files | Output segments | Literal matches |
+| :--- | ---: | ---: | ---: |
+| CLI record operations, including validation/rebuild and write refusals | 3 | 66 | **0** |
+| Real stdio MCP, startup refusals, audit, and malformed hidden-source paths | 10 | 90 | **0** |
+| Portal endpoints, graph, generic errors, and static-path refusals | 12 | 30 | **0** |
+| Total | **25** | **186** | **0** |
+
+The committed report contains counts and provenance only. Raw captures remain
+temporary sample-data artifacts. Reproduce from the repo with `rg` installed:
+
+```bash
+uv sync --locked --all-extras
+PYTHONPATH=evidence CHASSIS_LEAK_PROBE_DIR=/tmp/chassis-step6-leaks \
+  .venv/bin/python -m pytest -q -p step6_leak_probe \
+  tests/test_security_cli.py tests/test_mcp_read_security.py \
+  tests/portal/test_api.py tests/portal/test_graph_search.py \
+  tests/portal/test_boundary.py tests/portal/test_static.py
+```
+
+### Part A and portal P1–P4
+
+| Check | Observed result |
+| :--- | :--- |
+| Optional MCP and exact assertions | `mcp = ["mcp>=2.3,<3"]` is an extra; minimal core imports without it. Missing-extra messages verified on installed commands; MCP result assertions use exact expected values |
+| Stdio hardening | Malformed JSON produces -32700; default 1 MiB and configured caps produce structured oversize errors; bounded input recovers; SIGTERM during a real active write leaves no orphan children and frees the lock |
+| P1 server and version | Only Starlette and uvicorn are portal runtime extras. Bind refusal, configured authenticated viewer, etag after commit/edit, ignored audit/cache stability, and a real uvicorn loopback GET/shutdown pass. Package-only static serving refuses vault/policy/token paths; the wheel contains the empty asset directory |
+| P2 API v1 | Exact snapshot/card, venture/initiative, GTM/progress, and task shapes pass. Counts derive from library-visible rows. A concurrent commit retries rather than labeling old data with a new etag. "Agent writes today" is omitted |
+| P3 health | Frozen Phoenix clock tables cover first-match task rules, 3/7/14-day boundaries, parent milestones, unknown/completed children, and waiting_on without a color change. HTTP tests prove hidden children add no color/reason |
+| P4 graph/search/errors | Exact neutral node/edge and search-hit shapes; dependency direction/blocking; no layout or masked nodes. Hidden/missing scopes have identical not_found responses. Invalid IDs and internal failures use generic envelopes without traces |
+| HTTP boundary | All six routes accept GET only; POST/PUT/PATCH/DELETE/OPTIONS/HEAD are refused. Host/Origin mismatch and token revocation are refused. GET `/api/ask` is 404; no ask endpoint exists |
+| Previous acceptance gates | AC2/3/4/9 remain green, including real-process and real-MCP concurrency tests. The Step 5 M9 20/20 report was not repeated as a separate 20-run batch in this step |
+
+### Publication record and limits
+
+| Increment | Private main commit | Full suite after increment |
+| :--- | :--- | ---: |
+| A: optional MCP and hardening | `a02e37d5b79527ad9bedf8cdaeddb17291617474` | 437 |
+| S: library read security | `f4064874eeadb910fa004ba6ea656c19eab4f0aa` | 466 |
+| P1: local authenticated portal server | `3ee59cbd0a0b76c48d47d43276d52c6f9149bea9` | 476 |
+| P2: snapshot and drilldowns | `9a80d954ac7606eb4f1d6a940a000beac6989163` | 482 |
+| P3: pure health | `82e4691b2d9ca0bfd444970fbd55fb936b1dd24b` | 532 |
+| P4: graph, search, and HTTP boundaries | `bf270b374d7e6b651f5d86102ab02baba6e86780` | 559 |
+| Final review: hidden source error containment | `4854431f43ea73a7c5c4c4a00471cc191b59a331` | 575 |
+| P1 follow-up: package static mount and API fallback | `7d152c51e8e123c860067e08e94e24c6bba5347f` | 576 |
+
+Each implementation part was published separately with an expected-parent check,
+no force push, and Git tree/object identity verification. S preceded every portal
+implementation commit. P2 tests first failed on absent endpoints; P3 on the absent
+health module and then an explicit empty-parent rule; P4 on missing routes and
+validation behavior. Required exception-path regressions failed before their fix.
+Subsequent closing commits update documentation, evidence tooling, and handoff only.
+
+**Real data and agent-to-agent channels remain NO-GO pending SecOps review.**
+Local token/grant/clearance controls do not encrypt Markdown, Git history, or the
+cache, and do not authenticate separate browser users. Remaining checkpoint work
+includes disclosure/prompt-injection boundaries, rate limits, and retention,
+backups, encryption, and hosted authentication. POSIX locking and existing
+ordinary-editor/file-versus-Git crash boundaries remain. No independent Step 6
+Code Reviewer, QE, or SecOps verdict is claimed here.
+
+No frontend, browser/UI, Playwright, model ask, live Miro, real-data, or deployment
+check was run or claimed. Stop at Step 6. The next named step is the approved
+frontend port P5–P8, with escaped record content, empty/loading/error states, and
+Playwright tests against the approved prototype and backend.
+
+## Step 5 executed checks (historical)
 
 Start: accepted `main` at **`a26a093f959824a0df4db3a79433fc39fc17c1bc`**.
 Remote HEAD matched that SHA and the existing working tree was clean. The uploaded

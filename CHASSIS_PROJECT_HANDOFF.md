@@ -1,6 +1,6 @@
 # Chassis project handoff
 
-**Checkpoint date: 2026-11-16. Step 5 complete. Next: portal design prototype, awaiting Joe's go.**
+**Checkpoint date: 2026-11-17. Step 6 complete: read security and portal backend P1–P4. Next: approved frontend port P5–P8.**
 This file preserves the approved build decisions and evidence so each step can
 continue in a separate chat. Read current repository HEAD before making changes.
 
@@ -41,6 +41,8 @@ to weaken a requirement. Resolve genuine contradictions with Joe before changing
 | Reference | What it contributes |
 | :--- | :--- |
 | Joe's approved build instructions and C1–C7 | Current scope, architecture, acceptance criteria, and delivery rules |
+| `docs/PORTAL-ADR.md` | Approved one-process portal, API v1, health rules, and P1–P10 sequence |
+| `evidence/SECOPS-CHECKPOINT-1.md` | Historical NO-GO at `384931f`; Step 6 implements its requested read controls, without granting real-data approval |
 | Pasted Build Engagement brief | Business problem, discovery deliverables, ownership, future agent templates |
 | `Re_ Chassis _ The build spec + Miro notes.msg`, 2026-11-16 | Andy emphasizes cross-project read/write and spatial navigation; Joe proposes plain files, optional Obsidian, search index, MCP, own-side layout, templates, and scoped access |
 | `image(2).png` | Names Chassis as infrastructure and Homer as the chief-of-staff agent; provides the workshop/canvas reference |
@@ -123,8 +125,36 @@ tokenized invitation/tracking links are not copied into the repository.
 - `evidence/mcp-session.jsonl` contains 25 actual protocol messages from the clean
   checkpoint. The capture test passed again in 1.56s. No environment secrets were
   recorded. Logs stayed on stderr; client closure ended processes and released locks.
-- The prototype-gated portal, health calculations, layout, optional Miro export,
-  and chat import remain pending. Step 5 does not authorize beginning them.
+- At the Step 5 checkpoint, the portal and health were pending. Joe subsequently
+  approved the prototype and explicitly authorized Step 6's read security and P1–P4.
+- Step 6 started from accepted `main` at `384931f23562bbf23b39451953874cb18d8df311`.
+  Joe reported Code Reviewer PASS WITH NITS, QE PASS, 431 tests twice, and M9 20/20.
+  Those review results are the accepted starting evidence, not a new Step 6 review.
+- Required source notes were read before implementation. Joe's decision overrides
+  the ADR's masking: unauthorized restricted records are absent from the library
+  view, including rows, statuses, edges, counts, search, and health inputs.
+- Step 6 commits, each published separately to private main: A `a02e37d`,
+  S `f406487`, P1 `3ee59cb`, P2 `9a80d95`, P3 `82e4691`, P4 `bf270b3`.
+  Final review found and fixed a hidden parser-cause leak in a separate security
+  follow-up, `4854431`. P1's package static mount was completed in `7d152c5`,
+  without frontend UI. Runtime/test checkpoint:
+  **`7d152c51e8e123c860067e08e94e24c6bba5347f`**.
+  Usage/architecture documentation is at `16192ab`; preserve later evidence
+  and handoff commits and inspect current remote HEAD before new work.
+- Three fresh detached checkouts passed locked installation and the full applicable
+  suite: all extras **576 passed in 53.87s**; core only **499 passed, 8 optional
+  modules skipped in 25.79s**; portal only **542 passed, 7 MCP modules skipped in
+  29.43s**. The portal-only run has one development-only TestClient deprecation
+  warning. Git status stayed empty and `uv.lock` unchanged in all three. A further
+  `uv sync --locked --no-dev` passed core imports and missing-extra install messages
+  with MCP, Starlette, uvicorn, anyio, httpx, and pytest all absent.
+- A separate 47-test evidence run passed in 16.80s. Literal ripgrep over 25 captured
+  CLI/MCP/portal output files found **0 matches** for restricted id/title/owner/body
+  in raw or JSON-escaped form. No credentials or bodies enter the committed report.
+- Normal sample viewers see 12 records, 7 tasks, and Acme progress total 2;
+  restricted-clearance viewers with grants see 13 records and Acme task total 3.
+  The restricted fixture's owner is now a unique fictional name for an unambiguous
+  leak scan. No real data, frontend, ask endpoint, Miro call, or deployment was used.
 
 Read [AGENTS.md](AGENTS.md), [architecture](docs/ARCHITECTURE.md),
 [acceptance evidence](evidence/acceptance.md), and [findings](FINDINGS.md).
@@ -135,11 +165,12 @@ Read [AGENTS.md](AGENTS.md), [architecture](docs/ARCHITECTURE.md),
 | :--- | :--- |
 | Store | One Markdown file per record, YAML frontmatter, Git history; repository opens as an Obsidian vault, with no runtime dependency on Obsidian |
 | Index | Disposable SQLite rebuilt from working-tree files, including uncommitted edits |
-| Connector | Python 3.12, official MCP SDK, stdio initially; transport-agnostic handlers and no model-specific SDK dependency |
+| Connector | Python 3.12, optional official MCP SDK, stdio; transport-agnostic handlers and no model-specific SDK dependency |
 | MCP tools | `list_records(filters)`, `read_record(id)`, `search(query)`, `create_record(type, fields)`, `create_from_template(template, venture, fields)`, `update_record(id, changes, expected_version)` |
 | Templates | `templates/initiative.md` and `templates/agent.md`; implemented in Step 4, AC4 passed |
-| Graph/layout | Renderer-neutral JSON; coordinates and layout logic owned by Chassis |
-| Canvas | Read-only portal after MCP, with prototype approval before code; Miro REST API v2 becomes an optional later export |
+| Graph/layout | Authorized neutral nodes/edges JSON exists; position and change planning remain later work |
+| Portal | Optional Starlette/uvicorn, one local process, six read-only GET routes; approved frontend port P5–P8 next |
+| Canvas | Approved prototype; Miro REST API v2 is an optional later export |
 
 Required fields: `id`, `type`, `title`, `status`, `owner`, `venture`, `parent`,
 `next_step`, `updated_at`, `version`. Optional: `depends_on: []`,
@@ -174,15 +205,18 @@ Persist a pending entry before each create. Missing/mismatched mapped items stop
 the run. Never adopt unmapped items. A create timeout without an item ID stays
 unresolved; a fingerprint match cannot authorize adoption or a blind retry.
 
-**C2, sensitivity and assignment:** Restricted records never enter the rendered
-graph; exclude edges that reveal them. `assigned_agent` is descriptive metadata.
-Resolve previously visible records becoming restricted and hidden-parent behavior
-before renderer acceptance. Filtering future output alone leaves old content visible.
+**C2, sensitivity and assignment:** Library reads hide unauthorized restricted
+records, dependencies, and hidden-parent descendants completely. Restricted clearance
+still requires a grant. Hidden children add no count, color, or reason. Assignment
+is descriptive metadata. Future clients/exporters must remove previously visible
+content after restriction; backend filtering alone does not erase an old board card.
 
-**C3, permissions:** Reload/check `agents.yaml` on every write. Grants are scoped
-by agent ID, venture, and record type. Unknown agents are read-only. Missing or
-invalid policy denies writes. Use configured caller identity, not `assigned_agent`.
-Record tools cannot edit permissions. Do not claim data-access isolation before tested.
+**C3, permissions:** Reload/check policy and token hashes on every read/write and
+under the lock. Grants are scoped by agent ID, venture, and type. Unknown/empty
+agents, wrong/missing tokens, and invalid policy get no access. Clearance defaults
+to normal. The server proves identity using CHASSIS_AGENT_TOKEN, not assignment.
+Record tools cannot edit policy or provision credentials. These controls do not
+restrict a process with direct filesystem/Git access.
 
 **C4, neutral graph:** The planner emits renderer-neutral JSON. No Miro runtime
 types above `src/chassis/render/miro/`. A future portal consumes the same graph.
@@ -209,7 +243,9 @@ as **DELIVERED / VERIFIED / RISKS-OPEN / NEXT**.
 | Ridgeview HOA | 2 | 5 | 2 |
 | Acme D2C | 1 | 3 | 0 |
 
-One Acme task is restricted; all Ridgeview records are normal. A Ridgeview render
+The table is the complete fixture inventory. A normal viewer sees only 2 Acme
+tasks; the restricted task contributes nothing to visible totals or health.
+All Ridgeview records are normal. A Ridgeview render
 should contain one venture frame, seven cards, and two dependency connectors.
 
 | AC | Required evidence | Current status |
@@ -241,40 +277,41 @@ operations are the authorized exception needed for this proof.
 | 3 | Create/update, policy enforcement, concurrency, Git, commit-human | Complete; AC3 passed |
 | 4 | Initiative and agent templates | Complete; AC4 passed |
 | 5 | MCP tools and real stdio client integration | Complete; AC2 passed |
-| 6 | Read-only command-center portal over the library/index | Next, only after Joe's go; Joe must approve the design prototype before any portal code |
+| 6 | Read security and read-only portal backend P1–P4 | Complete; stop here. Next named step: approved frontend port P5–P8 |
 | 7 | Neutral graph layout and per-item change planner | After the portal |
 | 8 | Optional Miro export, including scratch contract/deletion probe before adapter and live proofs | Optional; existing C1–C7 still apply |
 | 9 | Chat import as its own separately scoped step | Later |
 
 The portal home must show venture health, allow venture → initiative → task
 drilldown, provide a dependency map from neutral JSON, and include an ask-anything
-bar wired to the agent. The portal and ask flow are read-only. The prototype gate
-also needs to settle the agent connection/identity and health semantics. Step 5
-adds only the approved data fields and MCP; the prototype and all portal code remain future work.
+bar with a read-only answer flow. The prototype and backend contracts are approved.
+P1–P4 supply the JSON backend; P5–P8 will port the existing prototype and add the
+stub ask flow. Model-backed ask remains gated under P9 and ships disabled.
 
-A minimal neutral nodes/edges read projection is needed during the portal step,
-before Step 7 adds layout and change planning. `graph.py` currently validates
-relationships only. Apply C2 filtering before graph emission and retain the Miro
+A minimal neutral nodes/edges read projection now exists in `read_model.py` and
+`RecordIndex.graph()`. `graph.py` validates relationships. Step 7 adds layout and
+change planning. Keep C2 filtering before graph emission and retain the Miro
 ownership/reconciliation contracts if the optional export is selected.
 
 Joe approved and Step 5 implemented `next_milestone`, `milestone_due_at`, task
 `due_at`/`blocker_reason`, and derived `last_activity_at`. Existing `status`, `owner`,
 `next_step`, `parent`, and `depends_on` support basic summaries and drilldown.
-Health rules, explanations, freshness thresholds, unknown states, and colors
-remain portal decisions. Human commits preserve `updated_at`; the derived Git
+The ADR's pure health rules are implemented with 3/7/14-day constants and an
+injected Phoenix date; hidden children are excluded. Human commits preserve `updated_at`; the derived Git
 timestamp includes them. Uncommitted edits remain readable but do not advance
-committed activity. Do not add health heuristics without resolving the prototype's semantics.
+committed activity. Preserve the approved health rules during the frontend port.
 
 Step 2 indexes authoritative working-tree Markdown, including uncommitted edits.
-`RecordIndex(root)` exposes `list_records(filters)`, `get_record(id)`, `search(query)`,
-and `rebuild()`. CLI commands are `chassis index rebuild`, `chassis list`,
+`RecordIndex(root, agent=None, token=None)` exposes `list_records(filters)`,
+`get_record(id)` / `read_record(id)`, `search(query)`, `graph()`, and `rebuild()`.
+CLI commands are `chassis index rebuild`, `chassis list`,
 `chassis get`, and `chassis search`; each accepts `--vault`. `validate [vault]`
 retains its original positional path. Reads/rebuilds never mutate source records.
 
 Filters combine exact matches on type, venture, status, parent, assigned_agent,
 sensitivity, next_milestone, milestone_due_at, due_at, blocker_reason, and
 last_activity_at. Null is supported for nullable fields. Results are ordered by
-ID and include all fields plus body/activity, including sensitivity for restricted records.
+ID and include fields plus body/activity only for authorized visible records.
 Search is a literal, Unicode-case-insensitive substring within title, next_step,
 or body; blank and unmatched searches return `[]`. See the architecture for details.
 
@@ -285,8 +322,9 @@ rebuild; schema version 3, SQLite structure, and row-content digests are checked
 Git history is consulted at index time even when source bytes and mtime are unchanged.
 `.chassis/index.sqlite` stays ignored. A lock/storage error is reported rather
 than treated as corruption. No large-vault benchmark or atomic snapshot across
-concurrent multi-file edits has been established. Restricted read results are
-intentional; renderer exclusion remains pending. Step 3 write authorization is enforced.
+concurrent multi-file edits has been established. Public validation errors are
+generic to avoid hidden filenames/bodies. Read controls are tested through CLI,
+real stdio MCP, and portal JSON; these do not provide filesystem encryption.
 
 ## Current write contract and limits
 
@@ -294,11 +332,11 @@ intentional; renderer exclusion remains pending. Step 3 write authorization is e
 `create_record(type, fields, agent)`, and `commit_human(path)`. CLI commands are
 `chassis update ID --expected-version N --changes '<JSON>'`, `chassis create TYPE
 --fields '<JSON>'`, and `chassis commit-human <path>`, each with optional `--vault`.
-CLI caller ID is `CHASSIS_AGENT_ID`; authors come from `CHASSIS_AGENT_NAME` and
-`CHASSIS_AGENT_EMAIL`. The library's explicit agent argument is trusted caller
-configuration, not `assigned_agent` metadata or an authentication service.
+CLI caller ID is `CHASSIS_AGENT_ID`, proven with `CHASSIS_AGENT_TOKEN`; authors come
+from `CHASSIS_AGENT_NAME` and `CHASSIS_AGENT_EMAIL`. Library calls need the same
+credential, including explicit agent arguments. Assignment never supplies identity.
 
-Unknown/read-only agents are denied after policy-only reads. Scoped updates check
+Unknown/nonwriting agents are denied after policy/credential reads. Scoped updates check
 current/destination grants using frontmatter before reading a record body.
 Template creates check the explicit venture/type grant before template/record I/O.
 Denied scopes never access the lock, index, or Git.
@@ -315,7 +353,8 @@ write refusals use exit 1; usage errors use 2. Success includes record plus comm
 Git failure restores the old source when safe; post-commit index failure reports
 `committed: true`, the SHA, and current version. Rebuild without blindly retrying.
 
-`commit-human` preserves manual file bytes and their version, commits as the human,
+`commit-human` requires the configured agent's token, grant, and clearance. It
+preserves manual file bytes and their version, commits as the human,
 and refreshes the index. It cannot commit policy/nonrecord paths. Reread after that
 handoff. Both agent and human paths reject `S` or any lowercase `git ls-files -v`
 tag even if the file is unchanged; uppercase `H` is normal. They share the content
@@ -333,37 +372,61 @@ present under the selected vault's `templates/` directory. See README for a full
 Agent documents live under `records/agents/`, share existing record validation,
 queries, update, and human-commit behavior, and grant nothing. To author one, a
 human must explicitly grant the existing writer `agent: write` for that venture.
-The new document ID remains read-only unless a human separately grants access
-in `agents.yaml`; assignment still requires a known policy ID. Sample policy is unchanged.
+The new document ID gets no access until a human supplies policy grants and a
+token; assignment still requires a known policy ID. The fixed template notice
+does not itself grant read permission.
 
 The lock is POSIX and was verified on Linux. Ordinary editors/external Git do not
 honor it. A hard exit after replace but before commit can leave a complete dirty
 record needing explicit recovery; a pre-replace crash can leave an unused temp.
 Do not unlink a live lock. No unrestricted concurrent manual-editing or filesystem
 isolation claim is made. Template validation checks structure and explicit markers,
-not business quality. Obsidian UI, desktop MCP-client UI, portal, and live Miro remain unverified.
+not business quality. Obsidian UI, desktop MCP-client UI, portal frontend, and live
+Miro remain unverified. The backend has actual loopback HTTP and ASGI contract checks.
 
 ## Current MCP contract
 
-`chassis-mcp --vault PATH` (or `python -m chassis.mcp_server`) uses official SDK
+Install the optional `mcp` extra first. `chassis-mcp --vault PATH` uses official SDK
 stdio. `CHASSIS_VAULT` is the fallback root; otherwise the working directory is
-used. Configure `CHASSIS_AGENT_ID`, `CHASSIS_AGENT_NAME`, and `CHASSIS_AGENT_EMAIL`
+used. Configure `CHASSIS_AGENT_ID`, `CHASSIS_AGENT_TOKEN`, and write-author name/email
 on the server. Tool schemas accept no caller identity arguments. `read_record`
 wraps the library's existing `get_record`; the tool is `update_record`, never upsert.
 
 `ToolHandlers` is independent of the MCP transport and delegates to the CLI's
-existing library methods. A future HTTP adapter must reuse it. Errors are
+existing library methods. The read-only portal calls those authorized library reads. Errors are
 structured (`conflict` with current_version, unauthorized, dirty_record,
 validation with field/reason, not_found). Git/index/internal failures remain
 distinct, and committed/unknown outcomes keep recovery metadata. Raw hook and
 exception diagnostics go only to stderr. Stdout contains protocol traffic only.
 The stable lock inode remains after clean process exit, but the kernel lock is
-released; never unlink it to clear contention. Restricted records remain readable
-under the existing library contract, so portal/renderer filtering is still required.
+released; never unlink it to clear contention. Malformed JSON returns -32700;
+requests above the configurable 1 MiB cap get a structured error. SIGTERM during
+an active transaction leaves no orphan children and releases the kernel lock.
 
 See README for a placeholder-only client configuration and the exact tool/result
 shapes. Raw JSON-RPC and official SDK subprocess clients were verified; no Claude
-Desktop UI or HTTP transport pass is claimed.
+Desktop UI or MCP HTTP transport pass is claimed.
+
+## Current portal and SecOps boundary
+
+`chassis portal [--port 8765]` defaults to loopback only. The optional `portal`
+extra contains only Starlette and uvicorn. The configured viewer defaults to
+`reviewer` via CHASSIS_PORTAL_VIEWER_AGENT and uses CHASSIS_AGENT_TOKEN. No request
+can select a more privileged viewer. All six GET routes, origin/method refusal,
+generic errors, visible counts, health tables, and leak scans pass. There is no
+frontend or ask endpoint. "Agent writes today" is omitted rather than fabricated.
+
+Read/write audit uses ignored `.chassis/audit.jsonl`; credentials use ignored
+`.chassis/agent-tokens.yaml` with hashes only. `chassis agent-token create ID` is
+local operator provisioning, prints once, and is never an MCP tool. No token is
+committed or logged. A failed read audit withholds the result; post-commit failures
+retain recovery facts. See acceptance S1–S6 and the body-free verification report.
+
+Real Andy data and agent-to-agent channels remain NO-GO pending SecOps review and
+the remaining checkpoint requirements: hosted/user authentication, disclosure and
+prompt-injection boundaries, rate limits, and filesystem/backups/retention/encryption.
+The vault, Git history, and cache remain plaintext. No new independent SecOps,
+Code Reviewer, or QE signoff is claimed by the engineering verification.
 
 Use [project instructions and the next-step prompt](docs/PROJECT_CHAT_SETUP.md).
 At each step's end, update this checkpoint, acceptance evidence, and findings with
@@ -373,28 +436,28 @@ Do not assume a prior scratch filesystem, installed app, or credential persists.
 
 ## Next chat starting prompt
 
-Use only after Joe authorizes the portal step:
+Use for the next separately authorized frontend chat:
 
 ```text
-Start the portal step with the design prototype only. Pull current main and
-read AGENTS.md, CHASSIS_PROJECT_HANDOFF.md, docs/ARCHITECTURE.md,
-evidence/acceptance.md, and FINDINGS.md. Step 5 runtime/test checkpoint is
-6ab3b14a759e1e3d5f8e9beae08bf8943b7c8d5d, with 431 tests passing from a clean
-checkout and real stdio AC2 evidence. Preserve every later documentation commit.
+Start the frontend port, P5–P8 from docs/PORTAL-ADR.md, using the approved
+portal-prototype v2 index.html and tokens.json. Pull current private main and read
+AGENTS.md, CHASSIS_PROJECT_HANDOFF.md, docs/ARCHITECTURE.md, evidence/acceptance.md,
+FINDINGS.md, docs/PORTAL-ADR.md, and evidence/SECOPS-CHECKPOINT-1.md. Step 6 runtime/tests are at
+7d152c51e8e123c860067e08e94e24c6bba5347f, with 576 all-extras tests passing from a
+clean locked checkout; preserve every later documentation/evidence commit.
 
-Use only fictional records and local execution. The portal is read-only, reuses
-the existing library/index and a minimal renderer-neutral read projection, and
-must respect C1-C7. Show venture health, venture-to-initiative-to-task drilldown,
-a dependency map, and an ask-anything bar with a read-only agent flow.
+Keep fictional data and local execution only. Use the approved prototype files;
+if they are not present, obtain them before porting. Do not invent a replacement
+design. The backend is complete and read-only. Every library read requires a
+token, grant, and clearance. Restricted records the viewer cannot read are hidden
+completely, including counts, edges, search, and health; do not restore placeholders.
 
-The approved milestone/date/blocker fields and derived last_activity_at exist.
-Settle health rules, explanations, unknown states, freshness, hidden-record
-handling, and the ask flow's connection/identity in the prototype. Do not treat
-status alone as health. Apply C2 before any rendered graph or portal exposure.
-
-Present a concrete design prototype for Joe's review. No portal implementation
-code before Joe approves that prototype. Do not begin layout/change planning,
-optional Miro export, chat import, agent spawning, real-data work, or deployment.
-Update the handoff and report DELIVERED / VERIFIED (table) / RISKS-OPEN / NEXT,
-then stop at the prototype approval gate.
+Port P5 shell/theme/API/router/overview, P6 drilldowns/hover cards, P7 the neutral
+graph map, and P8 the deterministic stub ask flow. Escape all record content to
+prevent XSS. Design empty, loading, and error states. Add Playwright tests against
+the approved prototype and live backend. Preserve the ADR API and health rules.
+No model-backed ask, layout/change planner, Miro work, chat import, agent spawning,
+real data, or deployment. Keep tests green, commit/push each increment, update the
+handoff/evidence/findings, report DELIVERED / VERIFIED (table) / RISKS-OPEN / NEXT,
+and stop when P5–P8 are done.
 ```
