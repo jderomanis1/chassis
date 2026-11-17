@@ -22,9 +22,16 @@ IMMUTABLE = {"id", "version", "updated_at"}
 
 
 class RecordStore:
-    def __init__(self, root: Path, token=None):
+    def __init__(self, root: Path, token=None, *, identity=None, normal_only=False):
         self.root = Path(root).resolve()
         self.token = token
+        self.identity, self.normal_only = identity, normal_only
+
+    def _authorize_update(self, agent):
+        policy = authorize_writer(self.root, agent, self.token)
+        if self.normal_only and policy.agents[agent].clearance != "normal":
+            raise AuthorizationError("Write not permitted")
+        return policy
 
     def _find_path(self, identifier: str) -> Path:
         paths = []
@@ -83,7 +90,7 @@ class RecordStore:
     @audited("update_record")
     def update_record(self, identifier: str, changes: Mapping, expected_version: int,
                       agent: str) -> dict:
-        policy = authorize_writer(self.root, agent, self.token)
+        policy = self._authorize_update(agent)
         if not isinstance(changes, Mapping):
             raise WriteError("changes must be an object")
         changes = dict(changes)
@@ -97,9 +104,9 @@ class RecordStore:
             raise WriteError("body must be a string")
         # Authorize both scopes from frontmatter before reading any record body.
         self._check_scopes(identifier, changes, policy, agent)
-        identity = Identity.from_env("AGENT")
+        identity = self.identity or Identity.from_env("AGENT")
         with vault_lock(self.root):
-            policy = authorize_writer(self.root, agent, self.token)
+            policy = self._authorize_update(agent)
             self._check_scopes(identifier, changes, policy, agent)
             current, original = self._read_current(identifier)
             path = current.path
