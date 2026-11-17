@@ -14,11 +14,23 @@ def restricted_terms(root):
     return [item.record.id, item.record.title, item.record.owner, item.body]
 
 
+def leak_patterns(terms):
+    expanded = list(terms)
+    for line in terms[-1].splitlines():
+        line = line.strip()
+        if line and not line.startswith(("#", ">", "Parent:")):
+            fragment = " ".join(line.split()[:8])
+            if len(fragment) >= 20:
+                expanded.append(fragment)
+                break
+    return list(dict.fromkeys(value for term in expanded for value in
+                             (term, json.dumps(term, ensure_ascii=False)[1:-1])))
+
+
 def assert_no_leaks(outputs, terms):
     text = "\n".join(outputs)
-    for term in terms:
-        assert term not in text
-        assert json.dumps(term, ensure_ascii=False)[1:-1] not in text
+    for pattern in leak_patterns(terms):
+        assert pattern not in text
 
 
 def test_all_cli_record_outputs_hide_restricted_values_and_counts(git_repo):
