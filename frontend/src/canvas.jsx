@@ -26,7 +26,7 @@ function bind(node, actions) {
     onClear: () => actions.current.onClear() } };
 }
 
-function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onClear, onHide }) {
+function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onClear, onHide, fitSignal }) {
   const flow = useReactFlow();
   const actions = useRef({});
   actions.current = { onOpen, onEdit, onHover, onClear, onHide, writes };
@@ -55,6 +55,11 @@ function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onC
     });
     return () => { cancel = true; };
   }, [measured, nodes.length, flow, model.nodes, layout.positions, layout.viewport]);
+  useEffect(() => {
+    if (!fitSignal) return;
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    flow.fitView({ duration: reduce ? 0 : 350, padding: 0.18, maxZoom: 0.9 });
+  }, [fitSignal, flow]);
   function publish(nextNodes, viewport) {
     if (!nextNodes.length) return;
     onLayout(nextNodes.map(node => ({ id: node.id, position: node.position })), roundViewport(viewport || flow.getViewport()));

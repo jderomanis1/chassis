@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api } from './api.js';
 import { Canvas } from './canvas.jsx';
+import { CommandBar } from './command-bar.jsx';
+import { applyCommandView } from './commands.js';
 import { HoverCard } from './nodes.jsx';
 import { Editor } from './editor.jsx';
 import { editChanges, overviewNodes, presentGraph, priorValues, readVenture, ventureModel } from './records.js';
@@ -24,6 +26,7 @@ function App() {
   const [editor, setEditor] = useState(null), [fieldMessage, setFieldMessage] = useState('');
   const [notice, setNotice] = useState(''), [undo, setUndo] = useState([]), [pending, setPending] = useState(null);
   const [query, setQuery] = useState(''), [hits, setHits] = useState([]), [hover, setHover] = useState(null);
+  const [commandOpen, setCommandOpen] = useState(false), [viewMode, setViewMode] = useState('show-all'), [fitSignal, setFitSignal] = useState(0);
   const ticket = useRef(0), layoutRef = useRef(null), timer = useRef(0);
   const writes = Boolean(data?.session.writes_enabled);
 
@@ -70,8 +73,12 @@ function App() {
   }, [data]);
   useEffect(() => {
     function onKey(event) {
-      if (event.key === 'Escape') { if (editor) setEditor(null); else if (readVenture(location.hash)) location.hash = '#/'; }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !editor && writes) { event.preventDefault(); undoLast(); }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); setCommandOpen(true); return; }
+      if (event.key === 'Escape') {
+        if (commandOpen) { setCommandOpen(false); return; }
+        if (editor) setEditor(null); else if (readVenture(location.hash)) location.hash = '#/';
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !editor && !commandOpen && writes) { event.preventDefault(); undoLast(); }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -156,8 +163,15 @@ function App() {
   const hiddenHere = (source?.nodes || []).filter(node => hiddenIds.includes(node.id));
   const model = useMemo(() => {
     if (!source) return null;
-    return { ...source, ...presentGraph(source.nodes, source.edges, hiddenIds) };
-  }, [source, hiddenIds]);
+    const visible = presentGraph(source.nodes, source.edges, hiddenIds);
+    return { ...source, ...visible, ...applyCommandView(visible.nodes, visible.edges, viewMode) };
+  }, [source, hiddenIds, viewMode]);
+  function runIntent(intent) {
+    if (intent.command === 'fit') setFitSignal(value => value + 1);
+    if (intent.command === 'back') location.hash = '#/';
+    if (intent.command === 'zoom') location.hash = `#/v/${intent.id}`;
+    if (intent.command === 'show-all' || intent.command === 'only-blocked' || intent.command === 'only-active') setViewMode(intent.command);
+  }
   function showHidden() {
     const back = new Set(hiddenHere.map(node => node.id));
     persistLayout({ ...(layoutRef.current || {}), hidden: (layoutRef.current?.hidden || []).filter(id => !back.has(id)) });
@@ -185,8 +199,9 @@ function App() {
       {error ? <section className="panel empty" role="alert"><h2>Could not load canvas</h2><p>{error}</p><button className="btn" onClick={load}>Try again</button></section>
         : !data || (ventureId && !model) ? <section className="panel empty" role="status">Loading your canvas…</section>
         : !data.snapshot.ventures.length ? <section className="panel empty"><h2>No ventures yet</h2><p>Your visible ventures will appear here.</p></section>
-        : <Canvas model={model} layout={data.layout} writes={writes} onLayout={onLayout} onOpen={id => { location.hash = `#/v/${id}`; }} onEdit={openEdit} onHover={setHover} onClear={() => setHover(null)} onHide={hideCard} />}
+        : <Canvas model={model} layout={data.layout} writes={writes} fitSignal={fitSignal} onLayout={onLayout} onOpen={id => { location.hash = `#/v/${id}`; }} onEdit={openEdit} onHover={setHover} onClear={() => setHover(null)} onHide={hideCard} />}
     </main>
-    {editor ? <Editor record={editor} message={fieldMessage} onClose={() => setEditor(null)} onSave={save} /> : null}</>;
+    {editor ? <Editor record={editor} message={fieldMessage} onClose={() => setEditor(null)} onSave={save} /> : null}
+    <CommandBar open={commandOpen} ventures={data?.snapshot?.ventures || []} onClose={() => setCommandOpen(false)} onRun={runIntent} /></>;
 }
 createRoot(document.getElementById('root')).render(<App/>);
