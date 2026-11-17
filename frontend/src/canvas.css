@@ -1,0 +1,11 @@
+html,body,#root{height:100%;min-width:360px}
+body{overflow:hidden}
+header.top{height:74px;padding:14px 32px}
+.brand-mark{font-size:36px;line-height:1;color:var(--cyan);margin-right:4px}
+main#canvas{max-width:none;padding:26px 32px 20px;height:calc(100vh - 74px);display:flex;flex-direction:column}
+.intro{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.intro .mono{margin:0 0 8px}.intro h1{font-size:30px}.intro .lede{margin-bottom:22px}
+.mode{padding:9px 14px;border:1px solid var(--line-strong);border-radius:var(--r-pill);white-space:nowrap}
+button{font:inherit}button:disabled{opacity:.6;cursor:not-allowed}
+.empty p{color:var(--text-2)}
+@media(max-width:700px){header.top{padding:12px 18px}.live{display:none}main#canvas{padding:18px}.intro{align-items:start}.intro h1{font-size:23px}.mode{font-size:9px;white-space:normal}}
