@@ -51,6 +51,7 @@ def test_demo_cli_creates_valid_fictional_vault_and_preserves_existing_fixtures(
     assert git(root, "rev-list", "--count", "HEAD") == "1"
     assert git(root, "status", "--porcelain") == ""
     assert git(root, "log", "-1", "--format=%an <%ae>") == "Chassis Demo <demo@chassis.local>"
+    assert git(root, "config", "--local", "--get", "commit.gpgsign") == "false"
     assert all(p.read_bytes() == content for p, content in originals.items())
     tracked = git(root, "ls-files").splitlines()
     history = git(root, "log", "--all", "-p", "--format=fuller")
@@ -64,6 +65,10 @@ def test_demo_cli_creates_valid_fictional_vault_and_preserves_existing_fixtures(
         assert token not in history and token not in result.stderr
         assert result.stdout.count(token) == 1
         assert all(token.encode() not in p.read_bytes() for p in (root / ".chassis").rglob("*") if p.is_file())
+
+
+def test_fixture_repository_does_not_sign_commits(git_repo):
+    assert git(git_repo, "config", "--local", "--get", "commit.gpgsign") == "false"
 
 
 def test_demo_agents_are_separate_normal_viewer_editor_and_privileged_chief(tmp_path, monkeypatch):
