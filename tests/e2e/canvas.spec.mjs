@@ -108,6 +108,32 @@ function edit(vault, token, id, version, changes) {
   if (result.status !== 0) throw new Error(result.stderr || result.stdout);
 }
 
+test('two undos of one card stay in version order', async ({ page, demo }) => {
+  await page.goto(`${demo.origin}/#/v/venture-ridgeview`);
+  const card = page.getByRole('button', { name: 'Ridgeview HOA: launch review 3', exact: true });
+  await expect(card).toBeVisible();
+  const start = Number(git(demo.vault, 'rev-list', '--count', 'HEAD'));
+  for (const step of ['First fictional step.', 'Second fictional step.']) {
+    await card.dblclick();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await page.getByLabel('Next step').fill(step);
+    const saved = page.waitForResponse(response => response.url().includes('/api/records/') && response.request().method() === 'PATCH');
+    await page.getByRole('button', { name: 'Save' }).click();
+    expect((await saved).status()).toBe(200);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await page.waitForTimeout(400);
+  }
+  for (let time = 0; time < 2; time += 1) {
+    const saved = page.waitForResponse(response => response.url().includes('/api/records/') && response.request().method() === 'PATCH');
+    await page.getByRole('button', { name: 'Undo', exact: true }).click();
+    expect((await saved).status()).toBe(200);
+  }
+  await expect.poll(() => Number(git(demo.vault, 'rev-list', '--count', 'HEAD'))).toBe(start + 4);
+  await expect(page.getByText('nothing to undo')).toHaveCount(0);
+  await expect(page.getByText('Changed elsewhere. Reloaded the latest.')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled();
+});
+
 test('gated edit, undo, conflict, and hidden controls', async ({ page, demo }) => {
   await page.goto(`${demo.origin}/#/v/venture-ridgeview`);
   const blocked = page.getByRole('button', { name: 'Ridgeview HOA: launch review 2', exact: true });

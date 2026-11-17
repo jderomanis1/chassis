@@ -6,7 +6,7 @@ import { CommandBar } from './command-bar.jsx';
 import { applyCommandView } from './commands.js';
 import { HoverCard } from './nodes.jsx';
 import { Editor } from './editor.jsx';
-import { editChanges, linkChange, overviewNodes, presentGraph, priorValues, readVenture, ventureModel } from './records.js';
+import { editChanges, linkChange, nextUndoStack, overviewNodes, presentGraph, priorValues, readVenture, ventureModel } from './records.js';
 import { roundPoint } from './place.js';
 import './prototype.css';
 import './tokens.css';
@@ -138,11 +138,12 @@ function App() {
     const entry = undo.at(-1);
     if (!entry || !writes) return;
     try {
-      await api(`/api/records/${encodeURIComponent(entry.id)}`, { method: 'PATCH', csrf: data.session.csrf,
+      const result = await api(`/api/records/${encodeURIComponent(entry.id)}`, { method: 'PATCH', csrf: data.session.csrf,
         data: { changes: entry.changes, expected_version: entry.version } });
-      setUndo(stack => stack.slice(0, -1)); setNotice(''); await load();
+      setUndo(stack => nextUndoStack(stack, entry.id, result.record.version));
+      setNotice(''); await load();
     } catch (failure) {
-      if (failure.code === 'conflict') setNotice('Changed elsewhere. Reloaded the latest.');
+      if (failure.code === 'conflict') { setUndo(stack => stack.slice(0, -1)); setNotice('nothing to undo'); }
       else setNotice(failure.message);
       await load();
     }

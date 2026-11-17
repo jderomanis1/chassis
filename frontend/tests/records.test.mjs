@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { editChanges, flickedOff, linkChange, overviewNodes, presentGraph, priorValues, readVenture, ventureModel } from '../src/records.js';
+import { editChanges, flickedOff, linkChange, nextUndoStack, overviewNodes, presentGraph, priorValues, readVenture, ventureModel } from '../src/records.js';
 import { place } from '../src/place.js';
 
 test('new cards receive distinct positions and saved positions win', () => {
@@ -51,6 +51,22 @@ test('links are task to task and keep the earlier dependency list', () => {
   assert.equal(linkChange(source, { ...target, depends_on: ['task-launch-budget'] }, ['task-a', 'task-b']).changes.depends_on.join(','), 'task-a');
   assert.equal(linkChange({ ...source, id: 'task-launch-budget' }, target, ['task-a', 'task-b']).message, 'invalid dependency');
   assert.equal(linkChange(source, { ...target, depends_on: ['task-a'] }).message, 'Those tasks are already linked.');
+});
+
+test('a second undo of the same record uses the version from the first undo', () => {
+  const stack = [
+    { id: 'task-a', version: 2, changes: { title: 'First' } },
+    { id: 'task-b', version: 4, changes: { title: 'Other' } },
+    { id: 'task-a', version: 3, changes: { title: 'Second' } },
+  ];
+  const next = nextUndoStack(stack, 'task-a', 5);
+  assert.deepEqual(next, [
+    { id: 'task-a', version: 5, changes: { title: 'First' } },
+    { id: 'task-b', version: 4, changes: { title: 'Other' } },
+  ]);
+  assert.deepEqual(nextUndoStack(next, 'task-b', 6), [
+    { id: 'task-a', version: 5, changes: { title: 'First' } },
+  ]);
 });
 
 test('deep links accept only record ids', () => {

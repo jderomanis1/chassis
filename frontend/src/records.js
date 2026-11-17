@@ -103,6 +103,16 @@ export function flickedOff(point, pane, margin = 2) {
     || point.x >= pane.x + pane.width - margin || point.y >= pane.y + pane.height - margin;
 }
 
+export function nextUndoStack(stack, undoneId, version) {
+  const next = stack.slice(0, -1);
+  for (let index = next.length - 1; index >= 0; index -= 1) {
+    if (next[index].id === undoneId) {
+      return next.map((item, itemIndex) => itemIndex === index ? { ...item, version } : item);
+    }
+  }
+  return next;
+}
+
 export function readVenture(hash = '') {
   const match = /^#\/v\/([a-z][a-z0-9]*(?:-[a-z0-9]+)*)$/.exec(hash);
   return match ? match[1] : null;
