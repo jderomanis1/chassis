@@ -1,8 +1,7 @@
 """Portal configuration, clock, bind guard, and source revision fingerprint."""
 import hashlib
-import ipaddress
+import json
 import os
-import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -20,12 +19,8 @@ def today():
 
 def validate_bind(host):
     host = "127.0.0.1" if host == "localhost" else host
-    try:
-        loopback = ipaddress.ip_address(host).is_loopback
-    except ValueError:
-        loopback = False
-    if not loopback and os.environ.get("CHASSIS_PORTAL_ALLOW_REMOTE") != "1":
-        raise ValueError("Portal requires a loopback host; remote binding requires CHASSIS_PORTAL_ALLOW_REMOTE=1")
+    if host != "127.0.0.1":
+        raise ValueError("Portal requires a loopback host: 127.0.0.1 only")
     return host
 
 
@@ -46,16 +41,8 @@ class PortalConfig:
                    os.environ.get("CHASSIS_AGENT_TOKEN", ""))
 
 
-def version_etag(root):
-    def git(*args):
-        return subprocess.check_output(["git", "-C", str(root), *args], stderr=subprocess.DEVNULL)
-
-    head = git("rev-parse", "HEAD").decode().strip()
-    paths = sorted(set(git("ls-files", "-z", "--cached", "--others", "--exclude-standard").split(b"\0")) - {b""})
-    digest = hashlib.sha256()
-    for name in paths:
-        path = root / os.fsdecode(name)
-        data = os.fsencode(os.readlink(path)) if path.is_symlink() else (
-            path.read_bytes() if path.is_file() else b"<deleted>")
-        digest.update(name + b"\0" + len(data).to_bytes(8, "big") + data)
-    return f"{head}:{digest.hexdigest()}"
+def version_etag(index):
+    """Fingerprint only the caller's authorized view, including visible activity."""
+    records = index.list_records()
+    payload = json.dumps(records, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(payload.encode()).hexdigest()

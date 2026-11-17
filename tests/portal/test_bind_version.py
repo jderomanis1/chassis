@@ -8,17 +8,18 @@ import time
 import urllib.request
 
 import pytest
-from conftest import git
+from .helpers import git
 from chassis.portal.config import PortalConfig, validate_bind
 
 
-@pytest.mark.parametrize("host", ["0.0.0.0", "192.168.1.2", "::", "example.invalid"])
-def test_remote_bind_is_refused_unless_explicit_override(monkeypatch, git_repo, host):
+@pytest.mark.parametrize("host", ["0.0.0.0", "192.168.1.2", "::", "::1", "127.0.0.2", "example.invalid"])
+def test_non_ipv4_loopback_bind_is_refused_even_with_legacy_override(monkeypatch, git_repo, host):
     monkeypatch.delenv("CHASSIS_PORTAL_ALLOW_REMOTE", raising=False)
     with pytest.raises(ValueError, match="loopback"):
         validate_bind(host)
     monkeypatch.setenv("CHASSIS_PORTAL_ALLOW_REMOTE", "1")
-    assert validate_bind(host) == host
+    with pytest.raises(ValueError, match="loopback"):
+        validate_bind(host)
 
 
 def test_config_defaults_to_loopback_and_normal_viewer(git_repo):
@@ -34,21 +35,24 @@ def test_cli_refuses_remote_bind_before_server_start(git_repo, monkeypatch):
     assert "Portal requires a loopback host" in result.stderr
 
 
-def test_version_etag_tracks_commit_and_uncommitted_bytes(client, git_repo):
+def test_version_etag_tracks_visible_commit_and_uncommitted_bytes(client, git_repo, monkeypatch):
     first = client.get("/api/version")
     assert first.status_code == 200
     assert set(first.json()) == {"etag"}
-    assert first.json()["etag"].startswith(git(git_repo, "rev-parse", "HEAD") + ":")
+    assert len(first.json()["etag"]) == 64
+    assert git(git_repo, "rev-parse", "HEAD") not in first.json()["etag"]
     assert first.headers["cache-control"] == "private, no-store"
     path = git_repo / "records/tasks/task-launch-offer.md"
     path.write_text(path.read_text() + "\nFictional activity.\n")
     second = client.get("/api/version").json()["etag"]
     assert second != first.json()["etag"]
     git(git_repo, "add", str(path))
-    git(git_repo, "commit", "-qm", "Fictional version proof")
+    with monkeypatch.context() as clock:
+        clock.setenv("GIT_COMMITTER_DATE", "2031-01-01T12:00:00Z")
+        git(git_repo, "commit", "-qm", "Fictional version proof")
     third = client.get("/api/version").json()["etag"]
     assert third != second
-    assert third.startswith(git(git_repo, "rev-parse", "HEAD") + ":")
+    assert len(third) == 64
     assert client.get("/api/version").json()["etag"] == third
 
 

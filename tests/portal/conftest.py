@@ -4,7 +4,7 @@ pytest.importorskip("starlette", reason="Install the portal extra for HTTP tests
 pytest.importorskip("uvicorn", reason="Install the portal extra for HTTP tests")
 
 from starlette.testclient import TestClient
-from conftest import issue
+from .helpers import issue
 from chassis.portal.app import create_app
 from chassis.portal.config import PortalConfig
 

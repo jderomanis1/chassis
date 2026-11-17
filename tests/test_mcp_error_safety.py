@@ -6,6 +6,7 @@ from test_mcp_session import snapshot
 from chassis.errors import CommittedIndexError, WriteError
 from chassis.store import RecordStore
 from chassis.tool_handlers import ToolHandlers
+from test_index_error_safety import INTERNAL
 
 
 def test_git_hook_diagnostics_do_not_leak_stack_traces_over_mcp(git_repo):
@@ -35,3 +36,15 @@ def test_failure_mapping_preserves_commit_outcome_without_raw_diagnostics(git_re
     if result["committed"] is True:
         assert result["commit"] == "a" * 40 and result["current_version"] == 2
         assert "private cache diagnostic" not in str(result)
+
+
+def test_real_stdio_index_symlink_errors_never_reveal_absolute_path(git_repo, tmp_path):
+    path = git_repo / ".chassis/index.sqlite"
+    path.symlink_to(tmp_path / "private-index-target")
+    with StdioClient(git_repo) as client:
+        client.initialize()
+        results = [client.call(name, args) for name, args in [
+            ("list_records", {}), ("read_record", {"id": "venture-acme"}),
+            ("search", {"query": "fictional"})]]
+    assert results == [INTERNAL] * 3
+    assert str(git_repo) not in "".join(client.stdout_lines + client.stderr_lines)

@@ -29,7 +29,7 @@ def create_app(config, *, clock=None):
     index = RecordIndex(config.root, agent=config.viewer_agent, token=config.viewer_token)
 
     def version(request):
-        etag = version_etag(config.root)
+        etag = version_etag(index)
         record_event(config.root, config.viewer_agent, "version", "ok")
         return JSONResponse({"etag": etag})
 

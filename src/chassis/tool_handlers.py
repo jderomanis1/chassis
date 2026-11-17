@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from chassis.errors import NotFoundError, WriteError
 from chassis.audit import record_event
-from chassis.index import RecordIndex
+from chassis.index import IndexFileError, RecordIndex
 from chassis.models import RecordId, RecordType
 from chassis.store import RecordStore
 
@@ -97,6 +97,9 @@ class ToolHandlers:
             if exc.code != "write_refused":
                 return exc.as_dict()
             return validation_error(exc, "record")
+        except IndexFileError:
+            logger.error("Index operation failed")
+            return {"error": "internal_error", "reason": "Operation failed; inspect server stderr before retrying."}
         except ValueError as exc:
             return validation_error(exc, "filters" if name == "list_records" else "record")
         except Exception:

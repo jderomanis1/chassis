@@ -20,11 +20,11 @@ CARD_FIELDS = ("id", "title", "health", "next_milestone", "milestone_due_at",
 
 def read_state(request):
     """Retry a concurrent commit instead of labeling old data with a new etag."""
-    root = request.app.state.config.root
+    index = request.app.state.index
     for _ in range(3):
-        etag = version_etag(root)
-        records = request.app.state.index.list_records()
-        if etag == version_etag(root):
+        etag = version_etag(index)
+        records = index.list_records()
+        if etag == version_etag(index):
             return etag, records
     raise RuntimeError("Source changed repeatedly during the read")
 

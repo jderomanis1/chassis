@@ -4,7 +4,7 @@ import secrets
 import pytest
 import yaml
 
-from conftest import EphemeralToken, issue
+from .helpers import EphemeralToken, issue
 from chassis.errors import AuthorizationError
 from chassis.portal.app import create_app
 from chassis.portal.config import PortalConfig

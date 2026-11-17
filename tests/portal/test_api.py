@@ -1,7 +1,7 @@
 import json
 from datetime import datetime
 
-from conftest import git
+from .helpers import git
 from test_security_cli import assert_no_leaks, restricted_terms
 
 VENTURE_KEYS = {"id", "title", "health", "next_milestone", "milestone_due_at", "counts", "last_activity_at"}
@@ -75,14 +75,14 @@ def test_snapshot_retries_when_commit_changes_during_read(client, git_repo, monk
     from chassis.store import RecordStore
     original, calls = api.version_etag, []
 
-    def change(root):
+    def change(index):
         calls.append(1)
         if len(calls) == 2:
-            RecordStore(root).update_record("venture-acme", {"title": "Fictional updated Acme"}, 1, "chief-of-staff")
-        return original(root)
+            RecordStore(index.root).update_record("venture-acme", {"title": "Fictional updated Acme"}, 1, "chief-of-staff")
+        return original(index)
 
     monkeypatch.setattr(api, "version_etag", change)
     data = client.get("/api/snapshot").json()
     assert data["ventures"][0]["title"] == "Fictional updated Acme"
-    assert data["etag"].startswith(git(git_repo, "rev-parse", "HEAD") + ":")
+    assert data["etag"] == client.get("/api/version").json()["etag"]
     assert len(calls) == 4

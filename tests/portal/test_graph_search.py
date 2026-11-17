@@ -1,6 +1,6 @@
 from starlette.testclient import TestClient
 
-from conftest import issue
+from .helpers import issue
 from chassis.portal.app import create_app
 from chassis.portal.config import PortalConfig
 from test_security_cli import assert_no_leaks, restricted_terms
