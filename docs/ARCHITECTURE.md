@@ -69,7 +69,11 @@ Miro-specific runtime code lives only below `src/chassis/render/miro/`.
 `RecordIndex.graph()` and `read_model.neutral_graph()` supply the current neutral
 nodes/edges projection without layout. Library filtering removes unauthorized
 restricted records, their edges, hidden-parent descendants, and hidden dependency
-IDs from visible records. A restricted-clearance agent still needs an exact grant.
+IDs from visible records. An update that omits `depends_on` leaves stored
+dependency ids unchanged. An update that sends `depends_on` keeps ids the caller
+cannot see and checks only ids that are not already stored. A new missing id and
+a new hidden id share one `invalid dependency` error and do not write.
+A restricted-clearance agent still needs an exact grant.
 Counts and health use only that filtered view. Joe's Step 6 decision supersedes
 the masked-placeholder design in the supplied ADR and checkpoint.
 Previously rendered content becoming restricted still needs explicit removal in

@@ -1,6 +1,6 @@
 # Chassis project handoff
 
-**Checkpoint date: 2026-11-17. Step 7 F1-F6 and X1-X3 are on `cursor/step7-canvas-d0a6` (base `step7-c1-write` at `b54944d`). Main is still `42f0fa0`. C1/C2 are not merged and have no independent SecOps review.**
+**Checkpoint date: 2026-11-17. R1 hidden-dependency preservation and CI are on `cursor/r1-hidden-deps-ci-1dd7`, branched from `step7-c1-write` at `f2bc7d9` (PR #1 is in that history). Open one pull request back into `step7-c1-write`. Do not merge. Main is still `42f0fa0`. C1/C2 stay off main until independent SecOps review.**
 This file preserves the approved build decisions and evidence so each step can
 continue in a separate chat. Read current repository HEAD before making changes.
 
@@ -159,6 +159,21 @@ tokenized invitation/tracking links are not copied into the repository.
   restricted-clearance viewers with grants see 13 records and Acme task total 3.
   The restricted fixture's owner is now a unique fictional name for an unambiguous
   leak scan. No real data, frontend, ask endpoint, Miro call, or deployment was used.
+
+## R1 and CI checkpoint: current
+
+- Branch `cursor/r1-hidden-deps-ci-1dd7` starts at `step7-c1-write` `f2bc7d9`.
+  Do not touch main. Do not merge this pull request from the build chat.
+- A stored dependency the caller cannot see is no longer rechecked when
+  `depends_on` is absent, and it is kept when the caller sends a visible list.
+  Newly added missing and hidden ids still share one `invalid dependency`
+  refusal, with no id echoed and no commit. Reads still omit hidden ids.
+- `.github/workflows/ci.yml` runs on pull requests into `step7-c1-write` and
+  `main`, and on pushes to those branches. It uses the committed
+  `frontend/src/prototype.css` and `src/chassis/portal/static` build. It does
+  not rebuild the canvas before Playwright.
+- Counts from this working tree are in `evidence/acceptance.md`. They are not
+  an independent review.
 
 ## Step 7 canvas checkpoint: current
 
@@ -545,24 +560,30 @@ Do not assume a prior scratch filesystem, installed app, or credential persists.
 ## Next chat starting prompt
 
 ```text
-Continue the authorized Step 7 command canvas from cursor/step7-canvas-d0a6.
-Do not touch main. Main is 42f0fa0. The PR base is step7-c1-write. C1/C2 and the
-canvas stay off main until independent SecOps review. Read AGENTS.md,
+Continue from cursor/r1-hidden-deps-ci-1dd7. Open or update the one pull request
+into step7-c1-write. Do not touch main. Main is 42f0fa0. Do not merge. C1/C2 and
+the canvas stay off main until independent SecOps review. Read AGENTS.md,
 CHASSIS_PROJECT_HANDOFF.md, docs/ARCHITECTURE.md, docs/PORTAL-ADR.md,
 docs/STEP7-CANVAS-SCOPE.md, evidence/acceptance.md, and FINDINGS.md.
 
-F1-F6, X1-X3, and the review fixes are on cursor/step7-canvas-d0a6 at a5cd405.
-Hidden and missing dependencies share the invalid dependency error. A second
-undo uses the version from the first. GET /api/layout does not rewrite the file.
-::1 is loopback. Library bodies are capped at 64 KiB. A failed post-commit audit
-is not rolled back. Do not claim SecOps, QE, or Code Reviewer approval. Do not
-merge to main.
+R1 is in RecordStore.update_record. A PATCH that omits depends_on leaves a
+stored hidden dependency in place and does not validate it. A PATCH that sends
+depends_on checks only newly added ids. New missing and new hidden ids still
+share the byte-identical 400 invalid dependency error, with no id echoed and no
+commit. The stored list is the caller's visible ids plus hidden ids already
+stored. Responses and reads still strip hidden ids. The same rule covers REST
+PATCH, MCP update_record, create_from_template for new ids, the canvas link
+gesture, and undo.
 
-A fresh locked checkout of a5cd405 passed: all-extras 701, core 515 passed and
-8 skipped, portal 666 passed, 7 skipped, and 1 warning. npm test was 15 passed.
-Contrast and the production audit were clean. Two builds matched the committed
-21 files. Playwright alone passed 14 tests. The venture graph is dagre, not the
-prototype lanes.
+CI is .github/workflows/ci.yml on pull_request and push to step7-c1-write and
+main: uv sync --locked --all-extras, pytest -q, npm ci, npm test, npm audit
+--omit=dev, and Playwright with browsers installed. The report uploads on
+failure. Playwright uses the committed prototype.css and static build.
+
+Working-tree counts: all-extras 709 passed. Core 519 passed and 9 skipped.
+Portal 673 passed, 8 skipped, and 1 warning. npm test 16 passed. Production
+audit 0. Playwright 14 passed. Do not claim SecOps, QE, or Code Reviewer
+approval.
 No real data, ask/model, Miro, gateway, hosting, deployment, or secrets in code.
 Demo target remains Monday, November 23, 2026, morning, America/Phoenix.
 ```

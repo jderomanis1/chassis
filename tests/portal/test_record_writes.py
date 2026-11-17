@@ -5,6 +5,7 @@ import pytest
 import yaml
 
 from chassis.errors import AuditError, CommittedIndexError
+from chassis.markdown import read_record
 from chassis.store import RecordStore
 from test_security_cli import assert_no_leaks, restricted_terms
 from .helpers import git
@@ -132,6 +133,76 @@ def test_middleware_audit_failure_after_commit_keeps_recovery(writer, editor_con
         "code": "audit_error", "message": "Audit unavailable", "committed": True,
         "commit": commit, "current_version": 2}
     assert "Committed before the audit append failed" in (root / "records/tasks/task-launch-offer.md").read_text()
+
+
+def plant_hidden(root, dependencies):
+    path = root / "records/tasks/task-launch-offer.md"
+    text = path.read_text().replace("depends_on: []", "depends_on: [" + ", ".join(dependencies) + "]")
+    path.write_text(text)
+    git(root, "add", "records/tasks/task-launch-offer.md")
+    git(root, "commit", "-qm", "Plant fictional dependency")
+    return path
+
+
+def offer_dependencies(writer):
+    tasks = writer.get("/api/initiatives/initiative-d2c-launch").json()["tasks"]
+    return next(task for task in tasks if task["id"] == "task-launch-offer")["depends_on"]
+
+
+def test_title_patch_leaves_a_stored_hidden_dependency(writer, editor_config):
+    root = editor_config.root
+    path = plant_hidden(root, ["task-launch-budget"])
+    response = patch(writer, {"title": "Fictional title only"})
+    assert response.status_code == 200
+    assert "task-launch-budget" not in response.text
+    assert read_depends(path) == ["task-launch-budget"]
+    assert offer_dependencies(writer) == []
+    assert "task-launch-budget" not in writer.get("/api/initiatives/initiative-d2c-launch").text
+    assert "task-launch-budget" not in writer.get("/api/graph?venture=venture-acme").text
+    undo = patch(writer, {"title": "Draft the starter-kit offer"}, 2)
+    assert undo.status_code == 200
+    assert read_depends(path) == ["task-launch-budget"]
+
+
+def test_link_gesture_and_undo_keep_hidden_dependencies(writer, editor_config):
+    root = editor_config.root
+    path = plant_hidden(root, ["task-audience-interviews", "task-launch-budget"])
+    linked = patch(writer, {"depends_on": ["task-audience-interviews", "task-resident-faq"]})
+    assert linked.status_code == 200
+    assert "task-launch-budget" not in linked.text
+    assert read_depends(path) == ["task-audience-interviews", "task-resident-faq", "task-launch-budget"]
+    assert offer_dependencies(writer) == ["task-audience-interviews", "task-resident-faq"]
+    undone = patch(writer, {"depends_on": ["task-audience-interviews"]}, 2)
+    assert undone.status_code == 200
+    assert read_depends(path) == ["task-audience-interviews", "task-launch-budget"]
+    assert offer_dependencies(writer) == ["task-audience-interviews"]
+    cleared = patch(writer, {"depends_on": []}, 3)
+    assert cleared.status_code == 200
+    assert read_depends(path) == ["task-launch-budget"]
+    assert offer_dependencies(writer) == []
+    assert "task-launch-budget" not in writer.get("/api/graph?venture=venture-acme").text
+
+
+def test_new_hidden_and_missing_patches_match_when_a_hidden_link_is_stored(writer, editor_config):
+    root = editor_config.root
+    path = plant_hidden(root, ["task-launch-budget"])
+    other = root / "records/tasks/task-resident-faq.md"
+    other.write_text(other.read_text().replace("sensitivity: normal", "sensitivity: restricted"))
+    original, head = path.read_bytes(), git(root, "rev-parse", "HEAD")
+    hidden = patch(writer, {"depends_on": ["task-resident-faq"]})
+    missing = patch(writer, {"depends_on": ["task-missing"]})
+    assert hidden.status_code == missing.status_code == 400
+    assert hidden.content == missing.content
+    assert hidden.json()["error"] == {"code": "validation", "message": "invalid dependency"}
+    for term in (b"task-launch-budget", b"task-resident-faq", b"task-missing"):
+        assert term not in hidden.content and term not in missing.content
+    assert path.read_bytes() == original
+    assert git(root, "rev-parse", "HEAD") == head
+    assert read_depends(path) == ["task-launch-budget"]
+
+
+def read_depends(path):
+    return read_record(path).record.depends_on
 
 
 def test_hidden_and_missing_dependencies_match_and_do_not_write(writer, editor_config):

@@ -136,9 +136,13 @@ class RecordStore:
             if record.type != current.record.type:
                 raise WriteError("type cannot change the stable record path")
             require_grant(policy, agent, record.venture, record.type)
-            proposed = ParsedRecord(path, record, body)
             items = self._read_sources()
-            self._require_readable_dependencies(proposed, items, policy, agent)
+            if "depends_on" in changes:
+                # Already-stored ids are not rechecked. New missing and hidden ids share one error.
+                merged = self._merge_stored_dependencies(
+                    current.record.depends_on, record.depends_on, items, policy, agent)
+                record = record.model_copy(update={"depends_on": merged})
+            proposed = ParsedRecord(path, record, body)
             self._validate_sources([proposed if item.record.id == identifier else item
                                     for item in items], policy, agent)
             references = self._visible_dependencies(proposed, items, policy, agent)
@@ -218,12 +222,23 @@ class RecordStore:
         expanded = expand_template(self.root, template, fields)
         return self._create_record(template, expanded | {"venture": venture, "parent": venture}, agent)
 
+    def _visible_ids(self, items, policy, agent):
+        rows = [item.record.model_dump(mode="json") for item in items]
+        return {row["id"] for row in visible_records(rows, policy, agent)}
+
+    def _merge_stored_dependencies(self, stored, proposed, items, policy, agent):
+        """Keep ids the caller cannot see. Reject only newly added missing or hidden ids."""
+        visible = self._visible_ids(items, policy, agent)
+        stored_ids = set(stored)
+        if any(dependency not in visible for dependency in proposed if dependency not in stored_ids):
+            raise WriteError("invalid dependency")
+        caller_visible = [dependency for dependency in proposed if dependency in visible]
+        hidden = [dependency for dependency in stored if dependency not in visible]
+        return caller_visible + [dependency for dependency in hidden if dependency not in caller_visible]
+
     def _require_readable_dependencies(self, proposed, items, policy, agent):
         """Missing and unreadable dependency ids are the same refusal, with no id in the error."""
-        rows = [item.record.model_dump(mode="json") for item in items
-                if item.record.id != proposed.record.id]
-        rows.append(proposed.record.model_dump(mode="json"))
-        visible = {row["id"] for row in visible_records(rows, policy, agent)}
+        visible = self._visible_ids(items, policy, agent)
         if any(dependency not in visible for dependency in proposed.record.depends_on):
             raise WriteError("invalid dependency")
 
