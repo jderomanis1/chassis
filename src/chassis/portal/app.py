@@ -1,4 +1,4 @@
-"""One-process read-only JSON API using the authenticated library view."""
+"""One-process local API using the authenticated library view."""
 from pathlib import Path
 from secrets import token_urlsafe
 
@@ -15,6 +15,7 @@ from chassis.index import RecordIndex
 from chassis.policy import authorize_reader
 from chassis.portal.config import validate_bind, version_etag
 from chassis.portal.api import routes
+from chassis.portal.write_guard import CSP, WriteGuard, editor_policy
 
 ASSET_ROOT = Path(__file__).with_name("static")
 
@@ -27,6 +28,8 @@ def create_app(config, *, clock=None):
     host = validate_bind(config.host)
     if authorize_reader(config.root, config.viewer_agent, config.viewer_token) is None:
         raise AuthorizationError("Portal viewer authentication failed")
+    if config.allow_writes:
+        editor_policy(config)
     index = RecordIndex(config.root, agent=config.viewer_agent, token=config.viewer_token)
 
     def version(request):
@@ -36,7 +39,7 @@ def create_app(config, *, clock=None):
 
     def session(request):
         record_event(config.root, config.viewer_agent, "session", "ok")
-        return JSONResponse({"csrf": request.app.state.csrf, "writes_enabled": False,
+        return JSONResponse({"csrf": request.app.state.csrf, "writes_enabled": config.allow_writes,
                              "viewer": config.viewer_agent})
 
     async def http_error(request, exc):
@@ -49,14 +52,21 @@ def create_app(config, *, clock=None):
                     exception_handlers={404: http_error})
     app.state.index, app.state.config, app.state.clock = index, config, clock
     app.state.csrf = token_urlsafe(32)
+    guard = WriteGuard(config)
 
     async def boundary(request, call_next):
         try:
             authority = f"[{host}]:{config.port}" if ":" in host else f"{host}:{config.port}"
-            if request.method != "GET":
-                response = error("validation", "Only GET is supported", 405)
-                response.headers["Allow"] = "GET"
-            elif request.headers.get("host") != authority or (
+            if request.headers.get("host") != authority:
+                response = (guard.refuse() if request.method != "GET" else
+                            error("validation", "Origin or host not permitted", 403))
+            elif request.method != "GET":
+                response = await guard.check(request, authority)
+                if response is None:
+                    response = await call_next(request)
+                    record_event(config.root, config.editor_agent, "portal_write",
+                                 "ok" if response.status_code < 400 else "refused")
+            elif (
                     request.headers.get("origin") not in {None, f"http://{authority}"}):
                 response = error("validation", "Origin or host not permitted", 403)
             elif authorize_reader(config.root, config.viewer_agent, config.viewer_token) is None:
@@ -72,6 +82,8 @@ def create_app(config, *, clock=None):
             response = error("internal", "Request could not be completed", 500)
         response.headers["Cache-Control"] = "private, no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Content-Security-Policy"] = CSP
+        response.headers["Referrer-Policy"] = "no-referrer"
         return response
 
     app.add_middleware(BaseHTTPMiddleware, dispatch=boundary)

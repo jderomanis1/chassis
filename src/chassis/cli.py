@@ -23,9 +23,10 @@ def main(argv=None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     demo = commands.add_parser("demo-init", help="Create a new fictional demo vault and print its credentials once")
     demo.add_argument("directory", type=Path)
-    portal = commands.add_parser("portal", help="Serve the local read-only JSON API")
+    portal = commands.add_parser("portal", help="Serve the local command canvas")
     portal.add_argument("--host", default="127.0.0.1")
     portal.add_argument("--port", type=int, default=8765)
+    portal.add_argument("--allow-writes", action="store_true", help="Enable the separately authenticated local editor")
     token_command = commands.add_parser("agent-token", help="Manage local per-agent credentials")
     token_actions = token_command.add_subparsers(dest="token_command", required=True)
     token_create = token_actions.add_parser("create", help="Print a fresh token once and save only its hash")
@@ -122,7 +123,7 @@ def _write(args) -> dict:
 
 def _portal(args):
     from chassis.portal.config import PortalConfig
-    config = PortalConfig.from_env(args.vault, args.host, args.port)
+    config = PortalConfig.from_env(args.vault, args.host, args.port, allow_writes=args.allow_writes)
     try:
         import uvicorn
         from chassis.portal.app import create_app

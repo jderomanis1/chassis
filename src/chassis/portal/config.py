@@ -31,14 +31,19 @@ class PortalConfig:
     port: int = 8765
     viewer_agent: str = "reviewer"
     viewer_token: str | None = field(default=None, repr=False)
+    allow_writes: bool = False
+    editor_agent: str = ""
+    editor_token: str | None = field(default=None, repr=False)
 
     @classmethod
-    def from_env(cls, root, host="127.0.0.1", port=8765):
+    def from_env(cls, root, host="127.0.0.1", port=8765, *, allow_writes=False):
         if not 1 <= port <= 65535:
             raise ValueError("Portal port must be between 1 and 65535")
         return cls(Path(root).resolve(), validate_bind(host), port,
                    os.environ.get("CHASSIS_PORTAL_VIEWER_AGENT", "reviewer"),
-                   os.environ.get("CHASSIS_AGENT_TOKEN", ""))
+                   os.environ.get("CHASSIS_AGENT_TOKEN", ""), allow_writes,
+                   os.environ.get("CHASSIS_PORTAL_EDITOR_AGENT", ""),
+                   os.environ.get("CHASSIS_PORTAL_EDITOR_TOKEN", ""))
 
 
 def version_etag(index):
