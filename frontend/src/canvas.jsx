@@ -26,7 +26,7 @@ function bind(node, actions) {
     onClear: () => actions.current.onClear() } };
 }
 
-function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onClear, onHide, fitSignal }) {
+function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onClear, onHide, onLink, fitSignal }) {
   const flow = useReactFlow();
   const actions = useRef({});
   actions.current = { onOpen, onEdit, onHover, onClear, onHide, writes };
@@ -34,6 +34,7 @@ function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onC
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const measured = useNodesInitialized();
   const framed = useRef(false);
+  const fitted = useRef(0);
   useEffect(() => {
     const next = place(model.nodes, model.edges, layout.positions || {}).map(node => bind(node, actions));
     setNodes(current => {
@@ -56,10 +57,14 @@ function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onC
     return () => { cancel = true; };
   }, [measured, nodes.length, flow, model.nodes, layout.positions, layout.viewport]);
   useEffect(() => {
-    if (!fitSignal) return;
+    if (!fitSignal || fitted.current === fitSignal || nodes.length !== model.nodes.length) return undefined;
+    fitted.current = fitSignal;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    flow.fitView({ duration: reduce ? 0 : 350, padding: 0.18, maxZoom: 0.9 });
-  }, [fitSignal, flow]);
+    const frame = requestAnimationFrame(() => {
+      flow.fitView({ duration: reduce ? 0 : 250, padding: 0.2, maxZoom: 1.15 });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [fitSignal, nodes.length, model.nodes.length, flow]);
   function publish(nextNodes, viewport) {
     if (!nextNodes.length) return;
     onLayout(nextNodes.map(node => ({ id: node.id, position: node.position })), roundViewport(viewport || flow.getViewport()));
@@ -73,7 +78,9 @@ function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onC
   return (
     <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} nodeTypes={nodeTypes}
       onNodeDragStop={(event, node, next) => dropped(event, node, next)} onMoveEnd={(_, viewport) => publish(nodes, viewport)}
-      minZoom={0.1} maxZoom={4} nodesConnectable={false} panOnScroll fitView={false} colorMode={document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'}
+      minZoom={0.1} maxZoom={4} nodesConnectable panOnScroll fitView={false}
+      onConnect={connection => onLink?.(connection)}
+      colorMode={document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'}
       proOptions={{ hideAttribution: false }}>
       <Background gap={48} color="var(--line)" />
       <Controls showInteractive={false} />

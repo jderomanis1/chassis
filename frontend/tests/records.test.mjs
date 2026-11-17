@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { editChanges, flickedOff, overviewNodes, presentGraph, priorValues, readVenture, ventureModel } from '../src/records.js';
+import { editChanges, flickedOff, linkChange, overviewNodes, presentGraph, priorValues, readVenture, ventureModel } from '../src/records.js';
 import { place } from '../src/place.js';
 
 test('new cards receive distinct positions and saved positions win', () => {
@@ -41,6 +41,14 @@ test('hidden ids leave the view and a center outside the pane is a flick', () =>
   const pane = { x: 0, y: 0, width: 100, height: 100 };
   assert.equal(flickedOff({ x: -4, y: 40 }, pane), true);
   assert.equal(flickedOff({ x: 40, y: 40 }, pane), false);
+});
+
+test('links are task to task and keep the earlier dependency list', () => {
+  const source = { id: 'task-a', kind: 'task', depends_on: [] };
+  const target = { id: 'task-b', kind: 'task', version: 3, depends_on: ['task-c'] };
+  assert.deepEqual(linkChange(source, target), { ok: true, id: 'task-b', version: 3, changes: { depends_on: ['task-c', 'task-a'] } });
+  assert.equal(linkChange(source, { ...target, kind: 'initiative' }).message, 'Only tasks can be linked.');
+  assert.equal(linkChange(source, { ...target, depends_on: ['task-a'] }).message, 'Those tasks are already linked.');
 });
 
 test('deep links accept only record ids', () => {

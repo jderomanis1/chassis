@@ -25,6 +25,7 @@ export function cardFrom(record, kind) {
     due_at: text(record.due_at), next_milestone: text(record.next_milestone),
     milestone_due_at: text(record.milestone_due_at), last_activity_at: text(record.last_activity_at),
     counts: record.counts || null, progress: record.progress || null,
+    depends_on: Array.isArray(record.depends_on) ? record.depends_on.map(String) : [],
   };
 }
 
@@ -71,9 +72,18 @@ export function priorValues(changes, before) {
   const prior = {};
   for (const field of Object.keys(changes)) {
     const value = before[field];
-    prior[field] = value == null || value === '' ? null : value;
+    if (Array.isArray(value)) prior[field] = [...value];
+    else prior[field] = value == null || value === '' ? null : value;
   }
   return prior;
+}
+
+export function linkChange(source, target) {
+  if (!source || !target || source.id === target.id) return { ok: false, message: 'Choose two different tasks.' };
+  if (source.kind !== 'task' || target.kind !== 'task') return { ok: false, message: 'Only tasks can be linked.' };
+  const current = target.depends_on || [];
+  if (current.includes(source.id)) return { ok: false, message: 'Those tasks are already linked.' };
+  return { ok: true, id: target.id, version: target.version, changes: { depends_on: [...current, source.id] } };
 }
 
 export function presentGraph(nodes, edges = [], hidden = []) {

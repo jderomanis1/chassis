@@ -6,6 +6,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 
 from chassis.errors import AuthorizationError, ConflictError, DirtyRecordError, NotFoundError, WriteError
+from chassis.markdown import RecordFileError
 from chassis.git import Identity
 from chassis.models import IsoDate, RecordId
 from chassis.portal.write_guard import MAX_BODY
@@ -21,6 +22,7 @@ class Changes(BaseModel):
     next_step: Text = None
     blocker_reason: Annotated[str, StringConstraints(max_length=4096)] | None = None
     due_at: IsoDate | None = None
+    depends_on: Annotated[list[RecordId], Field(max_length=40)] | None = None
 
     @model_validator(mode="after")
     def nonempty(self):
@@ -67,6 +69,11 @@ def patch_record(request):
         issue = exc.errors(include_input=False, include_context=False)[0]
         field = ".".join(map(str, issue["loc"]))
         return failure("validation", f"{field}: {issue['msg']}" if field else issue["msg"], 400)
+    except RecordFileError as exc:
+        reason = str(exc).split(": ", 1)[-1]
+        if "/" in reason or "\\" in reason:
+            reason = "Record update could not be completed"
+        return failure("validation", reason, 400)
     except WriteError as exc:
         recovery = {k: v for k, v in exc.details.items()
                     if k in {"committed", "commit", "current_version", "commit_state"}}

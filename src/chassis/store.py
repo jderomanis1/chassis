@@ -1,5 +1,6 @@
 """Local, transport-independent record mutations. Caller identity is explicit."""
 
+import re
 from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -81,9 +82,12 @@ class RecordStore:
     def _validate_sources(self, items, policy, agent):
         try:
             return validate_records(self.root, items, policy)
-        except RecordFileError:
+        except RecordFileError as exc:
             # Whole-vault validation can name records unrelated to the write target.
-            if all(can_read_record(item.record.model_dump(), policy, agent) for item in items):
+            visible = {item.record.id for item in items if can_read_record(item.record.model_dump(), policy, agent)}
+            named = set(re.findall(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*", str(exc)))
+            hidden = {item.record.id for item in items} - visible
+            if not named & hidden:
                 raise
             raise RecordFileError("Records unavailable; source validation failed") from None
 

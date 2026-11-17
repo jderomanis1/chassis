@@ -6,7 +6,7 @@ import { CommandBar } from './command-bar.jsx';
 import { applyCommandView } from './commands.js';
 import { HoverCard } from './nodes.jsx';
 import { Editor } from './editor.jsx';
-import { editChanges, overviewNodes, presentGraph, priorValues, readVenture, ventureModel } from './records.js';
+import { editChanges, linkChange, overviewNodes, presentGraph, priorValues, readVenture, ventureModel } from './records.js';
 import { roundPoint } from './place.js';
 import './prototype.css';
 import './tokens.css';
@@ -170,7 +170,25 @@ function App() {
     if (intent.command === 'fit') setFitSignal(value => value + 1);
     if (intent.command === 'back') location.hash = '#/';
     if (intent.command === 'zoom') location.hash = `#/v/${intent.id}`;
-    if (intent.command === 'show-all' || intent.command === 'only-blocked' || intent.command === 'only-active') setViewMode(intent.command);
+    if (intent.command === 'show-all' || intent.command === 'only-blocked' || intent.command === 'only-active') {
+      setViewMode(intent.command);
+      setFitSignal(value => value + 1);
+    }
+  }
+  async function linkCards(connection) {
+    const nodes = source?.nodes || [];
+    const proposal = linkChange(nodes.find(node => node.id === connection.source)?.data,
+      nodes.find(node => node.id === connection.target)?.data);
+    if (!proposal.ok) { setNotice(proposal.message); return; }
+    if (!writes) { setNotice('Read only · editing is off'); return; }
+    try {
+      const result = await api(`/api/records/${encodeURIComponent(proposal.id)}`, { method: 'PATCH', csrf: data.session.csrf,
+        data: { changes: proposal.changes, expected_version: proposal.version } });
+      const target = nodes.find(node => node.id === proposal.id);
+      setUndo(stack => [...stack, { id: proposal.id, changes: { depends_on: [...(target?.data.depends_on || [])] },
+        version: result.record.version }].slice(-10));
+      setNotice(''); await load();
+    } catch (failure) { setNotice(failure.message); }
   }
   function showHidden() {
     const back = new Set(hiddenHere.map(node => node.id));
@@ -199,7 +217,7 @@ function App() {
       {error ? <section className="panel empty" role="alert"><h2>Could not load canvas</h2><p>{error}</p><button className="btn" onClick={load}>Try again</button></section>
         : !data || (ventureId && !model) ? <section className="panel empty" role="status">Loading your canvas…</section>
         : !data.snapshot.ventures.length ? <section className="panel empty"><h2>No ventures yet</h2><p>Your visible ventures will appear here.</p></section>
-        : <Canvas model={model} layout={data.layout} writes={writes} fitSignal={fitSignal} onLayout={onLayout} onOpen={id => { location.hash = `#/v/${id}`; }} onEdit={openEdit} onHover={setHover} onClear={() => setHover(null)} onHide={hideCard} />}
+        : <Canvas model={model} layout={data.layout} writes={writes} fitSignal={fitSignal} onLayout={onLayout} onOpen={id => { location.hash = `#/v/${id}`; }} onEdit={openEdit} onHover={setHover} onClear={() => setHover(null)} onHide={hideCard} onLink={linkCards} />}
     </main>
     {editor ? <Editor record={editor} message={fieldMessage} onClose={() => setEditor(null)} onSave={save} /> : null}
     <CommandBar open={commandOpen} ventures={data?.snapshot?.ventures || []} onClose={() => setCommandOpen(false)} onRun={runIntent} /></>;

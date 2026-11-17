@@ -43,6 +43,7 @@ def test_valid_relationships(graph):
     (2, {"depends_on": ["task-missing"]}, "task-missing"),
     (2, {"depends_on": ["task-inventory"]}, "depend on itself"),
     (2, {"depends_on": ["task-quotes"]}, "dependency cycle"),
+    (2, {"depends_on": ["initiative-maintenance"]}, "must be a task"),
 ])
 def test_invalid_graph_names_file_and_reason(graph, index, changes, reason):
     replace(graph, index, **changes)

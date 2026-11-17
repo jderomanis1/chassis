@@ -52,11 +52,11 @@ export function CardNode({ data }) {
         }
       }}
       {...watchers(data)}>
-      <Handle className="nodrag" type="target" position={Position.Left} isConnectable={false} />
+      <Handle className="nodrag" type="target" position={Position.Left} isConnectable={data.kind === 'task'} />
       <span className={`pill s-${data.status}`}>{String(data.status || '').replaceAll('_', ' ')}</span>
       <span className="t">{data.title}</span>
       {data.writes ? <button type="button" className="btn ghost nodrag nopan" onClick={event => { event.stopPropagation(); data.onEdit(data); }}>Edit</button> : null}
-      <Handle className="nodrag" type="source" position={Position.Right} isConnectable={false} />
+      <Handle className="nodrag" type="source" position={Position.Right} isConnectable={data.kind === 'task'} />
     </div>
   );
 }

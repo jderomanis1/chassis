@@ -18,6 +18,7 @@ test('the command bar runs the six view commands', async ({ page, demo }) => {
   await run(page, 'show only blocked');
   await expect(page.getByRole('button', { name: 'Cedar Rentals', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Ridgeview HOA', exact: true })).toBeVisible();
+  await page.waitForTimeout(400);
   await page.screenshot({ path: join(ROOT, 'evidence/step7-ui/dark-x2-command.png'), animations: 'disabled' });
   await page.getByRole('button', { name: /Switch to light/ }).click();
   await page.screenshot({ path: join(ROOT, 'evidence/step7-ui/light-x2-command.png'), animations: 'disabled' });
