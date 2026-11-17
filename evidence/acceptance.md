@@ -1,11 +1,38 @@
 # Acceptance evidence
 
-**Snapshot:** Increment 0, Step 7 PARTIAL: C1/C2 implemented on the review branch; F1 browser-blocked; F2-F6 unstarted. **Date:** 2026-11-17.
+**Snapshot:** Increment 0, Step 7 canvas loop implemented on `cursor/step7-canvas-d0a6` against `step7-c1-write`. Main remains `42f0fa0`. C1/C2 are not independently reviewed. **Date:** 2026-11-17.
+
+## Step 7 canvas loop
+
+The command canvas now renders a separate `chassis demo-init` vault. Playwright
+launched Google Chrome and exercised the built portal. This is not a SecOps, QE,
+or Code Reviewer approval, and it is not a merge to main.
+
+| Increment | Commit | Result |
+| :--- | :--- | :--- |
+| Font-face check | `30d2ae5` | Scaffold browser check loads Chakra Petch 500 and the other two families |
+| Post-commit audit recovery | `8033bf2` | Middleware audit failure after a successful PATCH keeps committed, commit, and current_version |
+| Restricted layout cleanup | `4f87fc3` | A read removes invisible ids from a valid layout file; corrupt files stay untouched |
+| Live canvas | `60f91d1` | Seven tiles, zoom, drag, edit, undo, conflict, search, and stdio MCP refresh |
+
+Executed on this working tree, not a fresh three-mode checkout:
+
+- `.venv/bin/pytest -q`: **696 passed** in 1116.78s.
+- `npm test`: 8 passed.
+- `npm run contrast`: dark 64 pairs, 0 failures, lowest 5.11; light 64 pairs, 0 failures, lowest 4.74.
+- `npm audit --omit=dev`: 0 vulnerabilities.
+- `npm run build` twice: all 21 static files matched. Production dependencies are unchanged, so the existing 30-entry license list still applies.
+- Playwright with `CHASSIS_CHROMIUM=/usr/local/bin/google-chrome`: scaffold 5, canvas 4, and the live walk-through passed. One live run timed out while the full Python suite was also running; a later solo run passed in 11.5s.
+- The built bundle and the Playwright DOM/layout checks had 0 matches for `task-launch-budget`, the restricted title, owner, and partial body sentence.
+
+Screenshots at 1440x900 are in `evidence/step7-ui/`: dark and light overview with hover, zoomed Ridgeview, edit, and the conflict message. X1-X3 were not started.
+
+## Earlier Step 7 resume: C1/C2 and partial F1
+
 All source records and people are fictional. AC2, AC3, AC4, and AC9 pass; later gates remain pending.
+The notes below describe the browser-blocked checkpoint and are kept as history.
 
-## Step 7 resume: C1/C2 and partial F1
-
-**Step 7 is not complete.** Main remains at `42f0fa0`. The new code is on
+**At that checkpoint, Step 7 was not complete.** Main remains at `42f0fa0`. The new code is on
 `step7-c1-write`, gated from merge by independent SecOps review. The runtime/test
 checkpoint is **`83b8d61b06b7b6d04f44d1fcb42f13641b140f38`**; later commits preserve
 sources and update documentation/evidence only. The complete approved source pack

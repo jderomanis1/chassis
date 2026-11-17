@@ -50,12 +50,12 @@ These controls govern Chassis APIs. Files and Git history are still plaintext,
 and anyone with direct filesystem access can read them. Real data, hosted access,
 and agent-to-agent channels remain outside this sample-only increment.
 
-**Step 7 remains incomplete.** This review branch adds gated C1 record edits,
-C2 view layout, and a partial F1 frontend scaffold to Steps 1-6 and C-1/C0/C3.
-C1/C2 are not merged to main and require independent SecOps review. Browser
-verification is blocked by the current execution environment. There is no working
-card canvas yet. All data remains fictional and runtime stays one Python process.
-See the [current handoff](CHASSIS_PROJECT_HANDOFF.md) and [Step 7 scope](docs/STEP7-CANVAS-SCOPE.md).
+**Step 7 canvas loop is on the review branch, not main.** C1 edits, C2 layout, and
+the React Flow canvas run against a fictional `chassis demo-init` vault. Independent
+SecOps review is still required before any merge. Stretch hide, command-bar, and
+link gestures are not built. All data remains fictional and runtime stays one
+Python process. See the [current handoff](CHASSIS_PROJECT_HANDOFF.md) and
+[Step 7 scope](docs/STEP7-CANVAS-SCOPE.md).
 
 **Continuing in a new chat?** Read the [project handoff](CHASSIS_PROJECT_HANDOFF.md)
 and [project chat setup](docs/PROJECT_CHAT_SETUP.md). Engineering agents should
@@ -239,8 +239,7 @@ These seven read endpoints retain their GET-only behavior, check Host/Origin, an
 responses. Errors have `{error:{code,message}}` without stack traces. A missing
 and unauthorized record have the same `not_found` response. Empty graph scope
 means all visible ventures; a hidden or missing nonempty scope is `not_found`.
-The branch serves a partial F1 frontend shell; its browser checks have not passed.
-There is no ask endpoint. The unimplemented "Agent writes today" field is omitted.
+The branch serves the built command canvas. There is no ask endpoint. The unimplemented "Agent writes today" field is omitted.
 See the [ADR](docs/PORTAL-ADR.md) for API v1, with Joe's
 Step 6 override: complete library-level hiding replaces masked placeholders and
 removes hidden children from counts and health.
@@ -275,16 +274,13 @@ npm ci
 npm run build
 npm test
 npm run contrast
-npm run test:e2e -- scaffold.spec.mjs
+CHASSIS_CHROMIUM=/usr/local/bin/google-chrome npm run test:e2e
 ```
 
-The last command needs a Linux Chromium execution environment that permits its
-local IPC. `CHASSIS_CHROMIUM` may select a supported existing executable. The
-current environment blocks `/usr/bin/chromium` before page navigation, and its
-execution policy disallows elevated permission requests. All five browser cases
-remain blocked. The scaffold has no F2-F6 canvas functionality yet.
+`CHASSIS_CHROMIUM` selects the browser when `/usr/bin/chromium` is not installed.
+The suite covers the scaffold, seven-tile canvas, edits, and the stdio MCP loop.
 See [dependency licenses](docs/FRONTEND-LICENSES.md) and
-[verification evidence](evidence/step7-resume-verification.json).
+[acceptance evidence](evidence/acceptance.md).
 
 ### Create the seven-venture demo
 
@@ -305,8 +301,9 @@ Use the reviewer token as `CHASSIS_AGENT_TOKEN` for the portal and set
 chief-of-staff ID and its own token. Normal viewers see 62 records and 41 tasks.
 The editor has normal clearance and write grants limited to these sample ventures.
 
-The current portal remains GET-only. `--allow-writes`, PATCH, layout persistence,
-and the built canvas await C1/C2 and F1–F6, including the independent SecOps gate.
+On this review branch, start the demo with `--allow-writes` and the separate
+editor credential. The canvas is served at `/`. Independent SecOps review is
+still required before these writes merge to main.
 
 ### Connect an MCP client
 
@@ -392,7 +389,7 @@ The actual Obsidian UI check is tracked in the acceptance evidence.
 | Portal backend and Step 7 C-1/C0 | Seven GET endpoints; visible-only etags, session/version contracts, and leak tests |
 | Step 7 C3 demo vault | Seven fictional ventures with separate viewer, editor, and chief credentials |
 | Step 7 C1/C2 | Implemented on step7-c1-write; independent SecOps merge review outstanding |
-| Step 7 F1-F6 | F1 scaffold built, browser verification blocked; F2-F6 not started |
+| Step 7 F1-F6 | Implemented on the review branch; Chrome/Playwright evidence recorded; X1-X3 not started |
 | Optional Miro and chat import | Later, separately scoped work |
 
 ## Explore the sample

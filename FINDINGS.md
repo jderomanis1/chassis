@@ -1,5 +1,42 @@
 # Findings
 
+## Step 7 canvas: observed at 60f91d1
+
+The canvas branch is `cursor/step7-canvas-d0a6`, based on `step7-c1-write` at
+`b54944d`. Main is still `42f0fa0`. Chrome launched under Playwright. The checks
+below are engineering evidence only.
+
+- F1 through F6 run against `chassis demo-init`. The page shows seven venture
+  tiles from `/api/snapshot`, colors them from `health.color`, and opens a
+  venture through the hash route. Dragging writes `/api/layout`. A reload keeps
+  those positions. An etag change updates a title without moving the camera.
+- Double-click edits title, status, next step, blocker reason, and due date
+  through PATCH. Undo sends the prior values as its own editor commit. A stale
+  version shows "Changed elsewhere. Reloaded the latest." and does not keep the
+  rejected title. With writes reported off, Edit and Undo are absent.
+- A real stdio `update_record` from chief-of-staff turned `task-lumen-launch-2`
+  red within the five-second poll. `git log` showed that chief-of-staff commit
+  and, for canvas saves, `canvas-editor <canvas-editor@chassis.local>`.
+- Search renders `/api/search` titles as text. An `<img onerror>` title stayed
+  inert. Restricted id, title, owner, and partial body were absent from the DOM,
+  the layout file, and the built bundle.
+- The final middleware audit append can fail after the record commit. The HTTP
+  body now keeps `committed`, `commit`, and `current_version`. A layout write has
+  no commit to report, so that audit failure stays a generic audit error.
+- Reading a valid layout now deletes ids the viewer can no longer see. Corrupt
+  layout files are still returned as empty and are not rewritten.
+- The venture graph uses dagre. Parent and dependency edges are visible, and
+  blocking edges are red, but the arrangement is not the prototype's lane map.
+  Overview tiles use a three-column grid because those nodes have no edges.
+  The hover card can cover a neighboring tile. Both are presentation limits, not
+  data leaks.
+- Fit-to-view runs again after fonts load. That second fit can move the camera
+  once during startup. It does not run again on the five-second refresh.
+- X1 hide, X2 command bar, and X3 dependency linking are not implemented.
+- No fresh detached all/core/portal install matrix was repeated in this session.
+  The working tree passed 696 tests. Original fixtures, `agents.yaml`,
+  `pyproject.toml`, and `uv.lock` were not edited.
+
 ## Step 7 resume: observed at 83b8d61
 
 C1/C2 are implemented on `step7-c1-write`. Main remains at 42f0fa0, with every
