@@ -20,6 +20,12 @@ from chassis.transactions import persist_record, refresh_committed
 from chassis.validation import read_vault, validate_records
 
 IMMUTABLE = {"id", "version", "updated_at"}
+MAX_RECORD_BODY = 64 * 1024
+
+
+def _require_body_limit(body):
+    if len(body.encode()) > MAX_RECORD_BODY:
+        raise WriteError("Record body exceeds the edit limit")
 
 
 class RecordStore:
@@ -106,6 +112,8 @@ class RecordStore:
             raise WriteError("expected_version must be a positive integer")
         if "body" in changes and not isinstance(changes["body"], str):
             raise WriteError("body must be a string")
+        if "body" in changes:
+            _require_body_limit(changes["body"])
         # Authorize both scopes from frontmatter before reading any record body.
         self._check_scopes(identifier, changes, policy, agent)
         identity = self.identity or Identity.from_env("AGENT")
@@ -120,6 +128,7 @@ class RecordStore:
             ensure_repository(self.root)
             ensure_clean(self.root, path)
             body = changes.pop("body", current.body)
+            _require_body_limit(body)
             timestamp = max(datetime.now(timezone.utc), current.record.updated_at + timedelta(microseconds=1))
             fields = current.record.model_dump() | changes | {
                 "version": current.record.version + 1, "updated_at": timestamp}
@@ -155,6 +164,7 @@ class RecordStore:
         body = fields.pop("body", "")
         if not isinstance(body, str):
             raise WriteError("body must be a string")
+        _require_body_limit(body)
         record = Record.model_validate(fields | {"type": record_type, "version": 1,
                                                 "updated_at": datetime.now(timezone.utc)})
         require_grant(policy, agent, record.venture, record.type)
