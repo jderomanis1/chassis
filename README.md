@@ -50,9 +50,9 @@ These controls govern Chassis APIs. Files and Git history are still plaintext,
 and anyone with direct filesystem access can read them. Real data, hosted access,
 and agent-to-agent channels remain outside this sample-only increment.
 
-**This checkout delivers Steps 1–5 and Step 6 read security: validated records, reads, local writes, templates, and MCP.**
+**This checkout delivers Steps 1–6: the library, authenticated MCP, and the P1–P4 read-only portal backend.**
 All venture data is fictional. SQLite is a disposable index of working-tree files.
-Six MCP tools run over stdio. The portal, layout planner, optional Miro export, and chat import follow.
+Six MCP tools run over stdio. The approved frontend port, P5–P8, is next.
 
 **Continuing in a new chat?** Read the [project handoff](CHASSIS_PROJECT_HANDOFF.md)
 and [project chat setup](docs/PROJECT_CHAT_SETUP.md). Engineering agents should
@@ -60,7 +60,7 @@ start with [AGENTS.md](AGENTS.md).
 
 ## Start here
 
-Prerequisites: **Python 3.12+, Git, uv, and a POSIX environment**. Step 5 was verified
+Prerequisites: **Python 3.12+, Git, uv, and a POSIX environment**. Step 6 was verified
 on Linux; native Windows locking is not implemented. No runtime API key is needed.
 
 ```bash
@@ -68,19 +68,25 @@ git clone https://github.com/jderomanis1/chassis.git
 cd chassis
 uv sync --locked
 uv run pytest -q
+export CHASSIS_AGENT_ID=reviewer
+export CHASSIS_AGENT_TOKEN="$(uv run --locked chassis agent-token create "$CHASSIS_AGENT_ID")"
 uv run chassis validate
 uv run chassis index rebuild
 uv run chassis list --venture venture-ridgeview --status blocked
-uv run chassis get task-launch-budget
+uv run chassis get task-launch-offer
 uv run chassis search "three most repeated"
 ```
 
 Already have a checkout? Start with `uv sync --locked` from its root.
-Validation reads the Markdown files in the working tree.
+Validation reports the caller's visible records in the working tree. The sample
+reviewer sees 12 records; the restricted-clearance chief-of-staff sees 13.
+Run `uv sync --locked --all-extras` followed by `.venv/bin/pytest -q` for the full
+MCP and portal suite. Without extras, their integration modules are skipped.
 
 Read commands return stable JSON with every record field plus `body` and derived `last_activity_at`. Results
-are ordered by ID and always include `sensitivity`, including restricted records.
-The index is not an access-control layer. Use `--vault /path/to/chassis` on any
+are ordered by ID and include `sensitivity`. The library enforces token identity,
+grants, clearance, and hidden relationships before returning any record.
+Use `--vault /path/to/chassis` on any
 new read/index command to select a vault; `validate` retains its positional path.
 
 List filters are exact matches combined with AND: `--type`, `--venture`,
@@ -94,7 +100,8 @@ A missing ID returns exit code 1; a list/search with no matches returns `[]`.
 
 Reads detect changed, added, and removed working-tree records automatically.
 Deleting `.chassis/index.sqlite` is safe: the next read rebuilds it. Damaged
-caches also rebuild. Invalid source records fail with a filename and reason.
+caches also rebuild. Public source-validation failures use a generic message so
+a hidden filename or body cannot escape through an error.
 See the [read contract](docs/ARCHITECTURE.md#disposable-index-and-read-contract).
 
 ### Write a fictional record
@@ -104,6 +111,7 @@ Use a local checkout of the sample vault and set the author identity explicitly:
 
 ```bash
 export CHASSIS_AGENT_ID=chief-of-staff
+export CHASSIS_AGENT_TOKEN="$(uv run --locked chassis agent-token create "$CHASSIS_AGENT_ID")"
 export CHASSIS_AGENT_NAME="Fictional Homer"
 export CHASSIS_AGENT_EMAIL=homer@chassis.local
 uv run chassis get task-launch-budget
@@ -175,11 +183,11 @@ which must also contain the two files in `templates/`.
 `Channels`, and `Data scope`. It adds the fixed read-only `Permissions` section.
 The result is a descriptive file at `records/agents/<id>.md`, parented to its
 venture. It neither spawns nor registers an agent and never changes `agents.yaml`.
-Its ID remains read-only unless a human explicitly configures grants there.
+Its ID has no access until a human configures grants and provisions a token.
 
 Authoring an agent document is itself scoped: a human must add `agent: write`
-under the existing author's venture policy. The sample policy is unchanged and
-contains no such grant. This permits document creation, not writes by the new
+under the existing author's venture policy. The sample policy contains no such
+grant. This permits document creation, not writes by the new
 document's ID. `assigned_agent` continues to require a known policy agent ID.
 
 ### Approved portal data fields
@@ -196,13 +204,48 @@ To unblock a task, clear `blocker_reason` in the same update. Dates reject times
 and numeric coercion. `last_activity_at` is never written into frontmatter. It is
 null for records with no commit history, and uncommitted edits do not advance it.
 The index recomputes activity even when source bytes and mtime have not changed.
-No health calculation or colors are implemented.
+The portal calculates health from these fields and only the viewer's visible
+children. The pure rules use an injected Phoenix date and 3/7/14-day thresholds.
+
+### Run the read-only portal backend
+
+```bash
+uv sync --locked --extra portal
+export CHASSIS_PORTAL_VIEWER_AGENT=reviewer
+export CHASSIS_AGENT_TOKEN="$(uv run --locked --extra portal chassis agent-token create "$CHASSIS_PORTAL_VIEWER_AGENT")"
+uv run --locked --extra portal chassis portal --port 8765
+```
+
+This provisions or rotates the sample viewer token. The server binds to
+`127.0.0.1:8765`. A non-loopback host is refused unless
+`CHASSIS_PORTAL_ALLOW_REMOTE=1`; remote operation is outside this increment.
+The viewer is configured on the server, never selected by a request. Invalid
+credentials prevent startup, and token/grant revocation applies to later reads.
+
+| GET endpoint | Response |
+| :--- | :--- |
+| `/api/version` | `{etag}`: Git HEAD plus a hash of nonignored working-tree files |
+| `/api/snapshot` | Venture cards, visible counts, health, and generation time |
+| `/api/ventures/{id}` | Venture and its visible initiatives, progress, and GTM sections |
+| `/api/initiatives/{id}` | Initiative and its visible tasks |
+| `/api/graph?venture=` | Neutral nodes and dependency edges, with health and no layout |
+| `/api/search?q=` | Visible hits containing only id, type, and title |
+
+Every endpoint is GET-only, checks Host/Origin, and returns private, nonstored
+responses. Errors have `{error:{code,message}}` without stack traces. A missing
+and unauthorized record have the same `not_found` response. Empty graph scope
+means all visible ventures; a hidden or missing nonempty scope is `not_found`.
+There is no frontend or ask endpoint in P1–P4. The unimplemented "Agent writes
+today" field is omitted. See the [ADR](docs/PORTAL-ADR.md) for API v1, with Joe's
+Step 6 override: complete library-level hiding replaces masked placeholders and
+removes hidden children from counts and health.
 
 ### Connect an MCP client
 
-Run `uv sync --locked` in the checkout first. The installed entry point is
-`.venv/bin/chassis-mcp`; `uv run chassis-mcp --vault /path/to/sample-vault` and
-`uv run python -m chassis.mcp_server --vault /path/to/sample-vault` also start it.
+Run `uv sync --locked --extra mcp` in the checkout first. The installed entry point
+is `.venv/bin/chassis-mcp`; `uv run --locked --extra mcp chassis-mcp --vault
+/path/to/sample-vault` also starts it. `python -m chassis.mcp_server` is equivalent
+when run with that environment's interpreter.
 The process waits for JSON-RPC on stdin. Only protocol messages go to stdout;
 logs go to stderr. There is no listening HTTP endpoint.
 
@@ -218,6 +261,7 @@ the [official MCP client guide](https://modelcontextprotocol.io/docs/develop/con
       "args": ["--vault", "/ABSOLUTE/PATH/TO/FICTIONAL-VAULT"],
       "env": {
         "CHASSIS_AGENT_ID": "CONFIGURED_POLICY_AGENT_ID",
+        "CHASSIS_AGENT_TOKEN": "TOKEN_FROM_LOCAL_PROVISIONING",
         "CHASSIS_AGENT_NAME": "CONFIGURED_AGENT_NAME",
         "CHASSIS_AGENT_EMAIL": "agent@example.invalid"
       }
@@ -228,9 +272,10 @@ the [official MCP client guide](https://modelcontextprotocol.io/docs/develop/con
 
 Restart the client after editing its configuration. `--vault` can instead be set
 through `CHASSIS_VAULT`; it defaults to the server's working directory. Caller ID
-comes from `CHASSIS_AGENT_ID`, and Git attribution comes from `CHASSIS_AGENT_NAME`
+comes from `CHASSIS_AGENT_ID`, proven by `CHASSIS_AGENT_TOKEN`. Git attribution comes from `CHASSIS_AGENT_NAME`
 and `CHASSIS_AGENT_EMAIL`. These are server configuration, never tool arguments.
-Missing/unknown/read-only callers cannot write. Name/email must be valid before
+Missing/unknown identities and missing/wrong tokens get no access. Read-only
+callers cannot write. Name/email must be valid before
 a permitted write. Record owner and `assigned_agent` are descriptive metadata.
 
 | Tool | Arguments | Successful structured content |
@@ -244,8 +289,8 @@ a permitted write. Record owner and `assigned_agent` are descriptive metadata.
 
 Responses include matching JSON text and MCP `structuredContent`. Tool failures
 set `isError: true` and an `error` code: `conflict` includes `current_version`,
-`unauthorized` and `dirty_record` retain refusal details, `validation` has `field`
-and `reason`, and `not_found` identifies a missing record/tool. Storage/Git failures
+`unauthorized` is generic, `dirty_record` retains actionable details, `validation`
+has `field` and `reason`, and record `not_found` never echoes a hidden ID. Storage/Git failures
 retain their separate recovery codes. If `committed` is true or unknown, inspect
 the result and history before retrying. Raw exception/hook diagnostics stay on stderr.
 
@@ -270,13 +315,14 @@ The actual Obsidian UI check is tracked in the acceptance evidence.
 | Relationship and dependency validation | Implemented |
 | Local validation command and automated tests | Implemented |
 | Fictional sample vault | 2 ventures, 3 initiatives, 8 tasks, 2 dependencies |
-| Agent policy and write authorization | Strict known venture/type grants; unknown/read-only agents cannot write |
+| Agent identity and read/write authorization | Verified tokens, exact venture/type grants, deny by default, per-agent clearance |
 | Disposable SQLite and list/get/search | Implemented, including automatic refresh and recovery |
 | Versioned create/update and human commits | Implemented; process lock, atomic files, record-only Git commits |
 | Initiative and read-only agent templates | Implemented; AC4 passes through the library and CLI |
-| Milestones, task due dates/blockers, and derived Git activity | Implemented; no health calculation |
+| Milestones, task due dates/blockers, and derived Git activity | Implemented; pure portal health with frozen-clock tables |
 | Six official SDK MCP tools over stdio | Implemented; AC2 real-client and concurrent-writer proof |
-| Portal, layout, optional Miro, chat import | Later steps; portal code requires prototype approval |
+| Read-only portal backend P1–P4 | Six GET endpoints; library filtering, origin checks, error envelopes, and leak tests |
+| Frontend P5–P8, layout, optional Miro, chat import | Subsequent steps |
 
 ## Explore the sample
 
@@ -292,9 +338,9 @@ Names, owners, plans, and records are demonstration data.
 
 - **Files carry the truth.** YAML frontmatter and Markdown stay readable without a service.
 - **History stays explicit.** Record writes use version checks and attributed Git commits.
-- **Permissions have a home.** `agents.yaml` defines scoped grants; unknown agents are read-only.
-- **Private work stays private.** Restricted records will be excluded from rendered graphs.
-- **The canvas can change.** A renderer-neutral graph will keep layout independent of Miro.
+- **Permissions have a home.** `agents.yaml` defines scoped grants; unknown agents have no access.
+- **Private work stays private.** Unauthorized restricted records and relationships are absent from library results.
+- **The canvas can change.** The neutral graph keeps later layout independent of Miro.
 - **Board changes stay precise.** Tracked mappings, fingerprints, and pending creates will protect item identity.
 
 These are the build contracts. See [architecture](docs/ARCHITECTURE.md) for the
@@ -313,14 +359,14 @@ what has actually been verified.
 | `docs/` | Architecture and project presentation |
 | `evidence/` | Acceptance status and recorded checks |
 | `render/miro/` | Tracked board mappings for the later renderer |
-| `.chassis/` | Ignored, disposable `index.sqlite` and shared `write.lock`; do not unlink a live lock |
+| `.chassis/` | Ignored token hashes, body-free audit log, disposable index, and shared write lock; do not unlink a live lock |
 
 ## Next in the build
 
-Step 5 is complete. Next, only after Joe's go, is a read-only command-center portal over the
-library and index, with design prototype approval before any portal code.
-Layout and change planning follow; Miro becomes an optional export. Chat import
-has a separate later step. See the handoff for the sequence and open health/design decisions.
+Step 6 is complete. The next named step is the approved prototype's frontend port,
+P5–P8. It must escape record content, include empty/loading/error states, and add
+Playwright checks against the prototype. Layout and change planning follow; Miro
+is an optional export and chat import is separate. See the handoff's next prompt.
 
 Keep secrets in environment variables. `.env` is ignored; `.env.example`
 documents the author identity and later Miro configuration.

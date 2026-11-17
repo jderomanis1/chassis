@@ -22,8 +22,9 @@ one-build-step-per-chat workflow. Read the current user request first.
 - Prove one real read/write/render loop using fictional records and local execution.
 - The broader paid-discovery brief eventually calls for real ventures; it does
   not authorize real data, live accounts, or deployment in Increment 0.
-- The read-only portal is now a later approved step after MCP. Joe must approve
-  its design prototype before any portal code. Implement only the named step.
+- Joe approved the portal prototype and P1–P4 backend in Step 6. The next named
+  step is its frontend port, P5–P8. Preserve the approved design and implement only
+  the step requested in the current chat.
 - No agent spawning, two-way Miro sync, paid infrastructure, or model-specific
   dependency. Chat import has its own separately scoped later step.
 - Live business-account writes remain out of scope. Explicitly designated scratch

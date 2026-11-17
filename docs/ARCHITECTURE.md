@@ -2,12 +2,14 @@
 
 ## Current boundary
 
-Steps 1–5 implement the source-record schema, safe parsing, relationship and policy
+Steps 1–6 implement the source-record schema, safe parsing, relationship and policy
 validation, fictional records, a disposable SQLite index, and versioned local
 record writes, constrained templates, approved portal data fields, and stdio MCP. Commands include `validate`, `index
 rebuild`, `list`, `get`, `search`, `update`, `create`, `new`, and `commit-human`.
-`chassis-mcp` exposes six tools using the official MCP Python SDK, locked at 2.3.0.
-Portal UI, health calculations, layout, and rendering remain later work.
+`chassis-mcp` exposes six tools using the optional official MCP SDK, locked at 2.3.0.
+Step 6 adds authenticated, scoped library reads, clearance, audit, token provisioning,
+and the optional Starlette/uvicorn P1–P4 portal backend with pure health calculations.
+The frontend P5–P8, layout, and rendering remain later work.
 Execution and data remain local and fictional; any Miro proof uses designated scratch space.
 
 ## Source records
@@ -63,51 +65,76 @@ positions, and semantic presentation fields. No Miro item types or remote IDs
 belong in that graph. Layout and generic planning remain outside the adapter.
 Miro-specific runtime code lives only below `src/chassis/render/miro/`.
 
-Restricted records and edges exposing them are excluded before graph emission.
-Later tests must cover hidden parents and descendants, and a previously rendered
-record changing from normal to restricted. Exclusion alone does not remove old
-board content; that transition needs an explicit, tested policy before release.
-Status changes must not move neighboring cards or alter parent summaries.
+`RecordIndex.graph()` and `read_model.neutral_graph()` supply the current neutral
+nodes/edges projection without layout. Library filtering removes unauthorized
+restricted records, their edges, hidden-parent descendants, and hidden dependency
+IDs from visible records. A restricted-clearance agent still needs an exact grant.
+Counts and health use only that filtered view. Joe's Step 6 decision supersedes
+the masked-placeholder design in the supplied ADR and checkpoint.
+Previously rendered content becoming restricted still needs explicit removal in
+future clients/exporters. The future Miro single-card update contract must not
+move neighbors; the portal's computed parent health does roll up visible status.
 
 ## C3 and C5: agent identity and tool boundaries
 
 `agents.yaml` defines grants by agent ID, venture ID, and record type. A write
-grant permits reads too. Unknown agents are read-only. Missing or invalid policy
-must deny writes. Reload and check the policy on every write, including old and
-new scope when relevant. A record's `assigned_agent` never supplies caller identity.
+grant permits reads too. Unknown/empty agents and invalid credentials have no access.
+Missing or invalid policy denies all reads and writes. Reload policy and token
+hashes before and under the vault lock. A record's `assigned_agent` never supplies identity.
 Record tools cannot edit the policy file. Policy validation rejects grants other
 than read/write, unknown venture references, and unknown assignment IDs. Step 3
 enforces exact venture/type write grants, including old and new scope on a move.
-Restricted records use the same write-grant rule; sensitivity is not an identity.
+Each agent has `clearance: normal` by default or explicit `restricted`. Reading or
+writing a restricted record requires restricted clearance and a venture/type grant.
+Updates check both current and proposed sensitivity, preventing declassification by
+a normal-clearance writer. Reads outside the caller's scope are indistinguishable
+from missing records; unauthorized updates use a generic refusal without type/venture.
 
-CLI and MCP caller identity come from `CHASSIS_AGENT_ID`; the library accepts an explicit trusted
-caller ID. Author name/email come from `CHASSIS_AGENT_NAME` / `CHASSIS_AGENT_EMAIL`.
-Unknown/read-only callers are refused after reading only policy, before record,
+CLI/MCP caller identity is `CHASSIS_AGENT_ID`, proven with `CHASSIS_AGENT_TOKEN`.
+The library accepts explicit agent/token arguments or those environment values.
+Token comparison uses SHA-256 and constant-time digest comparison against ignored
+`.chassis/agent-tokens.yaml`. The local operator command `chassis agent-token create
+<agent-id>` prints a fresh token once, stores only its hash with mode 0600, and
+rotates any previous token. The example file contains placeholders only.
+Author name/email come from `CHASSIS_AGENT_NAME` / `CHASSIS_AGENT_EMAIL`.
+Unknown or nonwriting callers are refused after policy/credential reads, before record,
 lock, index, template, or Git access. Scoped updates read only target frontmatter
 and check current/destination grants before reading a record body. Template creates
 check the supplied venture/type grant before any template or record I/O.
 Denied scopes never open the lock/index or invoke Git. Under the lock,
-policy and the target are reread and grants are checked again. These are local
-authorization checks, not an authentication service or a filesystem sandbox.
+policy, credentials, and the target are reread and grants are checked again.
+These are local bearer-token controls; direct filesystem and Git access bypass them.
+
+Each public library read/write appends one UTC JSON line to ignored
+`.chassis/audit.jsonl`: agent ID, tool, outcome, and returned IDs or list/search count.
+Denied reads record no IDs. Bodies, search text, and tokens are never logged.
+An append failure withholds a read result; a post-commit failure reports recovery
+metadata rather than falsely saying the write did not commit. The log is local,
+append-locked, and body-free; it is not a remote tamper-proof ledger.
 
 `chassis.tool_handlers.ToolHandlers` contains transport-independent argument
 models, error mapping, and thin calls into the same `RecordIndex`/`RecordStore`
-methods used by the CLI. `chassis.mcp_server` supplies the official SDK stdio
-adapter, runs blocking library calls in worker threads, and logs to stderr.
+methods used by the CLI. `chassis.mcp_server` lazily loads `mcp_transport` and gives
+an install message when the `mcp` extra is absent. The official SDK adapter runs
+blocking library calls in worker threads and logs to stderr.
 There are exactly six tools: `list_records`, `read_record`, `search`,
 `create_record`, `create_from_template`, and `update_record`. The library's
 `get_record` method is exposed as `read_record`; no `upsert_record` tool exists.
-Arguments forbid extra fields and accept no caller ID/name/email. `--vault` or
+Arguments forbid extra fields and accept no caller ID/token/name/email. `--vault` or
 `CHASSIS_VAULT` sets the vault; the default is the process's working directory.
-No model SDK, model credential, HTTP server, or agent spawning
-is required. Agent templates remain files; their default permission is read-only.
+No model SDK, model credential, or agent spawning is required. Agent templates
+remain descriptive files and grant no access. MCP has no HTTP listener.
+Stdio refuses invalid identity before handshake, caps each request at 1 MiB
+(environment/CLI configurable), returns `-32700` for malformed JSON, and drains
+oversized requests before continuing. SIGTERM waits for an active transaction,
+ends child processes, and frees the kernel lock while retaining its stable inode.
 
 MCP success results are objects: `records` for list/search, `record` for read,
 and `record` plus `commit` for writes. Identical JSON is returned in text content
 and `structuredContent`. Failures set `isError: true`: `conflict` includes the
-expected/current versions, `unauthorized` and `dirty_record` retain actionable
+expected/current versions, `unauthorized` is generic, `dirty_record` retains actionable
 details, `validation` includes a field and reason (plus issues for schema errors),
-and `not_found` identifies missing records/tools. Whole-record/relationship errors
+and record `not_found` never echoes the requested ID. Whole-record/relationship errors
 use `record` as the field when no narrower field is available. Git/index/internal
 failures keep separate structured codes. Raw hook/exception diagnostics go only
 to stderr. Post-commit and uncertain-commit metadata is preserved for recovery.
@@ -158,6 +185,8 @@ is accepted. It then checks status and compares content with HEAD if status is c
 the manual file bytes, including its version, and cannot commit policy/nonrecord
 paths. It reuses that same flag/hash check. Clear assume-unchanged/skip-worktree
 flags first if the guard names them; Chassis never clears flags implicitly.
+It also requires a valid configured agent token, write grant, and clearance;
+the human name/email are Git attribution, not a permission bypass.
 
 Ordinary editors and external Git commands do not honor Chassis locks. Coordinate
 manual editing and reread after the human handoff. File replacement and Git are
@@ -204,11 +233,13 @@ The new kind uses existing validation, index, update, and human-commit behavior.
 It grants no access, registers no caller, and starts no process. A human must
 explicitly grant the author `agent: write` to create these documents. A separate
 human policy edit is required to give the new ID any writes or make it assignable.
-The checked-in sample policy and original 13 records remain unchanged.
+Step 6 changes the sample policy to deny unknown agents and gives the chief-of-staff
+restricted clearance. The restricted sample's owner is unique for meaningful leak
+scans; the fixture remains 13 fictional records.
 
 ## Disposable index and read contract
 
-`RecordIndex(root)` in `chassis.index` is the transport-independent library API.
+`RecordIndex(root, agent=None, token=None)` is the transport-independent read API.
 It uses the Python standard-library SQLite driver. `.chassis/index.sqlite` is
 ignored by Git and can always be deleted. Sources, policy, and Git history are
 never changed by reads or rebuilds.
@@ -217,7 +248,7 @@ never changed by reads or rebuilds.
 from pathlib import Path
 from chassis.index import RecordIndex
 
-index = RecordIndex(Path("."))
+index = RecordIndex(Path("."))  # Uses CHASSIS_AGENT_ID and CHASSIS_AGENT_TOKEN.
 index.list_records({"type": "task", "sensitivity": "restricted"})
 index.get_record("task-launch-budget")
 index.search("three most repeated")
@@ -225,8 +256,10 @@ index.search("three most repeated")
 
 All results contain the full normalized record plus unchanged Markdown `body`
 and derived `last_activity_at`.
-Lists and searches use ascending ID order. `sensitivity` is always present;
-restricted records remain readable here. Renderer filtering belongs to C2.
+Lists and searches use ascending ID order. `sensitivity` is always present on
+returned records. All filtering, including hidden parents and dependencies, is
+enforced here before CLI, MCP, graph, search, counts, or portal serialization.
+`read_record` aliases `get_record`; `graph(venture=None)` uses the same visibility.
 
 Filters are case-sensitive exact matches on type, venture, status, parent,
 assigned_agent, sensitivity, next_milestone, milestone_due_at, due_at,
@@ -234,18 +267,20 @@ blocker_reason, and last_activity_at, combined with AND. Omission means no const
 `None` matches any nullable field; CLI `null` has the same meaning. Date filters
 require `YYYY-MM-DD`. Activity filters match the returned UTC datetime exactly.
 Unsupported filter fields or value types raise `ValueError`. No-match
-list/search results are `[]`; a missing ID is `None` in Python and exit code 1
-with `NOT FOUND` on CLI stderr. JSON output has sorted keys and no cache metadata.
+list/search results are `[]`; a missing or unauthorized ID is `None` in Python and
+exit code 1 with generic JSON `not_found` on CLI stderr. Unauthorized list/search
+and rebuild return `[]` and zero respectively. JSON has no cache metadata.
 
 Search trims outer query whitespace, then matches a literal Unicode-casefolded
 substring within title, next_step, or body. There is no query language, wildcard,
 regular expression, relevance ranking, or cross-field phrase match. Blank search
-returns `[]` after validating the working tree.
+returns `[]`; valid callers' working-tree reads still validate authoritative sources.
 
 Every read scans record paths and hashes their current bytes with SHA-256, even
 when mtime is unchanged. Nanosecond mtime and content hash select cached versus
 newly parsed records. The exact bytes hashed are parsed; metadata changes during
-that individual read fail with the filename. Additions, edits, and removals are
+that individual read fail safely. Public validation errors omit source names and
+contents so a malformed hidden row cannot expose them. Additions, edits, and removals are
 validated as a complete graph before the cache transaction updates changed rows.
 Policy validation and known-assignment checks also run on every read.
 
@@ -263,7 +298,8 @@ unborn repositories, and new uncommitted records. The value is stored only in th
 disposable projection and included in row integrity checks, never in record JSON
 or source Markdown. History is refreshed on every read, independently of source
 mtime/hash; an edit followed by a byte-identical restore still advances activity.
-Schema-2 caches rebuild automatically. No health, age threshold, or colors are derived.
+Schema-2 caches rebuild automatically. Health is a pure portal projection over
+the authorized read view, never stored in source Markdown or SQLite.
 
 Each read costs a full source-byte scan, Git history scan, and graph validation. Rebuilds serialize
 an in-memory SQLite database through the same atomic writer. This is an explicit
@@ -280,14 +316,14 @@ instructions and work. Never force-push. Secrets come from the environment;
 
 ## Approved roadmap change, 2026-11-16
 
-Joe moved the portal into scope after MCP. This supersedes the earlier Miro-first
-sequence. Step 5 adds the explicitly approved data fields and MCP only; no portal,
-graph-export, layout, Miro, agent integration, or chat-import implementation is included.
+Joe moved the portal into scope after MCP, then approved Step 6 read security and
+the P1–P4 backend using the supplied ADR. The prototype is approved. This checkpoint
+ends before its frontend port, P5–P8.
 
 | Order | Scope and gate |
 | :--- | :--- |
 | Step 5 | Complete: transport-independent MCP tools, proved through real stdio clients |
-| Step 6 | Read-only command-center web portal over the Chassis library and index; Joe must approve its design prototype before any portal code |
+| Step 6 | Complete: read security and portal backend P1–P4. Next named step: approved frontend port P5–P8 |
 | Step 7 | Renderer-neutral layout and change planner |
 | Step 8, optional | Miro export: designated scratch API contract/deletion probe first, then adapter and live export proofs |
 | Step 9, separately scoped later | Chat import |
@@ -295,30 +331,35 @@ graph-export, layout, Miro, agent integration, or chat-import implementation is 
 Portal requirements: home shows every venture's health; navigation drills from
 venture to initiative to tasks; a dependency map consumes the neutral JSON graph;
 an ask-anything bar is wired to the agent. The portal and its ask flow are read-only.
-The prototype review must settle information hierarchy, health definitions, and
-the agent connection/identity before implementation. It does not authorize deployment.
+The supplied ADR governs the approved design. It does not authorize deployment.
 
-The portal needs a minimal renderer-neutral nodes/edges projection before the
-later layout planner exists. Define that read contract during the portal step;
-leave position planning and per-item change planning for Step 7. The present
-`graph.py` validates relationships and is not that JSON export. C2 filtering of
-restricted nodes and revealing edges still applies. The index alone does not
-provide read isolation. C1 and the other Miro contracts still govern an optional export.
+### Portal backend P1–P4
 
-### Portal fields approved; health decisions remain
+`chassis portal` runs one Starlette/uvicorn process with the optional `portal`
+extra. Default bind is `127.0.0.1:8765`; non-loopback requires the explicit remote
+environment flag and remains outside the sample-only deployment scope.
+`CHASSIS_PORTAL_VIEWER_AGENT` defaults to `reviewer`, with `CHASSIS_AGENT_TOKEN`.
+Every request rechecks that identity and calls authorized library reads. There is
+no portal redact bypass or request-selected clearance. Host/Origin must match the
+configured authority when Origin is present. Only GET is accepted, including on
+unknown paths; errors use the ADR envelope without traces and responses are private,
+nonstored JSON. There is no frontend mount or ask endpoint in this backend step.
 
-Joe approved the milestone, due-date, blocker, and derived activity fields in Step 5.
-The remaining decisions concern how the future portal interprets and presents them.
+The six GET routes follow ADR section 6. Snapshot, drilldown, and graph read state
+retry if HEAD/working-tree fingerprints change during the read. The etag covers
+Git HEAD and nonignored working-tree bytes; token hashes, audit, and cache are
+ignored. It is repository-wide, not a per-viewer activity metric. Search delegates
+directly to library search. The "Agent writes today" field is omitted.
 
-| Information | Current support | Decision needed before the health view |
-| :--- | :--- | :--- |
-| Lifecycle, responsibility, next action | `status`, `owner`, `assigned_agent`, `next_step` | Define health separately from lifecycle status |
-| Drilldown and dependencies | `venture`, `parent`, `depends_on` | Define rollups and hidden-record handling in the neutral read projection |
-| Next milestone | Optional `next_milestone` and `milestone_due_at` on ventures/initiatives | Define how missing milestones/dates affect the display |
-| Overdue tasks | Optional task `due_at` | Define whether/how lateness affects health |
-| Reason for a blocker | Task `blocker_reason`, required only when blocked | Define summaries and dependency effects |
-| Last committed activity | Derived `last_activity_at`, including agent/human commits | Define freshness thresholds and how to present uncommitted changes separately |
-| Overall health and explanation | No health model | Define computed health, reason, freshness, and an unknown state before assigning colors |
+`health(record, children, today)` is pure. Task priority is done, blocked, overdue,
+due within 3 days, activity older than 14 Phoenix calendar days, no signal, then
+on track. Waiting on a visible unfinished dependency adds a reason without changing
+color. Parent milestones overdue are red; within 7 days is at least yellow.
+Otherwise the worst non-done child's known color wins; all active unknown children
+yield unknown, and all completed children yield green. No children and no milestone
+yield unknown. Missing/hidden children contribute neither color nor reason.
+Thresholds are constants in config, and table tests inject the date.
 
-The portal step must settle health rules, reasons, freshness, and unknown states
-before assigning colors. Step 5 does not implement health calculations or UI.
+Next: port the approved prototype with escaped record content, empty/loading/error
+states, and Playwright tests. Model-backed ask, layout/change planning, optional
+Miro export, and chat import remain separately gated. C1–C7 still govern them.
