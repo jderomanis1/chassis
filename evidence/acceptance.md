@@ -38,6 +38,31 @@ Screenshots at 1440x900 are in `evidence/step7-ui/`: dark and light overview wit
 
 Playwright after these additions: 13 passed (scaffold, canvas, live loop, X1, X2, X3). Focused graph and portal write tests passed. This is not an independent review.
 
+### Review fixes at a5cd405
+
+Detached worktrees of `a5cd40597253659dde0af819e17719f19d17bd34` each removed `.venv`, ran `uv sync --locked`, then `.venv/bin/pytest -q`. The lock SHA-256 stayed `68c9c88f407c84e838c5db81889db37dbb4d378229c0603c58c3c22573640932`. Source status was empty. This is not a SecOps, QE, or Code Reviewer approval.
+
+| Command in that worktree | Result pytest printed |
+| :--- | :--- |
+| `uv sync --locked --all-extras` then `.venv/bin/pytest -q` | **701 passed in 59.29s** |
+| `uv sync --locked` then `.venv/bin/pytest -q` | **515 passed, 8 skipped in 24.46s** |
+| `uv sync --locked --extra portal` then `.venv/bin/pytest -q` | **666 passed, 7 skipped, 1 warning in 35.64s** |
+
+Core skips are 1 portal module and 7 MCP modules. Portal skips are the 7 MCP modules. The warning is `StarletteDeprecationWarning` for `TestClient` and httpx at `tests/portal/conftest.py:6`.
+
+Before fixture and demo repositories set `commit.gpgsign` false, two all-extras runs on `520a639` were not clean: `1 failed, 699 passed in 1093.37s (0:18:13)` (`test_sigterm_finishes_active_transaction_and_releases_lock` exceeded 5 seconds) and `699 passed, 1 error in 1120.67s (0:18:40)` (`git commit` exit 128, `Couldn't find key in agent?`). The counts in the table are the later clean runs.
+
+A fourth detached worktree at `520a639`, whose frontend sources and 21 static files match `a5cd405`, used Node 24.22.1 and npm 11.9.0:
+
+| Check | Result |
+| :--- | :--- |
+| `npm test` | **15 passed**, 0 failed |
+| `npm run contrast` | dark 64 pairs, 0 failures, lowest 5.11; light 64 pairs, 0 failures, lowest 4.74 |
+| `npm audit --omit=dev` | info 0, low 0, moderate 0, high 0, critical 0, total 0 |
+| `npm run build` twice | both builds matched the committed 21 static files, and matched each other |
+
+Playwright then ran alone from `frontend/` with `CHASSIS_CHROMIUM=/usr/local/bin/google-chrome npx playwright test` against the same tree: **14 passed (52.2s)**.
+
 ### Fresh locked checkout at 1cb92f4
 
 Three detached worktrees of `1cb92f44e82d55e46cc69aac69ace6b06a7d0a34` started with no virtual environment. Each used `uv sync --locked` and `.venv/bin/pytest -q`. The lock SHA-256 stayed `68c9c88f407c84e838c5db81889db37dbb4d378229c0603c58c3c22573640932`. Source status was empty in all three.

@@ -173,13 +173,18 @@ tokenized invitation/tracking links are not copied into the repository.
   `chassis demo-init` vault: seven tiles, zoom, drag persistence, gated edit,
   undo, conflict text, search, XSS, restricted-content absence, and a real stdio
   MCP status change that recoloured a card within the five-second poll.
-  Screenshots are in `evidence/step7-ui/`. The working tree passed 696 tests.
-  A second `npm run build` reproduced all 21 static files. Contrast stayed at
-  0 failures. Production npm audit stayed at 0. This is not an independent review.
+  Screenshots are in `evidence/step7-ui/`. This is not an independent review.
 - X1 hide, X2 command bar, and X3 task links are implemented on this branch.
   Hover details are in a strip above the tiles. The camera fits once after fonts
   load. The venture arrangement is still a dagre graph, not the prototype lane
   drawing. Layout audit failure after a non-record write has no commit payload.
+- Review fixes on this branch: hidden and missing dependencies share one
+  `invalid dependency` refusal (`653261e`); a second undo keeps the new version
+  (`5cad208`); GET `/api/layout` does not rewrite the file (`ee71feb`); `::1` is
+  loopback (`51d8d05`); library bodies are capped at 64 KiB (`8319c13`); a failed
+  post-commit audit is not rolled back because the commit is already durable
+  (`520a639`). Head for the locked recount is `a5cd405`. Counts are in
+  `evidence/acceptance.md`.
 
 ## Earlier Step 7 resume checkpoint
 
@@ -512,8 +517,9 @@ Desktop UI or MCP HTTP transport pass is claimed.
 
 ## Current portal and SecOps boundary
 
-`chassis portal [--port 8765]` binds only 127.0.0.1. The legacy remote override is
-removed. The configured viewer defaults to reviewer via
+`chassis portal [--port 8765]` binds `127.0.0.1` or `::1`. `localhost` normalizes
+to `127.0.0.1`. The legacy remote override is removed. Other hosts stay refused.
+The configured viewer defaults to reviewer via
 CHASSIS_PORTAL_VIEWER_AGENT and uses CHASSIS_AGENT_TOKEN. Host/Origin, token,
 grant, clearance, generic-error, and no-store controls remain in force.
 
@@ -545,16 +551,18 @@ canvas stay off main until independent SecOps review. Read AGENTS.md,
 CHASSIS_PROJECT_HANDOFF.md, docs/ARCHITECTURE.md, docs/PORTAL-ADR.md,
 docs/STEP7-CANVAS-SCOPE.md, evidence/acceptance.md, and FINDINGS.md.
 
-F1-F6 and X1-X3 are implemented on cursor/step7-canvas-d0a6. Playwright's 13
-canvas tests passed, including the six command-bar phrases and task linking.
-Screenshots are in evidence/step7-ui/. Do not claim SecOps, QE, or Code Reviewer
-approval. Do not merge to main.
+F1-F6, X1-X3, and the review fixes are on cursor/step7-canvas-d0a6 at a5cd405.
+Hidden and missing dependencies share the invalid dependency error. A second
+undo uses the version from the first. GET /api/layout does not rewrite the file.
+::1 is loopback. Library bodies are capped at 64 KiB. A failed post-commit audit
+is not rolled back. Do not claim SecOps, QE, or Code Reviewer approval. Do not
+merge to main.
 
-A fresh locked checkout of 1cb92f4 passed: all-extras 698, core 513 passed
-and 8 skipped, portal 663 passed, 7 skipped, and 1 warning. npm test was 14
-passed. Contrast and the production audit were clean. Two builds matched the
-committed 21 files. Playwright alone passed 13 tests. The venture graph is
-dagre, not the prototype lanes.
+A fresh locked checkout of a5cd405 passed: all-extras 701, core 515 passed and
+8 skipped, portal 666 passed, 7 skipped, and 1 warning. npm test was 15 passed.
+Contrast and the production audit were clean. Two builds matched the committed
+21 files. Playwright alone passed 14 tests. The venture graph is dagre, not the
+prototype lanes.
 No real data, ask/model, Miro, gateway, hosting, deployment, or secrets in code.
 Demo target remains Monday, November 23, 2026, morning, America/Phoenix.
 ```

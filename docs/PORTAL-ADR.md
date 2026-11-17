@@ -28,7 +28,8 @@ work. This does not change the strict CSP or approve a merge.
 
 ## 2. Local HTTP and the write gate
 
-The server binds only 127.0.0.1; localhost normalizes to it. GET retains exact Host
+The server binds 127.0.0.1 or ::1. localhost normalizes to 127.0.0.1. Other hosts,
+including the unspecified addresses, are refused. GET retains exact Host
 and absent-or-exact Origin checks, configured viewer authentication, and private,
 no-store responses. There are no CORS headers or browser-selected identities.
 The strict CSP permits same-origin scripts/styles/fonts/connects, no unsafe-inline
@@ -47,16 +48,22 @@ launch budget. Default read-only GET-method refusals retain their earlier contra
 The browser alone uses this path; local automation continues to use CLI/MCP.
 
 PATCH accepts only title (240 characters), status, next_step (4096), blocker_reason
-(4096), due_at, and expected_version. Unknown fields and invalid IDs are refused;
-body and owner edits are not allowed. An existing target body above 64 KiB is
-refused. `RecordStore.update_record` remains the only record transaction. A success
+(4096), due_at, depends_on, and expected_version. Unknown fields and invalid IDs
+are refused; body and owner edits are not allowed. An existing target body above
+64 KiB is refused, and library create and update refuse a new body above 64 KiB.
+A dependency the writer cannot read, and a dependency that does not exist, both
+return the same `invalid dependency` error and do not write. `RecordStore.update_record`
+remains the only record transaction. A success
 returns id/version/commit, with one record-only commit by the editor. Stale updates
 return 409/current_version with no commit; missing/hidden/ungranted IDs share 404.
 Dirty edits retain the actionable `uncommitted human edit` message.
 
 C1/C2 are implemented on the review branch but are not independently accepted.
-Review all exception/recovery paths, including a final middleware audit failure
-after a successful record commit, before SecOps signoff or merge.
+Review all exception/recovery paths before SecOps signoff or merge. A middleware
+audit failure after a successful record commit does not reset HEAD. That commit
+is already durable; resetting it can delete a newer commit, and a failed reset
+would hide `committed`, `commit`, and `current_version`. The response keeps those
+facts and uses HTTP 500.
 
 ## 3. Visibility and layout
 

@@ -1,5 +1,32 @@
 # Findings
 
+## Review fixes: observed at a5cd405
+
+These notes are engineering evidence on `cursor/step7-canvas-d0a6`. They are not
+SecOps, QE, or Code Reviewer approval. Main is still `42f0fa0`.
+
+- A writer must be able to read every `depends_on` id. A missing id and an
+  unreadable id both return `invalid dependency`, with the same status and body,
+  and the record file is unchanged. The canvas link gesture only offers visible
+  tasks. Commit `653261e`.
+- A second undo of the same card stores the version returned by the first undo.
+  A stale undo is dropped and the canvas says `nothing to undo`. Commit `5cad208`.
+  The browser test waits for the venture graph refresh before the next edit.
+- GET `/api/layout` filters ids the viewer cannot see and does not rewrite the
+  file. A later PUT still drops those ids. Commit `ee71feb`. The earlier note
+  that a read deletes invisible ids describes `4f87fc3` only.
+- `::1` is an accepted loopback bind, with `127.0.0.1`. Other hosts stay refused.
+  Commit `51d8d05`.
+- Library create and update refuse a record body over 64 KiB and leave the vault
+  unchanged. Commit `8319c13`.
+- A post-commit audit failure still leaves the record commit in place and returns
+  500 with `committed`, `commit`, and `current_version`. The commit is already
+  durable. Resetting HEAD can delete a newer commit, and a failed reset would
+  hide those recovery facts. Commit `520a639` records that reason. The behavior
+  itself is `8033bf2`.
+- Fixture and demo repositories set `commit.gpgsign` false. A host signing key
+  is not part of a local fictional commit. Commit `1aa0bfd`.
+
 ## Step 7 stretch: observed after f544ea4
 
 X1, X2, and X3 are on `cursor/step7-canvas-d0a6`. The earlier F1-F6 Playwright
