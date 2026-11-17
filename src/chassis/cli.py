@@ -21,6 +21,8 @@ from chassis.validation import load_vault
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="chassis", description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
+    demo = commands.add_parser("demo-init", help="Create a new fictional demo vault and print its credentials once")
+    demo.add_argument("directory", type=Path)
     portal = commands.add_parser("portal", help="Serve the local read-only JSON API")
     portal.add_argument("--host", default="127.0.0.1")
     portal.add_argument("--port", type=int, default=8765)
@@ -63,6 +65,10 @@ def main(argv=None) -> int:
         command.add_argument("--vault", type=Path, default=Path.cwd())
     args = parser.parse_args(argv)
     try:
+        if args.command == "demo-init":
+            from chassis.demo import create_demo
+            print(json.dumps(create_demo(args.directory), indent=2))
+            return 0
         if args.command == "portal":
             return _portal(args)
         if args.command == "agent-token":
