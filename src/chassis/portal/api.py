@@ -5,7 +5,8 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 
 from chassis.errors import NotFoundError
-from chassis.portal.config import version_etag
+from chassis.portal.config import today, version_etag
+from chassis.portal.health import health_map
 from chassis.templates import GTM_SECTIONS
 
 TASK_FIELDS = ("id", "title", "owner", "status", "due_at", "blocker_reason",
@@ -37,8 +38,8 @@ def gtm(body):
 
 
 def projections(request, records):
-    # P3 supplies the approved pure health rules; no status-to-color assumption.
-    rows = [r | {"health": {"color": "unknown", "reasons": ["no_signal"]}} for r in records]
+    health = health_map(records, (request.app.state.clock or today)())
+    rows = [r | {"health": health[r["id"]]} for r in records]
     for record in rows:
         tasks = [r for r in rows if r["type"] == "task" and (
             r["venture"] == record["id"] if record["type"] == "venture" else r["parent"] == record["id"])]
