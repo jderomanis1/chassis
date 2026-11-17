@@ -46,7 +46,12 @@ async def response_payload(response):
 
 
 async def commit_audit_failure(response):
-    """Keep commit recovery visible when the audit append fails after a successful write."""
+    """Keep commit recovery visible when the audit append fails after a successful write.
+
+    The record commit is already durable before this append. Resetting HEAD would
+    risk deleting a newer commit, and a failed reset would hide the recovery facts.
+    The response tells the client the write committed so it reloads instead of retrying.
+    """
     details = {}
     if response.status_code < 400:
         payload = await response_payload(response)
