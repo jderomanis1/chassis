@@ -1,5 +1,6 @@
 """One-process read-only JSON API using the authenticated library view."""
 from pathlib import Path
+from secrets import token_urlsafe
 
 from pydantic import ValidationError
 from starlette.applications import Starlette
@@ -33,14 +34,21 @@ def create_app(config, *, clock=None):
         record_event(config.root, config.viewer_agent, "version", "ok")
         return JSONResponse({"etag": etag})
 
+    def session(request):
+        record_event(config.root, config.viewer_agent, "session", "ok")
+        return JSONResponse({"csrf": request.app.state.csrf, "writes_enabled": False,
+                             "viewer": config.viewer_agent})
+
     async def http_error(request, exc):
         return error("not_found", "Not found", 404)
 
-    app = Starlette(routes=[Route("/api/version", version, methods=["GET"]), *routes,
+    app = Starlette(routes=[Route("/api/session", session, methods=["GET"]),
+                    Route("/api/version", version, methods=["GET"]), *routes,
                     Route("/api/{path:path}", lambda request: error("not_found", "Not found", 404), methods=["GET"]),
                     Mount("/", app=StaticFiles(directory=ASSET_ROOT, html=True), name="static")],
                     exception_handlers={404: http_error})
     app.state.index, app.state.config, app.state.clock = index, config, clock
+    app.state.csrf = token_urlsafe(32)
 
     async def boundary(request, call_next):
         try:

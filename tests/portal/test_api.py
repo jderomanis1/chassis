@@ -4,8 +4,8 @@ from datetime import datetime
 from .helpers import git
 from test_security_cli import assert_no_leaks, restricted_terms
 
-VENTURE_KEYS = {"id", "title", "health", "next_milestone", "milestone_due_at", "counts", "last_activity_at"}
-TASK_KEYS = {"id", "title", "owner", "status", "due_at", "blocker_reason", "depends_on", "health", "last_activity_at"}
+VENTURE_KEYS = {"id", "title", "version", "health", "next_milestone", "milestone_due_at", "counts", "last_activity_at"}
+TASK_KEYS = {"id", "title", "version", "owner", "status", "next_step", "due_at", "blocker_reason", "depends_on", "health", "last_activity_at"}
 
 
 def test_snapshot_contract_and_exact_visible_counts(client):

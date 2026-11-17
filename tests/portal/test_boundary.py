@@ -10,7 +10,7 @@ from chassis.portal.app import create_app
 from chassis.portal.config import PortalConfig
 from test_security_cli import assert_no_leaks, restricted_terms
 
-PATHS = ["/api/version", "/api/snapshot", "/api/ventures/venture-acme",
+PATHS = ["/api/session", "/api/version", "/api/snapshot", "/api/ventures/venture-acme",
          "/api/initiatives/initiative-d2c-launch", "/api/graph", "/api/search?q=fictional"]
 
 

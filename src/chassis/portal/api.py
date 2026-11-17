@@ -12,9 +12,9 @@ from chassis.portal.config import today, version_etag
 from chassis.portal.health import health_map
 from chassis.templates import GTM_SECTIONS
 
-TASK_FIELDS = ("id", "title", "owner", "status", "due_at", "blocker_reason",
+TASK_FIELDS = ("id", "title", "version", "owner", "status", "next_step", "due_at", "blocker_reason",
                "depends_on", "health", "last_activity_at")
-CARD_FIELDS = ("id", "title", "health", "next_milestone", "milestone_due_at",
+CARD_FIELDS = ("id", "title", "version", "health", "next_milestone", "milestone_due_at",
                "counts", "last_activity_at")
 
 
@@ -95,7 +95,8 @@ def graph(request):
     rows = projections(request, records)
     view = neutral_graph(rows, venture)
     by_id = {row["id"]: row for row in rows}
-    view["nodes"] = [node | {"health": by_id[node["id"]]["health"]} for node in view["nodes"]]
+    view["nodes"] = [node | {key: by_id[node["id"]][key] for key in ("health", "version")}
+                     for node in view["nodes"]]
     return JSONResponse(view)
 
 

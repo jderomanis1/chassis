@@ -12,7 +12,7 @@ def test_neutral_graph_contract_counts_and_dependency_direction(client):
     graph = response.json()
     assert set(graph) == {"nodes", "edges"}
     assert len(graph["nodes"]) == 12
-    assert all(set(node) == {"id", "type", "parent", "status", "health"} for node in graph["nodes"])
+    assert all(set(node) == {"id", "type", "parent", "status", "health", "version"} for node in graph["nodes"])
     assert all(set(node["health"]) == {"color", "reasons"} for node in graph["nodes"])
     assert graph["edges"] == [
         {"from": "task-maintenance-quotes", "to": "task-maintenance-plan", "blocking": True},
