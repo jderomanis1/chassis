@@ -87,6 +87,7 @@ def create_demo(destination):
     run_git(root, "init", "-q", "--initial-branch=main")
     run_git(root, "config", "user.name", "Chassis Demo")
     run_git(root, "config", "user.email", "demo@chassis.local")
+    run_git(root, "config", "commit.gpgsign", "false")
     run_git(root, "add", "--", "records", "agents.yaml", ".gitignore")
     run_git(root, "commit", "-qm", "chassis: initialize fictional canvas demo",
             identity=Identity("Chassis Demo", "demo@chassis.local"))

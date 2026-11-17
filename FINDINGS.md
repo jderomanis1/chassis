@@ -1,5 +1,95 @@
 # Findings
 
+## Review fixes: observed at a5cd405
+
+These notes are engineering evidence on `cursor/step7-canvas-d0a6`. They are not
+SecOps, QE, or Code Reviewer approval. Main is still `42f0fa0`.
+
+- A writer must be able to read every `depends_on` id. A missing id and an
+  unreadable id both return `invalid dependency`, with the same status and body,
+  and the record file is unchanged. The canvas link gesture only offers visible
+  tasks. Commit `653261e`.
+- A second undo of the same card stores the version returned by the first undo.
+  A stale undo is dropped and the canvas says `nothing to undo`. Commit `5cad208`.
+  The browser test waits for the venture graph refresh before the next edit.
+- GET `/api/layout` filters ids the viewer cannot see and does not rewrite the
+  file. A later PUT still drops those ids. Commit `ee71feb`. The earlier note
+  that a read deletes invisible ids describes `4f87fc3` only.
+- `::1` is an accepted loopback bind, with `127.0.0.1`. Other hosts stay refused.
+  Commit `51d8d05`.
+- Library create and update refuse a record body over 64 KiB and leave the vault
+  unchanged. Commit `8319c13`.
+- A post-commit audit failure still leaves the record commit in place and returns
+  500 with `committed`, `commit`, and `current_version`. The commit is already
+  durable. Resetting HEAD can delete a newer commit, and a failed reset would
+  hide those recovery facts. Commit `520a639` records that reason. The behavior
+  itself is `8033bf2`.
+- Fixture and demo repositories set `commit.gpgsign` false. A host signing key
+  is not part of a local fictional commit. Commit `1aa0bfd`.
+
+## Step 7 stretch: observed after f544ea4
+
+X1, X2, and X3 are on `cursor/step7-canvas-d0a6`. The earlier F1-F6 Playwright
+file still passes with them.
+
+- H or a drag released at the canvas edge stores the card id in layout `hidden`.
+  Show hidden puts those cards back. Neither path writes a record or a Git commit.
+- The command bar is Ctrl/Cmd+K. `interpret(command, ventures)` returns an intent
+  for exactly: zoom into a venture, show only blocked, show all, clear all but
+  active, fit, and back. A later voice path can call that function or pass the
+  same intent. Unknown text shows the supported list. Venture names fuzzy-match,
+  and a tie stays unknown.
+- Active means unfinished venture work, or a task/initiative that is in progress
+  or blocked. Blocked means a blocked task or a venture with a blocked count.
+- Dragging from one task handle to another PATCHes `depends_on`. A cycle or a
+  non-task target shows the library message and does not commit. A task may
+  depend only on a task. The existing cross-venture dependency case still passes.
+  Validation text that names a hidden record stays generic.
+- Hover details sit in a strip above the canvas. The camera fits once, after
+  fonts are ready. A command that changes the visible set fits again after those
+  cards are on screen.
+- A fresh detached checkout of `1cb92f4` passed the locked full, core, and
+  portal suites, plus npm test, contrast, a clean production audit, two
+  identical builds, and a solo Playwright run of 13 tests. No product fix was
+  required. The counts are in `evidence/acceptance.md`.
+
+## Step 7 canvas: observed at 60f91d1
+
+The canvas branch is `cursor/step7-canvas-d0a6`, based on `step7-c1-write` at
+`b54944d`. Main is still `42f0fa0`. Chrome launched under Playwright. The checks
+below are engineering evidence only.
+
+- F1 through F6 run against `chassis demo-init`. The page shows seven venture
+  tiles from `/api/snapshot`, colors them from `health.color`, and opens a
+  venture through the hash route. Dragging writes `/api/layout`. A reload keeps
+  those positions. An etag change updates a title without moving the camera.
+- Double-click edits title, status, next step, blocker reason, and due date
+  through PATCH. Undo sends the prior values as its own editor commit. A stale
+  version shows "Changed elsewhere. Reloaded the latest." and does not keep the
+  rejected title. With writes reported off, Edit and Undo are absent.
+- A real stdio `update_record` from chief-of-staff turned `task-lumen-launch-2`
+  red within the five-second poll. `git log` showed that chief-of-staff commit
+  and, for canvas saves, `canvas-editor <canvas-editor@chassis.local>`.
+- Search renders `/api/search` titles as text. An `<img onerror>` title stayed
+  inert. Restricted id, title, owner, and partial body were absent from the DOM,
+  the layout file, and the built bundle.
+- The final middleware audit append can fail after the record commit. The HTTP
+  body now keeps `committed`, `commit`, and `current_version`. A layout write has
+  no commit to report, so that audit failure stays a generic audit error.
+- Reading a valid layout now deletes ids the viewer can no longer see. Corrupt
+  layout files are still returned as empty and are not rewritten.
+- The venture graph uses dagre. Parent and dependency edges are visible, and
+  blocking edges are red, but the arrangement is not the prototype's lane map.
+  Overview tiles use a three-column grid because those nodes have no edges.
+  The hover card can cover a neighboring tile. Both are presentation limits, not
+  data leaks.
+- Fit-to-view runs again after fonts load. That second fit can move the camera
+  once during startup. It does not run again on the five-second refresh.
+- X1 hide, X2 command bar, and X3 dependency linking are not implemented.
+- No fresh detached all/core/portal install matrix was repeated in this session.
+  The working tree passed 696 tests. Original fixtures, `agents.yaml`,
+  `pyproject.toml`, and `uv.lock` were not edited.
+
 ## Step 7 resume: observed at 83b8d61
 
 C1/C2 are implemented on `step7-c1-write`. Main remains at 42f0fa0, with every

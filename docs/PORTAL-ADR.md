@@ -21,15 +21,15 @@ Generated tokens.css, the `chassis-theme` preference, and a local prepaint theme
 script are implemented. Chakra Petch, IBM Plex Sans, and JetBrains Mono are
 self-hosted from pinned Fontsource packages. There is no Google font CDN request.
 
-F1 is partial: API helper, theme toggle, loading/empty/error shell, and build.
-There are no venture tiles or F2-F6 interactions yet. The five Playwright scaffold
-cases could not launch Chromium because local Unix IPC is denied. Elevated
-execution was rejected by policy; the safer headless-shell download also failed.
-No browser, screenshot, or DOM proof is claimed. See the current handoff.
+The canvas now draws live venture tiles, a venture graph, hover cards, search,
+and the gated editor from the portal APIs. Playwright has launched Chrome against
+the built assets. See the current handoff for the commits and the remaining X1-X3
+work. This does not change the strict CSP or approve a merge.
 
 ## 2. Local HTTP and the write gate
 
-The server binds only 127.0.0.1; localhost normalizes to it. GET retains exact Host
+The server binds 127.0.0.1 or ::1. localhost normalizes to 127.0.0.1. Other hosts,
+including the unspecified addresses, are refused. GET retains exact Host
 and absent-or-exact Origin checks, configured viewer authentication, and private,
 no-store responses. There are no CORS headers or browser-selected identities.
 The strict CSP permits same-origin scripts/styles/fonts/connects, no unsafe-inline
@@ -48,16 +48,22 @@ launch budget. Default read-only GET-method refusals retain their earlier contra
 The browser alone uses this path; local automation continues to use CLI/MCP.
 
 PATCH accepts only title (240 characters), status, next_step (4096), blocker_reason
-(4096), due_at, and expected_version. Unknown fields and invalid IDs are refused;
-body and owner edits are not allowed. An existing target body above 64 KiB is
-refused. `RecordStore.update_record` remains the only record transaction. A success
+(4096), due_at, depends_on, and expected_version. Unknown fields and invalid IDs
+are refused; body and owner edits are not allowed. An existing target body above
+64 KiB is refused, and library create and update refuse a new body above 64 KiB.
+A dependency the writer cannot read, and a dependency that does not exist, both
+return the same `invalid dependency` error and do not write. `RecordStore.update_record`
+remains the only record transaction. A success
 returns id/version/commit, with one record-only commit by the editor. Stale updates
 return 409/current_version with no commit; missing/hidden/ungranted IDs share 404.
 Dirty edits retain the actionable `uncommitted human edit` message.
 
 C1/C2 are implemented on the review branch but are not independently accepted.
-Review all exception/recovery paths, including a final middleware audit failure
-after a successful record commit, before SecOps signoff or merge.
+Review all exception/recovery paths before SecOps signoff or merge. A middleware
+audit failure after a successful record commit does not reset HEAD. That commit
+is already durable; resetting it can delete a newer commit, and a failed reset
+would hide `committed`, `commit`, and `current_version`. The response keeps those
+facts and uses HTTP 500.
 
 ## 3. Visibility and layout
 
@@ -101,8 +107,9 @@ yields unknown. Hidden children contribute no color or reason.
 
 Errors retain `{error:{code,message}}`, with current_version on conflict and
 available recovery metadata on committed library failures. Etags omit hidden
-records, global HEAD, and unrelated files. The F1 shell polls version every five
-seconds; UI refresh behavior is unverified until a browser can run.
+records, global HEAD, and unrelated files. The canvas polls `/api/version` every five seconds. A Playwright check saw a
+committed title change without a camera jump. A stdio MCP status change recolored
+the open task card. A stale PATCH shows the conflict text and reloads.
 
 ## 6. Verification and remaining gates
 
@@ -112,13 +119,8 @@ fixtures and Python dependency files are unchanged. Actual HTTP checks serve all
 21 compiled assets, exercise eight GET routes plus PATCH/PUT, and observe one
 editor-attributed commit. This does not prove a canvas interaction.
 
-The current verification JSON records clean Python installs, scoped leak checks,
-four JavaScript checks, both 64-pair contrast checks, byte-identical rebuilt assets,
-and a production dependency audit with zero vulnerabilities. Licenses and notices
-are preserved. No independent Step 7 review verdict is inferred.
-
-Finish F1 browser verification, then F2-F6: live tiles, zoom/drilldown, search,
-drag persistence, edit/undo/conflict UX, XSS/visibility transitions, real stdio
-MCP/canvas loop, both-theme screenshots, and DOM leak checks. X1-X3 wait until all
-core checks pass. Working demo: Monday, November 23 morning, America/Phoenix.
+The working tree passed 696 tests. Contrast, the production audit, and a second
+production build stayed clean. Both-theme screenshots are in `evidence/step7-ui/`.
+No independent Step 7 review verdict is inferred. X1-X3 remain unstarted.
+Working demo: Monday, November 23 morning, America/Phoenix.
 No ask/model, real data, Miro, gateway, hosting, deployment, or agent spawning.

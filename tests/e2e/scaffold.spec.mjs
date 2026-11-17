@@ -14,8 +14,10 @@ test('served build loads only local assets and persists the accessible theme', a
   expect(foreign).toEqual([]);
   expect(errors).toEqual([]);
   const fonts = await page.evaluate(async () => {
+    const specs = ['500 16px "Chakra Petch"', '400 16px "IBM Plex Sans"', '400 16px "JetBrains Mono"'];
+    await Promise.all(specs.map(spec => document.fonts.load(spec)));
     await document.fonts.ready;
-    return ['Chakra Petch', 'IBM Plex Sans', 'JetBrains Mono'].map(family => document.fonts.check(`12px "${family}"`));
+    return specs.map(spec => document.fonts.check(spec));
   });
   expect(fonts).toEqual([true, true, true]);
 });

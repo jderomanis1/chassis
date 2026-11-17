@@ -48,6 +48,16 @@ def filtered(layout, visible):
             "viewport": layout.viewport.model_dump()}
 
 
+def stored_layout(path):
+    """Return a parsed layout and whether a valid file is safe to rewrite."""
+    try:
+        if path.stat().st_size > MAX_BODY:
+            return Layout(), False
+        return Layout.model_validate_json(path.read_bytes()), True
+    except (ValueError, OSError):
+        return Layout(), False
+
+
 def layout_route(request):
     config, index = request.app.state.config, request.app.state.index
     writing = request.method == "PUT"
@@ -60,11 +70,9 @@ def layout_route(request):
         path = layout_path(config)
         visible = {row["id"] for row in index._visible_locked()}
         if not writing:
-            try:
-                proposed = Layout.model_validate_json(path.read_bytes()) if path.stat().st_size <= MAX_BODY else Layout()
-            except (ValueError, OSError):
-                proposed = Layout()
+            proposed, _stored = stored_layout(path)
         result = filtered(proposed, visible)
+        # A read filters ids that are no longer visible. Only a save rewrites the file.
         if writing:
             path.parent.mkdir(mode=0o700, exist_ok=True)
             write_atomic(path, json.dumps(result, sort_keys=True, separators=(",", ":")).encode())

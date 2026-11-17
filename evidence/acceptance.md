@@ -1,11 +1,97 @@
 # Acceptance evidence
 
-**Snapshot:** Increment 0, Step 7 PARTIAL: C1/C2 implemented on the review branch; F1 browser-blocked; F2-F6 unstarted. **Date:** 2026-11-17.
+**Snapshot:** Increment 0, Step 7 canvas loop implemented on `cursor/step7-canvas-d0a6` against `step7-c1-write`. Main remains `42f0fa0`. C1/C2 are not independently reviewed. **Date:** 2026-11-17.
+
+## Step 7 canvas loop
+
+The command canvas now renders a separate `chassis demo-init` vault. Playwright
+launched Google Chrome and exercised the built portal. This is not a SecOps, QE,
+or Code Reviewer approval, and it is not a merge to main.
+
+| Increment | Commit | Result |
+| :--- | :--- | :--- |
+| Font-face check | `30d2ae5` | Scaffold browser check loads Chakra Petch 500 and the other two families |
+| Post-commit audit recovery | `8033bf2` | Middleware audit failure after a successful PATCH keeps committed, commit, and current_version |
+| Restricted layout cleanup | `4f87fc3` | A read removes invisible ids from a valid layout file; corrupt files stay untouched |
+| Live canvas | `60f91d1` | Seven tiles, zoom, drag, edit, undo, conflict, search, and stdio MCP refresh |
+
+Executed on this working tree, not a fresh three-mode checkout:
+
+- `.venv/bin/pytest -q`: **696 passed** in 1116.78s.
+- `npm test`: 8 passed.
+- `npm run contrast`: dark 64 pairs, 0 failures, lowest 5.11; light 64 pairs, 0 failures, lowest 4.74.
+- `npm audit --omit=dev`: 0 vulnerabilities.
+- `npm run build` twice: all 21 static files matched. Production dependencies are unchanged, so the existing 30-entry license list still applies.
+- Playwright with `CHASSIS_CHROMIUM=/usr/local/bin/google-chrome`: scaffold 5, canvas 4, and the live walk-through passed. One live run timed out while the full Python suite was also running; a later solo run passed in 11.5s.
+- The built bundle and the Playwright DOM/layout checks had 0 matches for `task-launch-budget`, the restricted title, owner, and partial body sentence.
+
+Screenshots at 1440x900 are in `evidence/step7-ui/`: dark and light overview with hover, zoomed Ridgeview, edit, and the conflict message.
+
+## Step 7 stretch
+
+| Item | Evidence |
+| :--- | :--- |
+| Hover strip and one camera fit | `6b99c3a`. The tooltip box does not intersect the venture tiles. The viewport is stable after fonts are ready. |
+| X1 hide | `d2c96b5`. H and a drag to the pane edge hide cards. Show hidden restores them. Git HEAD does not move. Screenshots: `dark-x1-hidden.png`, `light-x1-hidden.png`. |
+| X2 command bar | `f544ea4` plus the later link commit's filter fit. Six commands, fuzzy venture match, unknown list. Screenshots: `dark-x2-command.png`, `light-x2-command.png`. |
+| X3 task links | Task-to-task PATCH, cycle message, non-task rejection. Screenshots: `dark-x3-link.png`, `light-x3-link.png`. |
+
+Playwright after these additions: 13 passed (scaffold, canvas, live loop, X1, X2, X3). Focused graph and portal write tests passed. This is not an independent review.
+
+### Review fixes at a5cd405
+
+Detached worktrees of `a5cd40597253659dde0af819e17719f19d17bd34` each removed `.venv`, ran `uv sync --locked`, then `.venv/bin/pytest -q`. The lock SHA-256 stayed `68c9c88f407c84e838c5db81889db37dbb4d378229c0603c58c3c22573640932`. Source status was empty. This is not a SecOps, QE, or Code Reviewer approval.
+
+| Command in that worktree | Result pytest printed |
+| :--- | :--- |
+| `uv sync --locked --all-extras` then `.venv/bin/pytest -q` | **701 passed in 59.29s** |
+| `uv sync --locked` then `.venv/bin/pytest -q` | **515 passed, 8 skipped in 24.46s** |
+| `uv sync --locked --extra portal` then `.venv/bin/pytest -q` | **666 passed, 7 skipped, 1 warning in 35.64s** |
+
+Core skips are 1 portal module and 7 MCP modules. Portal skips are the 7 MCP modules. The warning is `StarletteDeprecationWarning` for `TestClient` and httpx at `tests/portal/conftest.py:6`.
+
+Before fixture and demo repositories set `commit.gpgsign` false, two all-extras runs on `520a639` were not clean: `1 failed, 699 passed in 1093.37s (0:18:13)` (`test_sigterm_finishes_active_transaction_and_releases_lock` exceeded 5 seconds) and `699 passed, 1 error in 1120.67s (0:18:40)` (`git commit` exit 128, `Couldn't find key in agent?`). The counts in the table are the later clean runs.
+
+A fourth detached worktree at `520a639`, whose frontend sources and 21 static files match `a5cd405`, used Node 24.22.1 and npm 11.9.0:
+
+| Check | Result |
+| :--- | :--- |
+| `npm test` | **15 passed**, 0 failed |
+| `npm run contrast` | dark 64 pairs, 0 failures, lowest 5.11; light 64 pairs, 0 failures, lowest 4.74 |
+| `npm audit --omit=dev` | info 0, low 0, moderate 0, high 0, critical 0, total 0 |
+| `npm run build` twice | both builds matched the committed 21 static files, and matched each other |
+
+Playwright then ran alone from `frontend/` with `CHASSIS_CHROMIUM=/usr/local/bin/google-chrome npx playwright test` against the same tree: **14 passed (52.2s)**.
+
+### Fresh locked checkout at 1cb92f4
+
+Three detached worktrees of `1cb92f44e82d55e46cc69aac69ace6b06a7d0a34` started with no virtual environment. Each used `uv sync --locked` and `.venv/bin/pytest -q`. The lock SHA-256 stayed `68c9c88f407c84e838c5db81889db37dbb4d378229c0603c58c3c22573640932`. Source status was empty in all three.
+
+| Installation | Result |
+| :--- | :--- |
+| `uv sync --locked --all-extras` | **698 passed in 1090.89s (0:18:10)** |
+| `uv sync --locked` | **513 passed, 8 skipped in 1384.70s (0:23:04)** |
+| `uv sync --locked --extra portal` | **663 passed, 7 skipped, 1 warning in 1006.48s (0:16:46)** |
+
+The core skips are 1 portal module and 7 MCP modules. The portal skips are the 7 MCP modules. The one warning is the existing Starlette `TestClient` deprecation.
+
+A fourth detached worktree, Node 24.22.1 and npm 11.9.0, ran `npm ci` then:
+
+| Check | Result |
+| :--- | :--- |
+| `npm test` | **14 passed**, 0 failed |
+| `npm run contrast` | dark 64 pairs, 0 failures, lowest 5.11; light 64 pairs, 0 failures, lowest 4.74 |
+| `npm audit --omit=dev` | info 0, low 0, moderate 0, high 0, critical 0, total 0 |
+| `npm run build` twice | both builds matched the committed 21 static files, and matched each other |
+
+Playwright then ran alone in that worktree after `uv sync --locked --all-extras`, with `CHASSIS_CHROMIUM=/usr/local/bin/google-chrome`: **13 passed in 49.3s**. No product code changed.
+
+## Earlier Step 7 resume: C1/C2 and partial F1
+
 All source records and people are fictional. AC2, AC3, AC4, and AC9 pass; later gates remain pending.
+The notes below describe the browser-blocked checkpoint and are kept as history.
 
-## Step 7 resume: C1/C2 and partial F1
-
-**Step 7 is not complete.** Main remains at `42f0fa0`. The new code is on
+**At that checkpoint, Step 7 was not complete.** Main remains at `42f0fa0`. The new code is on
 `step7-c1-write`, gated from merge by independent SecOps review. The runtime/test
 checkpoint is **`83b8d61b06b7b6d04f44d1fcb42f13641b140f38`**; later commits preserve
 sources and update documentation/evidence only. The complete approved source pack

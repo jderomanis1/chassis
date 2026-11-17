@@ -19,8 +19,8 @@ def today():
 
 def validate_bind(host):
     host = "127.0.0.1" if host == "localhost" else host
-    if host != "127.0.0.1":
-        raise ValueError("Portal requires a loopback host: 127.0.0.1 only")
+    if host not in {"127.0.0.1", "::1"}:
+        raise ValueError("Portal requires a loopback host: 127.0.0.1 or ::1 only")
     return host
 
 

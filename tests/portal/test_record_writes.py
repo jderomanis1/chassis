@@ -53,7 +53,7 @@ def test_conflict_keeps_bytes_and_history_and_exposes_only_current_version(write
 
 
 @pytest.mark.parametrize("changes", [{"agent": "chief-of-staff"}, {"body": "No canvas body writes"},
-    {"owner": "Another author"}, {"sensitivity": "normal"}, {"depends_on": []},
+    {"owner": "Another author"}, {"sensitivity": "normal"}, {"depends_on": "task-launch-offer"},
     {"version": 2}, {"title": "x" * 241}, {"next_step": "x" * 4097},
     {"blocker_reason": "x" * 4097}, {"title": None}, {"status": "invalid"},
     {"due_at": "2026-02-30"}, {"status": "blocked"}, {}])
@@ -110,6 +110,61 @@ def test_dirty_refusal_and_existing_record_body_cap(writer, editor_config):
     target.write_text(target.read_text() + "x" * 65537)
     assert patch(writer).status_code == 400
     assert git(root, "rev-parse", "HEAD") == before
+
+
+def test_middleware_audit_failure_after_commit_keeps_recovery(writer, editor_config, monkeypatch):
+    from chassis.portal import app as portal_app
+    real = portal_app.record_event
+
+    def fail_after_commit(root, agent, tool, outcome, **kwargs):
+        if tool == "portal_write" and outcome == "ok":
+            raise AuditError("Audit unavailable")
+        return real(root, agent, tool, outcome, **kwargs)
+
+    monkeypatch.setattr(portal_app, "record_event", fail_after_commit)
+    root = editor_config.root
+    before = git(root, "rev-parse", "HEAD")
+    response = patch(writer, {"title": "Committed before the audit append failed"})
+    commit = git(root, "rev-parse", "HEAD")
+    assert commit != before
+    assert response.status_code == 500
+    assert response.json()["error"] == {
+        "code": "audit_error", "message": "Audit unavailable", "committed": True,
+        "commit": commit, "current_version": 2}
+    assert "Committed before the audit append failed" in (root / "records/tasks/task-launch-offer.md").read_text()
+
+
+def test_hidden_and_missing_dependencies_match_and_do_not_write(writer, editor_config):
+    root = editor_config.root
+    path = root / "records/tasks/task-launch-offer.md"
+    before, original = git(root, "rev-parse", "HEAD"), path.read_bytes()
+    hidden = patch(writer, {"depends_on": ["task-launch-budget"]})
+    missing = patch(writer, {"depends_on": ["task-missing"]})
+    assert hidden.status_code == missing.status_code == 400
+    assert hidden.content == missing.content
+    assert hidden.json()["error"] == {"code": "validation", "message": "invalid dependency"}
+    assert b"task-launch-budget" not in hidden.content
+    assert b"task-missing" not in missing.content
+    assert path.read_bytes() == original
+    assert git(root, "rev-parse", "HEAD") == before
+
+
+def test_task_link_commits_and_cycle_or_cross_type_does_not(writer, editor_config):
+    root = editor_config.root
+    before = git(root, "rev-parse", "HEAD")
+    linked = patch(writer, {"depends_on": ["task-audience-interviews"]})
+    assert linked.status_code == 200
+    assert git(root, "rev-list", "--count", f"{before}..HEAD") == "1"
+    cycle = patch(writer, {"depends_on": ["task-launch-offer"]}, 2)
+    assert cycle.status_code == 400
+    assert "depend on itself" in cycle.json()["error"]["message"]
+    assert root.as_posix() not in cycle.text
+    cross = writer.patch("/api/records/task-resident-faq",
+                         json={"changes": {"depends_on": ["initiative-d2c-launch"]}, "expected_version": 1})
+    assert cross.status_code == 400
+    assert "must be a task" in cross.json()["error"]["message"]
+    assert root.as_posix() not in cross.text
+    assert git(root, "rev-list", "--count", f"{before}..HEAD") == "1"
 
 
 def test_commit_recovery_is_not_reported_as_rollback(writer, monkeypatch):

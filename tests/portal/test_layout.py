@@ -44,8 +44,13 @@ def test_invisible_ids_are_removed_before_disk_and_response(writer, editor_confi
     assert hidden not in path.read_text()
     assert hidden not in writer.get("/api/layout").text
     # Old local state from a previously visible record is filtered on every read.
-    path.write_text(json.dumps(malicious))
+    stored = json.dumps(malicious)
+    path.write_text(stored)
     assert writer.get("/api/layout").json() == EMPTY
+    assert path.read_text() == stored
+    assert writer.put("/api/layout", json=EMPTY).json() == EMPTY
+    assert hidden not in path.read_text()
+    assert "task-missing" not in path.read_text()
 
 
 def test_newly_restricted_parent_removes_descendant_positions(writer, editor_config):
@@ -65,6 +70,7 @@ def test_corrupt_layout_is_empty(writer, editor_config, contents):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(contents)
     assert writer.get("/api/layout").json() == EMPTY
+    assert path.read_text() == contents
 
 
 @pytest.mark.parametrize("payload", [{"positions": {"../policy": {"x": 1, "y": 2}}},

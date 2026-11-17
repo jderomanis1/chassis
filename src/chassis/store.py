@@ -1,5 +1,6 @@
 """Local, transport-independent record mutations. Caller identity is explicit."""
 
+import re
 from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -19,6 +20,12 @@ from chassis.transactions import persist_record, refresh_committed
 from chassis.validation import read_vault, validate_records
 
 IMMUTABLE = {"id", "version", "updated_at"}
+MAX_RECORD_BODY = 64 * 1024
+
+
+def _require_body_limit(body):
+    if len(body.encode()) > MAX_RECORD_BODY:
+        raise WriteError("Record body exceeds the edit limit")
 
 
 class RecordStore:
@@ -81,9 +88,12 @@ class RecordStore:
     def _validate_sources(self, items, policy, agent):
         try:
             return validate_records(self.root, items, policy)
-        except RecordFileError:
+        except RecordFileError as exc:
             # Whole-vault validation can name records unrelated to the write target.
-            if all(can_read_record(item.record.model_dump(), policy, agent) for item in items):
+            visible = {item.record.id for item in items if can_read_record(item.record.model_dump(), policy, agent)}
+            named = set(re.findall(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*", str(exc)))
+            hidden = {item.record.id for item in items} - visible
+            if not named & hidden:
                 raise
             raise RecordFileError("Records unavailable; source validation failed") from None
 
@@ -102,6 +112,8 @@ class RecordStore:
             raise WriteError("expected_version must be a positive integer")
         if "body" in changes and not isinstance(changes["body"], str):
             raise WriteError("body must be a string")
+        if "body" in changes:
+            _require_body_limit(changes["body"])
         # Authorize both scopes from frontmatter before reading any record body.
         self._check_scopes(identifier, changes, policy, agent)
         identity = self.identity or Identity.from_env("AGENT")
@@ -116,6 +128,7 @@ class RecordStore:
             ensure_repository(self.root)
             ensure_clean(self.root, path)
             body = changes.pop("body", current.body)
+            _require_body_limit(body)
             timestamp = max(datetime.now(timezone.utc), current.record.updated_at + timedelta(microseconds=1))
             fields = current.record.model_dump() | changes | {
                 "version": current.record.version + 1, "updated_at": timestamp}
@@ -125,6 +138,7 @@ class RecordStore:
             require_grant(policy, agent, record.venture, record.type)
             proposed = ParsedRecord(path, record, body)
             items = self._read_sources()
+            self._require_readable_dependencies(proposed, items, policy, agent)
             self._validate_sources([proposed if item.record.id == identifier else item
                                     for item in items], policy, agent)
             references = self._visible_dependencies(proposed, items, policy, agent)
@@ -150,6 +164,7 @@ class RecordStore:
         body = fields.pop("body", "")
         if not isinstance(body, str):
             raise WriteError("body must be a string")
+        _require_body_limit(body)
         record = Record.model_validate(fields | {"type": record_type, "version": 1,
                                                 "updated_at": datetime.now(timezone.utc)})
         require_grant(policy, agent, record.venture, record.type)
@@ -164,6 +179,7 @@ class RecordStore:
                 raise WriteError(f"{record.id}: duplicate ID", id=record.id)
             path = self.root / "records" / f"{record.type}s" / f"{record.id}.md"
             proposed = ParsedRecord(path, record, body)
+            self._require_readable_dependencies(proposed, items + [proposed], policy, agent)
             self._validate_sources([*items, proposed], policy, agent)
             ensure_repository(self.root)
             references = self._visible_dependencies(proposed, items, policy, agent)
@@ -201,6 +217,15 @@ class RecordStore:
                              field="assigned_agent", reason="must be a known agent id")
         expanded = expand_template(self.root, template, fields)
         return self._create_record(template, expanded | {"venture": venture, "parent": venture}, agent)
+
+    def _require_readable_dependencies(self, proposed, items, policy, agent):
+        """Missing and unreadable dependency ids are the same refusal, with no id in the error."""
+        rows = [item.record.model_dump(mode="json") for item in items
+                if item.record.id != proposed.record.id]
+        rows.append(proposed.record.model_dump(mode="json"))
+        visible = {row["id"] for row in visible_records(rows, policy, agent)}
+        if any(dependency not in visible for dependency in proposed.record.depends_on):
+            raise WriteError("invalid dependency")
 
     def _visible_dependencies(self, proposed, items, policy, agent):
         rows = [item.record.model_dump(mode="json") for item in items

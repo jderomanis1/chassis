@@ -12,7 +12,7 @@ from .helpers import git
 from chassis.portal.config import PortalConfig, validate_bind
 
 
-@pytest.mark.parametrize("host", ["0.0.0.0", "192.168.1.2", "::", "::1", "127.0.0.2", "example.invalid"])
+@pytest.mark.parametrize("host", ["0.0.0.0", "192.168.1.2", "::", "127.0.0.2", "example.invalid"])
 def test_non_ipv4_loopback_bind_is_refused_even_with_legacy_override(monkeypatch, git_repo, host):
     monkeypatch.delenv("CHASSIS_PORTAL_ALLOW_REMOTE", raising=False)
     with pytest.raises(ValueError, match="loopback"):
@@ -20,6 +20,12 @@ def test_non_ipv4_loopback_bind_is_refused_even_with_legacy_override(monkeypatch
     monkeypatch.setenv("CHASSIS_PORTAL_ALLOW_REMOTE", "1")
     with pytest.raises(ValueError, match="loopback"):
         validate_bind(host)
+
+
+def test_ipv6_loopback_is_accepted_and_remote_hosts_stay_closed(git_repo):
+    assert validate_bind("::1") == "::1"
+    assert validate_bind("localhost") == "127.0.0.1"
+    assert PortalConfig.from_env(git_repo, "::1", 8765).host == "::1"
 
 
 def test_config_defaults_to_loopback_and_normal_viewer(git_repo):

@@ -39,6 +39,7 @@ def git_repo(vault, monkeypatch):
     git(vault, "init", "-q", "--initial-branch=main")
     git(vault, "config", "user.name", "Fictional Fixture")
     git(vault, "config", "user.email", "fixture@chassis.local")
+    git(vault, "config", "commit.gpgsign", "false")
     git(vault, "add", ".")
     git(vault, "commit", "-qm", "Fictional baseline")
     return vault

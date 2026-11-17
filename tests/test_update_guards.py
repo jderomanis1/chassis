@@ -4,9 +4,10 @@ import pytest
 from conftest import git
 
 from chassis import store as store_module
-from chassis.errors import AuthorizationError, DirtyRecordError
+from chassis.errors import AuthorizationError, DirtyRecordError, WriteError
 from chassis.index import RecordIndex
-from chassis.store import RecordStore
+from chassis.store import MAX_RECORD_BODY, RecordStore
+from test_creates import new_task
 
 
 @pytest.mark.parametrize("flag", ["--assume-unchanged", "--skip-worktree"])
@@ -23,10 +24,23 @@ def test_dirty_edits_hidden_from_git_status_are_still_refused(git_repo, flag):
     assert git(git_repo, "rev-parse", "HEAD") == before
 
 
+def test_library_record_body_writes_are_capped(git_repo):
+    path = git_repo / "records/tasks/task-launch-offer.md"
+    original, before = path.read_bytes(), git(git_repo, "rev-parse", "HEAD")
+    huge = "x" * (MAX_RECORD_BODY + 1)
+    with pytest.raises(WriteError, match="Record body exceeds the edit limit"):
+        RecordStore(git_repo).update_record("task-launch-offer", {"body": huge}, 1, "chief-of-staff")
+    assert path.read_bytes() == original and git(git_repo, "rev-parse", "HEAD") == before
+    with pytest.raises(WriteError, match="Record body exceeds the edit limit"):
+        RecordStore(git_repo).create_record("task", new_task(git_repo, body=huge), "chief-of-staff")
+    assert not (git_repo / "records/tasks/task-fictional-new.md").exists()
+    assert git(git_repo, "rev-parse", "HEAD") == before
+
+
 @pytest.mark.parametrize("identifier,changes,reason", [
     ("task-launch-budget", {"status": "invalid"}, "status"),
     ("task-launch-budget", {"parent": "initiative-missing"}, "parent.*does not exist"),
-    ("task-launch-budget", {"depends_on": ["task-missing"]}, "dependency.*does not exist"),
+    ("task-launch-budget", {"depends_on": ["task-missing"]}, "invalid dependency"),
     ("task-launch-budget", {"assigned_agent": "unknown-agent"}, "assigned_agent.*known agent"),
     ("task-maintenance-quotes", {"depends_on": ["task-maintenance-plan"]}, "dependency cycle"),
     ("task-launch-budget", {"type": "initiative"}, "type cannot change"),

@@ -32,7 +32,7 @@ def test_create_validates_commits_once_and_populates_index(git_repo):
 @pytest.mark.parametrize("changes,reason", [
     ({"id": "task-launch-budget"}, "duplicate ID"),
     ({"parent": "initiative-missing"}, "parent.*does not exist"),
-    ({"depends_on": ["task-missing"]}, "dependency.*does not exist"),
+    ({"depends_on": ["task-missing"]}, "invalid dependency"),
     ({"depends_on": ["task-fictional-new"]}, "cannot depend on itself"),
     ({"status": "invalid"}, "status"),
     ({"assigned_agent": "unknown-agent"}, "assigned_agent.*known agent"),

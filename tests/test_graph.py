@@ -40,9 +40,10 @@ def test_valid_relationships(graph):
     (2, {"parent": "venture-ridgeview"}, "parent must be an initiative"),
     (2, {"parent": "initiative-missing"}, "initiative-missing"),
     (2, {"venture": "venture-missing"}, "venture-missing"),
-    (2, {"depends_on": ["task-missing"]}, "task-missing"),
+    (2, {"depends_on": ["task-missing"]}, "invalid dependency"),
     (2, {"depends_on": ["task-inventory"]}, "depend on itself"),
     (2, {"depends_on": ["task-quotes"]}, "dependency cycle"),
+    (2, {"depends_on": ["initiative-maintenance"]}, "must be a task"),
 ])
 def test_invalid_graph_names_file_and_reason(graph, index, changes, reason):
     replace(graph, index, **changes)
