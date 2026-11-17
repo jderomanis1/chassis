@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { editChanges, overviewNodes, priorValues, readVenture, ventureModel } from '../src/records.js';
+import { editChanges, flickedOff, overviewNodes, presentGraph, priorValues, readVenture, ventureModel } from '../src/records.js';
 import { place } from '../src/place.js';
 
 test('new cards receive distinct positions and saved positions win', () => {
@@ -30,6 +30,17 @@ test('task edits clear a blocker when leaving blocked and undo restores prior va
   assert.deepEqual(priorValues(changes, before), { status: 'blocked', blocker_reason: 'Supplier' });
   assert.deepEqual(editChanges('venture', { title: 'A', status: 'planned', next_step: 'Go' },
     { title: 'B', status: 'planned', next_step: 'Go' }), { title: 'B' });
+});
+
+test('hidden ids leave the view and a center outside the pane is a flick', () => {
+  const nodes = [{ id: 'keep', type: 'card' }, { id: 'gone', type: 'card' }];
+  const edges = [{ source: 'keep', target: 'gone' }, { source: 'gone', target: 'keep' }];
+  const view = presentGraph(nodes, edges, ['gone']);
+  assert.deepEqual(view.nodes.map(node => node.id), ['keep']);
+  assert.deepEqual(view.edges, []);
+  const pane = { x: 0, y: 0, width: 100, height: 100 };
+  assert.equal(flickedOff({ x: -4, y: 40 }, pane), true);
+  assert.equal(flickedOff({ x: 40, y: 40 }, pane), false);
 });
 
 test('deep links accept only record ids', () => {

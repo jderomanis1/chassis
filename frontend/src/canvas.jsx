@@ -3,6 +3,7 @@ import { Background, Controls, MiniMap, ReactFlow, ReactFlowProvider, useEdgesSt
 import '@xyflow/react/dist/style.css';
 import { CardNode, VentureNode } from './nodes.jsx';
 import { place, roundViewport } from './place.js';
+import { flickedOff } from './records.js';
 
 const nodeTypes = { venture: VentureNode, card: CardNode };
 
@@ -19,15 +20,16 @@ function styleEdge(edge) {
 function bind(node, actions) {
   return { ...node, data: { ...node.data, writes: actions.current.writes,
     onOpen: id => actions.current.onOpen(id),
+    onHide: id => actions.current.onHide?.(id),
     onEdit: record => actions.current.writes && actions.current.onEdit(record),
     onHover: (record, rect) => actions.current.onHover(record, rect),
     onClear: () => actions.current.onClear() } };
 }
 
-function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onClear }) {
+function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onClear, onHide }) {
   const flow = useReactFlow();
   const actions = useRef({});
-  actions.current = { onOpen, onEdit, onHover, onClear, writes };
+  actions.current = { onOpen, onEdit, onHover, onClear, onHide, writes };
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const measured = useNodesInitialized();
@@ -57,9 +59,15 @@ function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onC
     if (!nextNodes.length) return;
     onLayout(nextNodes.map(node => ({ id: node.id, position: node.position })), roundViewport(viewport || flow.getViewport()));
   }
+  function dropped(event, node, next) {
+    const pane = document.querySelector('.react-flow')?.getBoundingClientRect();
+    const point = { x: event.clientX, y: event.clientY };
+    if (pane && flickedOff(point, pane)) onHide?.(node.id);
+    else publish(next);
+  }
   return (
     <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} nodeTypes={nodeTypes}
-      onNodeDragStop={(_, __, next) => publish(next)} onMoveEnd={(_, viewport) => publish(nodes, viewport)}
+      onNodeDragStop={(event, node, next) => dropped(event, node, next)} onMoveEnd={(_, viewport) => publish(nodes, viewport)}
       minZoom={0.1} maxZoom={4} nodesConnectable={false} panOnScroll fitView={false} colorMode={document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'}
       proOptions={{ hideAttribution: false }}>
       <Background gap={48} color="var(--line)" />

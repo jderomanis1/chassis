@@ -17,7 +17,12 @@ export function VentureNode({ data }) {
     <div role="button" tabIndex={0} aria-label={data.title} data-record-id={data.id} data-kind="venture" data-health={data.health}
       className={`tile panel health-${data.health}${blocked ? ' has-block' : ''}`}
       onClick={() => data.onOpen(data.id)}
-      onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); data.onOpen(data.id); } }}
+      onKeyDown={event => {
+        if (event.key === 'Enter') { event.preventDefault(); data.onOpen(data.id); }
+        if (event.key.toLowerCase() === 'h' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+          event.preventDefault(); data.onHide?.(data.id);
+        }
+      }}
       {...watchers(data)}>
       <p className="mono">{data.counts?.initiatives || 0} initiatives · {data.counts?.tasks || 0} tasks</p>
       <div className="row"><h3>{data.title}</h3>
@@ -40,7 +45,12 @@ export function CardNode({ data }) {
     <div role="button" tabIndex={0} aria-label={data.title} data-record-id={data.id} data-kind={data.kind} data-health={data.health} data-status={data.status}
       className={`node-card panel health-${data.health}${data.status === 'blocked' ? ' is-blocked' : ''}`}
       onDoubleClick={() => data.onEdit(data)}
-      onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); data.onEdit(data); } }}
+      onKeyDown={event => {
+        if (event.key === 'Enter') { event.preventDefault(); data.onEdit(data); }
+        if (event.key.toLowerCase() === 'h' && !event.metaKey && !event.ctrlKey && !event.altKey) {
+          event.preventDefault(); data.onHide?.(data.id);
+        }
+      }}
       {...watchers(data)}>
       <Handle className="nodrag" type="target" position={Position.Left} isConnectable={false} />
       <span className={`pill s-${data.status}`}>{String(data.status || '').replaceAll('_', ' ')}</span>

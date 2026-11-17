@@ -76,6 +76,19 @@ export function priorValues(changes, before) {
   return prior;
 }
 
+export function presentGraph(nodes, edges = [], hidden = []) {
+  const skip = new Set(hidden);
+  const kept = nodes.filter(node => !skip.has(node.id));
+  const ids = new Set(kept.map(node => node.id));
+  return { nodes: kept, edges: edges.filter(edge => ids.has(edge.source) && ids.has(edge.target)) };
+}
+
+export function flickedOff(point, pane, margin = 2) {
+  if (!point || !pane) return false;
+  return point.x <= pane.x + margin || point.y <= pane.y + margin
+    || point.x >= pane.x + pane.width - margin || point.y >= pane.y + pane.height - margin;
+}
+
 export function readVenture(hash = '') {
   const match = /^#\/v\/([a-z][a-z0-9]*(?:-[a-z0-9]+)*)$/.exec(hash);
   return match ? match[1] : null;

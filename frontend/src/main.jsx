@@ -4,7 +4,7 @@ import { api } from './api.js';
 import { Canvas } from './canvas.jsx';
 import { HoverCard } from './nodes.jsx';
 import { Editor } from './editor.jsx';
-import { editChanges, overviewNodes, priorValues, readVenture, ventureModel } from './records.js';
+import { editChanges, overviewNodes, presentGraph, priorValues, readVenture, ventureModel } from './records.js';
 import { roundPoint } from './place.js';
 import './prototype.css';
 import './tokens.css';
@@ -81,11 +81,8 @@ function App() {
     document.documentElement.dataset.theme = next; setTheme(next);
     try { localStorage.setItem('chassis-theme', next); } catch { /* preference is optional */ }
   }
-  function onLayout(moved, viewport) {
+  function persistLayout(next) {
     if (!writes || !data) return;
-    const positions = { ...(layoutRef.current?.positions || {}) };
-    for (const node of moved) positions[node.id] = roundPoint(node.position);
-    const next = { positions, collapsed: layoutRef.current?.collapsed || [], hidden: layoutRef.current?.hidden || [], viewport };
     layoutRef.current = next;
     clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
@@ -94,6 +91,15 @@ function App() {
         layoutRef.current = saved; setData(current => current ? { ...current, layout: saved } : current);
       } catch (failure) { setNotice(failure.message); }
     }, 200);
+  }
+  function onLayout(moved, viewport) {
+    const positions = { ...(layoutRef.current?.positions || {}) };
+    for (const node of moved) positions[node.id] = roundPoint(node.position);
+    persistLayout({ positions, collapsed: layoutRef.current?.collapsed || [], hidden: layoutRef.current?.hidden || [], viewport });
+  }
+  function hideCard(id) {
+    const hidden = [...new Set([...(layoutRef.current?.hidden || []), id])].sort();
+    persistLayout({ ...(layoutRef.current || { positions: {}, collapsed: [], viewport: { x: 0, y: 0, zoom: 1 } }), hidden });
   }
   async function openEdit(record) {
     if (!writes) return;
@@ -139,13 +145,23 @@ function App() {
     try { setHits((await api(`/api/search?q=${encodeURIComponent(query)}`)).hits || []); }
     catch (failure) { setNotice(failure.message); }
   }
-  const model = useMemo(() => {
+  const source = useMemo(() => {
     if (!data) return null;
     if (!ventureId) return { view: 'overview', nodes: applyPending(overviewNodes(data.snapshot.ventures), pending), edges: [] };
     if (!detail) return null;
     const graph = ventureModel(detail);
     return { view: ventureId, title: detail.venture.title, nodes: applyPending(graph.nodes, pending), edges: graph.edges };
   }, [data, detail, ventureId, pending]);
+  const hiddenIds = data?.layout?.hidden || [];
+  const hiddenHere = (source?.nodes || []).filter(node => hiddenIds.includes(node.id));
+  const model = useMemo(() => {
+    if (!source) return null;
+    return { ...source, ...presentGraph(source.nodes, source.edges, hiddenIds) };
+  }, [source, hiddenIds]);
+  function showHidden() {
+    const back = new Set(hiddenHere.map(node => node.id));
+    persistLayout({ ...(layoutRef.current || {}), hidden: (layoutRef.current?.hidden || []).filter(id => !back.has(id)) });
+  }
 
   return <><header className="top"><a className="brand" href="#/"><span className="brand-mark">✦</span>
     <span><b>CHASSIS</b><small className="mono">Chief of staff console</small></span></a>
@@ -165,10 +181,11 @@ function App() {
       </form>
       {hits.length ? <ul className="hits">{hits.map(hit => <li key={hit.id}><button type="button" onClick={() => { if (hit.type === 'venture') location.hash = `#/v/${hit.id}`; }}>{hit.title}</button></li>)}</ul> : null}
       <HoverCard record={hover} />
+      {hiddenHere.length ? <button type="button" className="btn ghost" onClick={showHidden}>Show hidden ({hiddenHere.length})</button> : null}
       {error ? <section className="panel empty" role="alert"><h2>Could not load canvas</h2><p>{error}</p><button className="btn" onClick={load}>Try again</button></section>
         : !data || (ventureId && !model) ? <section className="panel empty" role="status">Loading your canvas…</section>
         : !data.snapshot.ventures.length ? <section className="panel empty"><h2>No ventures yet</h2><p>Your visible ventures will appear here.</p></section>
-        : <Canvas model={model} layout={data.layout} writes={writes} onLayout={onLayout} onOpen={id => { location.hash = `#/v/${id}`; }} onEdit={openEdit} onHover={setHover} onClear={() => setHover(null)} />}
+        : <Canvas model={model} layout={data.layout} writes={writes} onLayout={onLayout} onOpen={id => { location.hash = `#/v/${id}`; }} onEdit={openEdit} onHover={setHover} onClear={() => setHover(null)} onHide={hideCard} />}
     </main>
     {editor ? <Editor record={editor} message={fieldMessage} onClose={() => setEditor(null)} onSave={save} /> : null}</>;
 }
