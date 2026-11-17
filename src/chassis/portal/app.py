@@ -1,4 +1,5 @@
 """One-process read-only JSON API using the authenticated library view."""
+from pydantic import ValidationError
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Route
@@ -39,6 +40,7 @@ def create_app(config, *, clock=None):
             authority = f"[{host}]:{config.port}" if ":" in host else f"{host}:{config.port}"
             if request.method != "GET":
                 response = error("validation", "Only GET is supported", 405)
+                response.headers["Allow"] = "GET"
             elif request.headers.get("host") != authority or (
                     request.headers.get("origin") not in {None, f"http://{authority}"}):
                 response = error("validation", "Origin or host not permitted", 403)
@@ -49,6 +51,8 @@ def create_app(config, *, clock=None):
                 response = await call_next(request)
         except NotFoundError:
             response = error("not_found", "Not found", 404)
+        except ValidationError:
+            response = error("validation", "Invalid request", 400)
         except Exception:
             response = error("internal", "Request could not be completed", 500)
         response.headers["Cache-Control"] = "private, no-store"

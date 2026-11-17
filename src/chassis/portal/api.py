@@ -1,10 +1,13 @@
 """API v1 projections, built exclusively from authenticated library reads."""
 from datetime import datetime, timezone
 
+from pydantic import TypeAdapter
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
 from chassis.errors import NotFoundError
+from chassis.models import RecordId
+from chassis.read_model import neutral_graph
 from chassis.portal.config import today, version_etag
 from chassis.portal.health import health_map
 from chassis.templates import GTM_SECTIONS
@@ -61,6 +64,7 @@ def snapshot(request):
 
 
 def detail(request, kind):
+    TypeAdapter(RecordId).validate_python(request.path_params["id"])
     _, records = read_state(request)
     rows = projections(request, records)
     record = next((r for r in rows if r["id"] == request.path_params["id"] and r["type"] == kind), None)
@@ -81,6 +85,27 @@ def initiative(request):
     return detail(request, "initiative")
 
 
+def graph(request):
+    venture = request.query_params.get("venture") or None
+    if venture is not None:
+        TypeAdapter(RecordId).validate_python(venture)
+    _, records = read_state(request)
+    if venture is not None and not any(r["id"] == venture and r["type"] == "venture" for r in records):
+        raise NotFoundError("Not found")
+    rows = projections(request, records)
+    view = neutral_graph(rows, venture)
+    by_id = {row["id"]: row for row in rows}
+    view["nodes"] = [node | {"health": by_id[node["id"]]["health"]} for node in view["nodes"]]
+    return JSONResponse(view)
+
+
+def search(request):
+    records = request.app.state.index.search(request.query_params.get("q", ""))
+    return JSONResponse({"hits": [{key: r[key] for key in ("id", "type", "title")} for r in records]})
+
+
 routes = [Route("/api/snapshot", snapshot, methods=["GET"]),
           Route("/api/ventures/{id}", venture, methods=["GET"]),
-          Route("/api/initiatives/{id}", initiative, methods=["GET"])]
+          Route("/api/initiatives/{id}", initiative, methods=["GET"]),
+          Route("/api/graph", graph, methods=["GET"]),
+          Route("/api/search", search, methods=["GET"])]

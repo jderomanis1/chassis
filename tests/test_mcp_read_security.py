@@ -8,6 +8,7 @@ import pytest
 import yaml
 from conftest import EphemeralToken, issue
 from mcp_client import StdioClient
+from chassis.read_model import neutral_graph
 from test_security_cli import assert_no_leaks, restricted_terms
 
 
@@ -30,7 +31,10 @@ def test_real_stdio_normal_clearance_leak_scan_and_audit(git_repo):
     token = issue(git_repo, "reviewer")
     with StdioClient(git_repo, CHASSIS_AGENT_ID="reviewer", CHASSIS_AGENT_TOKEN=token) as client:
         client.initialize()
-        assert len(client.call("list_records", {})["records"]) == 12
+        records = client.call("list_records", {})["records"]
+        assert len(records) == 12
+        graph = neutral_graph(records, "venture-acme")
+        assert len(graph["nodes"]) == 4 and graph["edges"] == []
         assert client.call("list_records", {"filters": {"sensitivity": "restricted"}}) == {"records": []}
         hidden = client.call("read_record", {"id": "task-launch-budget"})
         assert hidden == client.call("read_record", {"id": "missing-id"}) == {
@@ -39,11 +43,15 @@ def test_real_stdio_normal_clearance_leak_scan_and_audit(git_repo):
             assert client.call("search", {"query": term}) == {"records": []}
         assert client.call("update_record", {"id": "task-launch-budget", "expected_version": 1,
                                              "changes": {}}) == {"error": "unauthorized", "message": "Write not permitted"}
+        assert client.call("create_record", {"type": "task", "fields": {}}) == {
+            "error": "unauthorized", "message": "Write not permitted"}
+        assert client.call("create_from_template", {"template": "initiative", "venture": "venture-acme", "fields": {}}) == {
+            "error": "unauthorized", "message": "Write not permitted"}
     assert_no_leaks(client.stdout_lines + client.stderr_lines, restricted_terms(git_repo))
     audit = (git_repo / ".chassis/audit.jsonl").read_text()
     assert [json.loads(line)["tool"] for line in audit.splitlines()] == [
         "list_records", "list_records", "read_record", "read_record",
-        "search", "search", "search", "search", "update_record"]
+        "search", "search", "search", "search", "update_record", "create_record", "create_from_template"]
     assert token not in audit
     assert_no_leaks([audit], restricted_terms(git_repo))
 
