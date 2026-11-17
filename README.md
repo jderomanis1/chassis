@@ -50,11 +50,11 @@ These controls govern Chassis APIs. Files and Git history are still plaintext,
 and anyone with direct filesystem access can read them. Real data, hosted access,
 and agent-to-agent channels remain outside this sample-only increment.
 
-**Step 7 canvas loop is on the review branch, not main.** C1 edits, C2 layout, and
-the React Flow canvas run against a fictional `chassis demo-init` vault. Independent
-SecOps review is still required before any merge. Stretch hide, command-bar, and
-link gestures are not built. All data remains fictional and runtime stays one
-Python process. See the [current handoff](CHASSIS_PROJECT_HANDOFF.md) and
+**Step 7 canvas loop is on the review branch, not main.** C1 edits, C2 layout, the
+React Flow canvas, hide, the six-command bar, and task links run against a
+fictional `chassis demo-init` vault. Independent SecOps review is still required
+before any merge. All data remains fictional and runtime stays one Python process.
+See the [current handoff](CHASSIS_PROJECT_HANDOFF.md) and
 [Step 7 scope](docs/STEP7-CANVAS-SCOPE.md).
 
 **Continuing in a new chat?** Read the [project handoff](CHASSIS_PROJECT_HANDOFF.md)
@@ -389,7 +389,7 @@ The actual Obsidian UI check is tracked in the acceptance evidence.
 | Portal backend and Step 7 C-1/C0 | Seven GET endpoints; visible-only etags, session/version contracts, and leak tests |
 | Step 7 C3 demo vault | Seven fictional ventures with separate viewer, editor, and chief credentials |
 | Step 7 C1/C2 | Implemented on step7-c1-write; independent SecOps merge review outstanding |
-| Step 7 F1-F6 | Implemented on the review branch; Chrome/Playwright evidence recorded; X1-X3 not started |
+| Step 7 F1-F6 and X1-X3 | Implemented on the review branch; Chrome/Playwright evidence recorded |
 | Optional Miro and chat import | Later, separately scoped work |
 
 ## Explore the sample

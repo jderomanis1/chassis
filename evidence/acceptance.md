@@ -25,7 +25,18 @@ Executed on this working tree, not a fresh three-mode checkout:
 - Playwright with `CHASSIS_CHROMIUM=/usr/local/bin/google-chrome`: scaffold 5, canvas 4, and the live walk-through passed. One live run timed out while the full Python suite was also running; a later solo run passed in 11.5s.
 - The built bundle and the Playwright DOM/layout checks had 0 matches for `task-launch-budget`, the restricted title, owner, and partial body sentence.
 
-Screenshots at 1440x900 are in `evidence/step7-ui/`: dark and light overview with hover, zoomed Ridgeview, edit, and the conflict message. X1-X3 were not started.
+Screenshots at 1440x900 are in `evidence/step7-ui/`: dark and light overview with hover, zoomed Ridgeview, edit, and the conflict message.
+
+## Step 7 stretch
+
+| Item | Evidence |
+| :--- | :--- |
+| Hover strip and one camera fit | `6b99c3a`. The tooltip box does not intersect the venture tiles. The viewport is stable after fonts are ready. |
+| X1 hide | `d2c96b5`. H and a drag to the pane edge hide cards. Show hidden restores them. Git HEAD does not move. Screenshots: `dark-x1-hidden.png`, `light-x1-hidden.png`. |
+| X2 command bar | `f544ea4` plus the later link commit's filter fit. Six commands, fuzzy venture match, unknown list. Screenshots: `dark-x2-command.png`, `light-x2-command.png`. |
+| X3 task links | Task-to-task PATCH, cycle message, non-task rejection. Screenshots: `dark-x3-link.png`, `light-x3-link.png`. |
+
+Playwright after these additions: 13 passed (scaffold, canvas, live loop, X1, X2, X3). Focused graph and portal write tests passed. This is not an independent review.
 
 ## Earlier Step 7 resume: C1/C2 and partial F1
 

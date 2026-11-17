@@ -1,5 +1,27 @@
 # Findings
 
+## Step 7 stretch: observed after f544ea4
+
+X1, X2, and X3 are on `cursor/step7-canvas-d0a6`. The earlier F1-F6 Playwright
+file still passes with them.
+
+- H or a drag released at the canvas edge stores the card id in layout `hidden`.
+  Show hidden puts those cards back. Neither path writes a record or a Git commit.
+- The command bar is Ctrl/Cmd+K. `interpret(command, ventures)` returns an intent
+  for exactly: zoom into a venture, show only blocked, show all, clear all but
+  active, fit, and back. A later voice path can call that function or pass the
+  same intent. Unknown text shows the supported list. Venture names fuzzy-match,
+  and a tie stays unknown.
+- Active means unfinished venture work, or a task/initiative that is in progress
+  or blocked. Blocked means a blocked task or a venture with a blocked count.
+- Dragging from one task handle to another PATCHes `depends_on`. A cycle or a
+  non-task target shows the library message and does not commit. A task may
+  depend only on a task. The existing cross-venture dependency case still passes.
+  Validation text that names a hidden record stays generic.
+- Hover details sit in a strip above the canvas. The camera fits once, after
+  fonts are ready. A command that changes the visible set fits again after those
+  cards are on screen.
+
 ## Step 7 canvas: observed at 60f91d1
 
 The canvas branch is `cursor/step7-canvas-d0a6`, based on `step7-c1-write` at

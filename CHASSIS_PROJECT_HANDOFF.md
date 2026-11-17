@@ -1,6 +1,6 @@
 # Chassis project handoff
 
-**Checkpoint date: 2026-11-17. Step 7 canvas loop is implemented on `cursor/step7-canvas-d0a6` (base `step7-c1-write` at `b54944d`). Main is still `42f0fa0`. C1/C2 are not merged and have no independent SecOps review. X1-X3 are not started.**
+**Checkpoint date: 2026-11-17. Step 7 F1-F6 and X1-X3 are on `cursor/step7-canvas-d0a6` (base `step7-c1-write` at `b54944d`). Main is still `42f0fa0`. C1/C2 are not merged and have no independent SecOps review.**
 This file preserves the approved build decisions and evidence so each step can
 continue in a separate chat. Read current repository HEAD before making changes.
 
@@ -176,9 +176,10 @@ tokenized invitation/tracking links are not copied into the repository.
   Screenshots are in `evidence/step7-ui/`. The working tree passed 696 tests.
   A second `npm run build` reproduced all 21 static files. Contrast stayed at
   0 failures. Production npm audit stayed at 0. This is not an independent review.
-- X1-X3 are still unstarted. The venture arrangement is a dagre graph, not the
-  prototype lane drawing. A second font-load fit can move the camera once at
-  startup. Layout audit failure after a non-record write has no commit payload.
+- X1 hide, X2 command bar, and X3 task links are implemented on this branch.
+  Hover details are in a strip above the tiles. The camera fits once after fonts
+  load. The venture arrangement is still a dagre graph, not the prototype lane
+  drawing. Layout audit failure after a non-record write has no commit payload.
 
 ## Earlier Step 7 resume checkpoint
 
@@ -272,7 +273,7 @@ Read [AGENTS.md](AGENTS.md), [architecture](docs/ARCHITECTURE.md),
 | Templates | `templates/initiative.md` and `templates/agent.md`; implemented in Step 4, AC4 passed |
 | Graph/layout | Authorized neutral nodes/edges JSON exists; position and change planning remain later work |
 | Portal | One local Python process; original seven GET routes plus layout GET; gated PATCH/PUT on the review branch |
-| Canvas | React 18 + React Flow v12 + Vite canvas on the review branch; F1-F6 exercised in Chrome; X1-X3 not started |
+| Canvas | React 18 + React Flow v12 + Vite canvas on the review branch; F1-F6 and X1-X3 exercised in Chrome |
 
 Required fields: `id`, `type`, `title`, `status`, `owner`, `venture`, `parent`,
 `next_step`, `updated_at`, `version`. Optional: `depends_on: []`,
@@ -380,7 +381,7 @@ operations are the authorized exception needed for this proof.
 | 4 | Initiative and agent templates | Complete; AC4 passed |
 | 5 | MCP tools and real stdio client integration | Complete; AC2 passed |
 | 6 | Read security and portal backend P1–P4 | Complete; Joe reports local/sample-only review GO |
-| 7 | Live command canvas, gated edits, and per-viewer layout | F1-F6 implemented on the review branch; X1-X3 open; C1/C2 still need independent SecOps review before main |
+| 7 | Live command canvas, gated edits, and per-viewer layout | F1-F6 and X1-X3 implemented on the review branch; C1/C2 still need independent SecOps review before main |
 | 8 | Optional Miro export, including scratch contract/deletion probe before adapter and live proofs | Optional; existing C1–C7 still apply |
 | 9 | Chat import as its own separately scoped step | Later |
 
@@ -544,15 +545,13 @@ canvas stay off main until independent SecOps review. Read AGENTS.md,
 CHASSIS_PROJECT_HANDOFF.md, docs/ARCHITECTURE.md, docs/PORTAL-ADR.md,
 docs/STEP7-CANVAS-SCOPE.md, evidence/acceptance.md, and FINDINGS.md.
 
-F1-F6 are implemented at 60f91d1, with audit recovery 8033bf2 and layout cleanup
-4f87fc3. Playwright passed against chassis demo-init, including a real stdio MCP
-update. Screenshots are in evidence/step7-ui/. 696 working-tree tests passed.
-X1-X3 are not started. Do not claim SecOps, QE, or Code Reviewer approval.
+F1-F6 and X1-X3 are implemented on cursor/step7-canvas-d0a6. Playwright's 13
+canvas tests passed, including the six command-bar phrases and task linking.
+Screenshots are in evidence/step7-ui/. Do not claim SecOps, QE, or Code Reviewer
+approval. Do not merge to main.
 
-Next, only if F1-F6 stay green: X1 hide, X2 deterministic command bar, X3
-task-to-task depends_on. Before that, a fresh uv sync --locked checkout of the
-full, core, and portal suites is still unrepeated for this canvas commit.
-Tighten the venture graph toward the prototype lanes only with the approved
-tokens. No real data, ask/model, Miro, gateway, hosting, deployment, or secrets
-in code. Demo target remains Monday, November 23, 2026, morning, America/Phoenix.
+A fresh uv sync --locked checkout of the full, core, and portal suites is still
+unrepeated for this stretch. The venture graph is dagre, not the prototype lanes.
+No real data, ask/model, Miro, gateway, hosting, deployment, or secrets in code.
+Demo target remains Monday, November 23, 2026, morning, America/Phoenix.
 ```
