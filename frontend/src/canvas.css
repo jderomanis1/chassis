@@ -2,10 +2,33 @@ html,body,#root{height:100%;min-width:360px}
 body{overflow:hidden}
 header.top{height:74px;padding:14px 32px}
 .brand-mark{font-size:36px;line-height:1;color:var(--cyan);margin-right:4px}
-main#canvas{max-width:none;padding:26px 32px 20px;height:calc(100vh - 74px);display:flex;flex-direction:column}
+main#canvas{max-width:none;padding:18px 32px 16px;height:calc(100vh - 74px);display:flex;flex-direction:column;overflow:hidden}
 .intro{display:flex;align-items:center;justify-content:space-between;gap:20px}
-.intro .mono{margin:0 0 8px}.intro h1{font-size:30px}.intro .lede{margin-bottom:22px}
+.intro .mono{margin:0 0 6px}.intro h1{font-size:28px}.intro .lede{margin-bottom:8px}
 .mode{padding:9px 14px;border:1px solid var(--line-strong);border-radius:var(--r-pill);white-space:nowrap}
 button{font:inherit}button:disabled{opacity:.6;cursor:not-allowed}
 .empty p{color:var(--text-2)}
+.intro-actions{display:flex;align-items:center;gap:10px}
+.flow-wrap{position:relative;flex:1;min-height:0;border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden}
+.flow-wrap .react-flow{width:100%;height:100%;background:transparent}
+.react-flow__node-venture{width:420px}
+.react-flow__node-venture .tile{min-height:188px}
+.react-flow__node-card{width:260px}
+.react-flow__controls-button{background:var(--panel);border-bottom:1px solid var(--line);fill:var(--text)}
+.react-flow__minimap{background:var(--panel)!important}
+.react-flow__attribution{background:var(--panel);color:var(--text-3)}
+.react-flow__handle{width:10px;height:10px;background:var(--bg-0);border:2px solid var(--text-3)}
+.node-card{width:260px;min-height:96px;padding:12px 14px;border-radius:12px;color:var(--text);text-align:left;cursor:grab}
+.node-card .t{display:block;margin-top:8px;font-weight:500;font-size:14px;line-height:1.3;white-space:normal}
+.node-card.is-blocked,.health-red{border-color:color-mix(in srgb,var(--red) 65%,transparent);box-shadow:var(--glow-red)}
+.health-yellow{border-color:color-mix(in srgb,var(--amber) 65%,transparent)}
+.health-green{border-color:color-mix(in srgb,var(--green) 50%,transparent)}
+.tile .btn,.node-card .btn{margin-top:10px}
+.search{display:flex;gap:8px;margin:0 0 12px}
+.search input{flex:1;min-width:0;background:var(--panel);color:var(--text);border:1px solid var(--line-strong);border-radius:var(--r-pill);padding:8px 14px;font:400 14px var(--font-body)}
+.hits{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px;padding:0;list-style:none}
+.hits button{background:var(--panel);color:var(--text);border:1px solid var(--line-strong);border-radius:var(--r-pill);padding:6px 10px;cursor:pointer}
+.editor-form label{display:grid;gap:6px;margin:0 0 14px;font:500 12px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+.editor-form input,.editor-form select{text-transform:none;letter-spacing:0;font:400 15px var(--font-body);color:var(--text);background:var(--bg-0);border:1px solid var(--line-strong);border-radius:8px;padding:8px 10px}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
 @media(max-width:700px){header.top{padding:12px 18px}.live{display:none}main#canvas{padding:18px}.intro{align-items:start}.intro h1{font-size:23px}.mode{font-size:9px;white-space:normal}}
