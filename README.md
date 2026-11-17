@@ -50,12 +50,12 @@ These controls govern Chassis APIs. Files and Git history are still plaintext,
 and anyone with direct filesystem access can read them. Real data, hosted access,
 and agent-to-agent channels remain outside this sample-only increment.
 
-**This checkout delivers Steps 1–6 plus Step 7 C-1, C0, and C3. Step 7 remains open.**
-All venture data is fictional. SQLite is a disposable index of working-tree files.
-Six MCP tools run over stdio. The portal has seven GET routes, visible-only
-revision fingerprints, session/version contracts, and a fictional demo generator.
-The authorized command canvas requires the approved prototype and Step 6 review
-sources. See [Step 7 scope](docs/STEP7-CANVAS-SCOPE.md).
+**Step 7 remains incomplete.** This review branch adds gated C1 record edits,
+C2 view layout, and a partial F1 frontend scaffold to Steps 1-6 and C-1/C0/C3.
+C1/C2 are not merged to main and require independent SecOps review. Browser
+verification is blocked by the current execution environment. There is no working
+card canvas yet. All data remains fictional and runtime stays one Python process.
+See the [current handoff](CHASSIS_PROJECT_HANDOFF.md) and [Step 7 scope](docs/STEP7-CANVAS-SCOPE.md).
 
 **Continuing in a new chat?** Read the [project handoff](CHASSIS_PROJECT_HANDOFF.md)
 and [project chat setup](docs/PROJECT_CHAT_SETUP.md). Engineering agents should
@@ -227,7 +227,7 @@ credentials prevent startup, and token/grant revocation applies to later reads.
 
 | GET endpoint | Response |
 | :--- | :--- |
-| `/api/session` | `{csrf, writes_enabled:false, viewer}`; fresh in-memory token per app launch |
+| `/api/session` | `{csrf, writes_enabled, viewer}`; writes default off; fresh in-memory CSRF per launch |
 | `/api/version` | `{etag}`: SHA-256 of this viewer's authorized records and their derived activity |
 | `/api/snapshot` | Venture cards with versions, visible counts, health, and generation time |
 | `/api/ventures/{id}` | Venture and its visible initiatives, progress, and GTM sections |
@@ -235,14 +235,56 @@ credentials prevent startup, and token/grant revocation applies to later reads.
 | `/api/graph?venture=` | Neutral nodes with versions/health and visible dependency edges; no layout |
 | `/api/search?q=` | Visible hits containing only id, type, and title |
 
-Every endpoint is GET-only, checks Host/Origin, and returns private, nonstored
+These seven read endpoints retain their GET-only behavior, check Host/Origin, and return private, nonstored
 responses. Errors have `{error:{code,message}}` without stack traces. A missing
 and unauthorized record have the same `not_found` response. Empty graph scope
 means all visible ventures; a hidden or missing nonempty scope is `not_found`.
-There is no frontend or ask endpoint in P1–P4. The unimplemented "Agent writes
-today" field is omitted. See the [ADR](docs/PORTAL-ADR.md) for API v1, with Joe's
+The branch serves a partial F1 frontend shell; its browser checks have not passed.
+There is no ask endpoint. The unimplemented "Agent writes today" field is omitted.
+See the [ADR](docs/PORTAL-ADR.md) for API v1, with Joe's
 Step 6 override: complete library-level hiding replaces masked placeholders and
 removes hidden children from counts and health.
+
+### Gated local edit and layout routes (review branch)
+
+Writes default off. Enabling `chassis portal --allow-writes` also requires
+`CHASSIS_PORTAL_EDITOR_AGENT=canvas-editor` and its separately provisioned
+`CHASSIS_PORTAL_EDITOR_TOKEN`. Keep the normal reviewer credential in
+`CHASSIS_AGENT_TOKEN`; do not reuse it for the editor or use chief-of-staff.
+The separate demo generator provisions these three identities.
+
+PATCH `/api/records/{id}` accepts `{changes, expected_version}`. The allowlist is
+title, status, next_step, blocker_reason, and due_at. It calls `RecordStore.update_record`
+and returns id/version/commit, with one editor-attributed record commit.
+Stale versions return 409; hidden, missing, and ungranted targets return the same 404.
+GET/PUT `/api/layout` reads/saves per-viewer positions, collapsed/hidden IDs, and
+viewport in ignored view state. Layout saves make no record or Git commit.
+
+All mutations use exact local Host/Origin, mandatory same-origin fetch metadata,
+application/json, session CSRF, a 64 KiB limit, audit, and a 60/minute launch cap.
+These endpoints support the local browser; other automation continues to use CLI/MCP.
+**Independent SecOps review is required before merging C1/C2.**
+
+### Frontend development checkpoint
+
+Node 24.22.1 and npm 11.9.0 are development-only requirements. Built static assets
+are committed, so the Python portal requires no Node runtime. From `frontend/`:
+
+```bash
+npm ci
+npm run build
+npm test
+npm run contrast
+npm run test:e2e -- scaffold.spec.mjs
+```
+
+The last command needs a Linux Chromium execution environment that permits its
+local IPC. `CHASSIS_CHROMIUM` may select a supported existing executable. The
+current environment blocks `/usr/bin/chromium` before page navigation, and its
+execution policy disallows elevated permission requests. All five browser cases
+remain blocked. The scaffold has no F2-F6 canvas functionality yet.
+See [dependency licenses](docs/FRONTEND-LICENSES.md) and
+[verification evidence](evidence/step7-resume-verification.json).
 
 ### Create the seven-venture demo
 
@@ -349,7 +391,8 @@ The actual Obsidian UI check is tracked in the acceptance evidence.
 | Six official SDK MCP tools over stdio | Implemented; AC2 real-client and concurrent-writer proof |
 | Portal backend and Step 7 C-1/C0 | Seven GET endpoints; visible-only etags, session/version contracts, and leak tests |
 | Step 7 C3 demo vault | Seven fictional ventures with separate viewer, editor, and chief credentials |
-| Step 7 C1/C2 and F1–F6 | Authorized; blocked on required security/design source files, then SecOps merge review |
+| Step 7 C1/C2 | Implemented on step7-c1-write; independent SecOps merge review outstanding |
+| Step 7 F1-F6 | F1 scaffold built, browser verification blocked; F2-F6 not started |
 | Optional Miro and chat import | Later, separately scoped work |
 
 ## Explore the sample
@@ -391,11 +434,11 @@ what has actually been verified.
 
 ## Next in the build
 
-Resume the authorized Step 7 command canvas after supplying the approved prototype
-package and `SECOPS-STEP6.md`, plus the referenced client/review notes. C-1, C0,
-and C3 are complete. Build C1/C2 and the frontend on `step7-c1-write`; keep writes
-off main until independent SecOps review. No ask endpoint or model call belongs
-in this step. See the handoff's next prompt and the preserved Step 7 scope.
+Resume on `step7-c1-write` after resolving the browser execution blocker. Sources
+are supplied; C1/C2 are implemented but unmerged. Finish F1 verification, then
+build F2-F6 against the live store. Keep writes off main until independent SecOps
+review. The working demo target is Monday, November 23 morning, America/Phoenix.
+See the handoff's self-contained next prompt and the preserved Step 7 scope.
 
 Keep secrets in environment variables. `.env` is ignored; `.env.example`
 documents the author identity and later Miro configuration.

@@ -1,5 +1,52 @@
 # Findings
 
+## Step 7 resume: observed at 83b8d61
+
+C1/C2 are implemented on `step7-c1-write`. Main remains at 42f0fa0, with every
+prior documentation/runtime checkpoint preserved. The complete supplied source
+pack is copied unchanged under docs/reference/step7 after manifest verification.
+The working demo moved to Monday, November 23 morning, America/Phoenix.
+
+- Guard d3af932 requires explicit writes, a separate proven normal editor,
+  exact local headers, session CSRF, bounded JSON, audit, and a launch rate cap.
+  Record route 639d607 uses the existing library update and explicit editor Git
+  identity. Tests prove version refusal, one attributed record commit, and generic
+  hidden/missing/ungranted responses. No viewer credential is sent to the browser.
+- C2 1bcdf60 saves filtered per-viewer layout with the shared lock/atomic writer.
+  Missing/corrupt layouts are empty. Invalid coordinates and symlinks are refused.
+  Newly invisible IDs disappear from responses and the next saved layout. An old
+  local layout can retain a formerly visible ID until it is next saved; APIs
+  filter it before returning it. Plaintext disk access remains outside isolation.
+- Fresh locked clones of 83b8d61 pass 695 all-extras, 512 core (8 skipped), and
+  660 portal-only tests (7 skipped, one existing TestClient warning). All clones
+  remain clean. Original records/policy/Python dependency files match 523a8a5.
+- The extended 95-test leak run has zero matches in 31 captures/200 segments,
+  including partial-body patterns. A separate actual loopback HTTP check serves
+  all 21 built files, exercises eight GET routes and PATCH/PUT on a new demo vault,
+  and observes one editor-authored record-only commit. API/layout/bundle patterns
+  are absent. None of this establishes the UI live loop.
+- F1 scaffold 83b8d61 preserves the approved fonts/colors/theme. Four JavaScript
+  checks and both 64-pair contrast checks pass. Locked reinstall/build reproduces
+  21 file hashes. Production npm audit is zero; licenses for 30 packages are saved.
+- Browser launch is blocked before navigation. Chromium's local Unix-socket call
+  returns Operation not permitted. Elevated execution was automatically rejected
+  because sandbox permission requests are disabled. The safer isolated headless
+  shell also failed to download a valid archive. Five browser cases are blocked,
+  with no screenshots or DOM/UI verification. No access control was bypassed.
+
+**Unfinished:** F1 browser verification; all F2-F6 interactions and evidence;
+X1-X3; independent C1/C2 SecOps review before merge; independent QE/Code Reviewer
+checks. The new UI is only a shell, not a working command canvas.
+
+**Review follow-up:** The middleware appends an audit event after a handler
+returns. Fault injection of that append after a successful record commit is not
+covered yet. Check that the failure response retains committed/version recovery
+facts; the tested library-error mapping alone does not prove this outer path.
+
+Feature work stopped on the genuine browser execution blocker, as instructed.
+The handoff has the exact continuation prompt. Original prototype screenshots
+under reference/step7 are design inputs and must not be presented as build proof.
+
 ## Step 1: observed
 
 - All 13 fictional records pass schema and relationship validation.

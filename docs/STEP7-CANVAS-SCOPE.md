@@ -3,9 +3,16 @@
 Source: Joe's build instructions supplied on 2026-11-17. This scope supersedes
 the older P5-P8 dashboard plan. Read the handoff for implementation status.
 
+**November 17 resume amendment:** The working demo is Monday, November 23, 2026,
+morning, America/Phoenix. This replaces the earlier Friday, November 20 target.
+Use the weekend for polish after the core F1-F6 evidence passes. The approved
+source pack was supplied and hash-checked. C1/C2 and all dependent work remain
+on `step7-c1-write` until independent SecOps review. No new merge authorization
+or independent review is inferred from engineering tests.
+
 Step 6 is closed on main at 523a8a5 (runtime checkpoint 7d152c5): S1-S6 read security, portal back end P1-P4, 576 / 499 / 542 tests, leak probe 0 matches. Independent Code Reviewer, QE and SecOps reviews of Step 6 are still owed and run in parallel with this step (see REVIEWS below). Start Step 7: the command CANVAS front end on the existing back end and static mount. Work from main at 523a8a5. Sample data only. Keep all tests green. Stop when Step 7 is done.
 
-WHY THIS CHANGED (read first) The client (Andy) decided on 11/16: his primary interface is an agent-rendered, zoomable CARD CANVAS ("React Flow-class"): drag and rearrange, click to zoom, flick cards off view, edit in place, parent/child and card-to-card links, reconfigure by prompt ("zoom into a venture", "clear all but active"). Miro is now an optional export and its test is not load-bearing. No internet-facing gateway for the MVP. His named fail is "a beautiful static mockup", so every card must come from the live store through the API. Demo is Friday Nov 20.
+WHY THIS CHANGED (read first) The client (Andy) decided on 11/16: his primary interface is an agent-rendered, zoomable CARD CANVAS ("React Flow-class"): drag and rearrange, click to zoom, flick cards off view, edit in place, parent/child and card-to-card links, reconfigure by prompt ("zoom into a venture", "clear all but active"). Miro is now an optional export and its test is not load-bearing. No internet-facing gateway for the MVP. His named fail is "a beautiful static mockup", so every card must come from the live store through the API. Demo is Monday Nov 23 morning (America/Phoenix).
 
 This SUPERSEDES your handoff's NEXT (P5-P8 dashboard port) and parts of docs/PORTAL-ADR.md:
 
@@ -38,7 +45,7 @@ C0. Contract additions for editing.
 13. Stored per viewer at `.chassis/layout/<viewer>.json` (gitignored), written with `write_atomic` under the vault lock.
 14. Ids not visible to the viewer are dropped silently on write and never returned. A layout file must never contain a restricted id written by a normal viewer (test it).
 15. Missing or corrupt layout file returns an empty layout, not an error. C3. Demo vault, fictional only.
-16. `chassis demo-init <dir>` creates a temporary git vault for the Friday demo with 7 fictional ventures (keep Ridgeview HOA and Acme D2C, add 5 more fictional ones, e.g. Cedar Rentals, Lumen Skincare, Atlas Trades, Northwind Reno, Juniper Events), 2-4 initiatives and 3-6 tasks each, a mix of done/in_progress/blocked/planned, a few depends_on edges including one cross-venture edge, one restricted task, and the agents for viewer, editor and chief-of-staff (token hashes generated locally, printed once, never committed).
+16. `chassis demo-init <dir>` creates a temporary git vault for the Monday demo with 7 fictional ventures (keep Ridgeview HOA and Acme D2C, add 5 more fictional ones, e.g. Cedar Rentals, Lumen Skincare, Atlas Trades, Northwind Reno, Juniper Events), 2-4 initiatives and 3-6 tasks each, a mix of done/in_progress/blocked/planned, a few depends_on edges including one cross-venture edge, one restricted task, and the agents for viewer, editor and chief-of-staff (token hashes generated locally, printed once, never committed).
 17. It must not change the existing test fixtures or golden lists.
 18. Every generated record passes `chassis validate`. No real names, emails, or client data.
 
@@ -78,7 +85,7 @@ CONSTRAINTS
 - Tests first for every increment. Push each completed increment. Never force-push. Preserve history.
 - Pin every new dependency. New Python deps: none expected.
 
-FRIDAY DEMO SCRIPT (what Andy will see; also the Playwright acceptance walk-through `tests/e2e/demo.spec`)
+MONDAY DEMO SCRIPT (what Andy will see; also the Playwright acceptance walk-through `tests/e2e/demo.spec`)
 
 1. `chassis demo-init /tmp/demo` then `chassis portal --allow-writes`. Canvas opens in dark mode on 7 venture tiles, colored by health.
 2. Hover Acme D2C: card shows next milestone and counts. No trace of the restricted task.
@@ -94,7 +101,8 @@ SCHEDULE TARGETS (America/Phoenix)
 
 - Wed Nov 18 end of day: C0, C3, F1, F2, F3 pushed. C1 on its branch.
 - Thu Nov 19 end of day: C1, C2, F4, F5, F6 pushed (C1 merged only after SecOps).
-- Fri Nov 20 morning: stretch X1-X3 if green; otherwise stop and report.
+- Weekend Nov 21-22: polish; stretch X1-X3 only if F1-F6 are green.
+- Mon Nov 23 morning: working demo (America/Phoenix).
 
 REVIEWS (independent, owed, run in parallel, not by Codex)
 

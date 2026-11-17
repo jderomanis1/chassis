@@ -1,6 +1,6 @@
 # Chassis project handoff
 
-**Checkpoint date: 2026-11-17. Step 7 PARTIAL: C-1, C0, C3 complete; required security/design sources missing.**
+**Checkpoint date: 2026-11-17. Step 7 PARTIAL: C1/C2 pushed; F1 scaffold blocked on browser execution. F2-F6 not started.**
 This file preserves the approved build decisions and evidence so each step can
 continue in a separate chat. Read current repository HEAD before making changes.
 
@@ -22,7 +22,8 @@ export; the old five-screen dashboard and ask endpoint are superseded.
 The broader engagement is paid discovery plus a working mock, with the full build
 gated on the outcome. Its eventual demonstration on 1–2 real ventures is separate
 from the approved **Increment 0: local execution and fictional data only**.
-The Step 7 target is a fictional-data demo on Friday, November 20, 2026. No price,
+The Step 7 target is a fictional-data demo on Monday, November 23, 2026, morning
+(America/Phoenix), replacing Friday, November 20. No price,
 payment receipt, or full-build commercial approval is established by the supplied
 references. Do not invent commercial commitments.
 
@@ -159,7 +160,62 @@ tokenized invitation/tracking links are not copied into the repository.
   The restricted fixture's owner is now a unique fictional name for an unambiguous
   leak scan. No real data, frontend, ask endpoint, Miro call, or deployment was used.
 
-## Step 7 partial checkpoint
+## Step 7 resume checkpoint: current
+
+- Main was verified through connected GitHub at `42f0fa00e521379bbcbeb2eaa36bf94b563ae3e8`.
+  It remains unchanged. All earlier runtime, evidence, and documentation commits
+  are preserved. Native Git HTTPS authentication is unavailable; the connected
+  GitHub API published each increment with an expected-parent check and no force.
+  Remote tree and reconstructed commit hashes match the local Git objects.
+- Work is on **`step7-c1-write`**, not main. C1 guard: `d3af932`; C1 record route:
+  `639d607`; C2 layout: `1bcdf60`; partial F1/build checkpoint:
+  **`83b8d61b06b7b6d04f44d1fcb42f13641b140f38`**. Preserve later docs commits.
+- The supplied `step7-source-pack.zip` manifest and every listed hash were checked.
+  Archive SHA-256: `dc36b4d0cfecd1e76f2d19663deca53c20192b75590792582fca8cabcc76e504`.
+  The actual SecOps section 4, QE report, Andy direction, Step 6 report, canvas ADR,
+  prototype HTML/README, tokens, screenshots, and capture/contrast helpers were read.
+  The complete source pack is copied unchanged into `docs/reference/step7/`,
+  including the original screenshots/media and capture helpers. Exact tokens and
+  contrast script are also in `frontend/design/`. The reference prototype is not the app.
+- C1: writes remain off by default. `--allow-writes` requires a separate proven
+  normal editor and never uses the viewer credential or chief-of-staff. Shared
+  guard checks local Host/Origin, mandatory same-origin fetch metadata, JSON,
+  CSRF, 64 KiB request cap, audit, and 60 writes/minute. PATCH calls the existing
+  library update transaction. Only title/status/next_step/blocker_reason/due_at
+  are editable; body is not accepted. Existing target bodies above 64 KiB are
+  refused. Explicit server-bound editor identity supplies Git attribution.
+- C2: ignored per-viewer layout uses the existing vault lock and atomic writer.
+  Credentials are rechecked under the lock. Invisible IDs are dropped before
+  save and return. Missing/corrupt layout returns empty state; symlinks fail closed.
+  A previously stored ID that becomes hidden is filtered on reads and removed
+  from disk by the next layout save; direct disk access is outside API isolation.
+- F1 is a **partial scaffold**, not a working canvas: exact React 18/React Flow v12/
+  Vite pins, local fonts for the three approved families, generated themes, strict
+  CSP-compatible prepaint script, API helper, theme toggle, and loading/empty/error
+  shell. The compiled assets are committed. No venture tiles, drilldown, drag UI,
+  edit UI, undo, search UI, or F6 live loop exists yet. F2-F6 and X1-X3 are unstarted.
+- Four JavaScript checks pass. Both 64-pair theme contrast checks pass. `npm ci`
+  plus build reproduces all 21 asset hashes. Production npm audit reports zero
+  vulnerabilities; 30 production license entries and full notices are preserved.
+- Chromium failed before page navigation: local Unix socket creation is denied
+  (`socket() failed: Operation not permitted`). The execution policy automatically
+  rejected elevated execution because sandbox approval requests are disabled.
+  A safer Playwright headless-shell download also failed with an invalid/truncated
+  archive. All five scaffold browser cases are BLOCKED, not passed. No screenshot,
+  DOM leak, UI refresh, or MCP/canvas-loop verification is claimed.
+- A real loopback HTTP smoke check used `chassis demo-init` for a separate 63-record
+  vault, exercised eight GET routes plus PATCH/PUT, served all 21 static assets
+  byte-identically, and observed one editor-authored record commit. Fourteen API/
+  layout capture segments and the bundle had zero restricted-pattern matches;
+  generated agent credentials were absent from assets. This is not browser proof.
+- Final clean-install and leak results are in `evidence/step7-resume-verification.json`
+  and the latest section of `evidence/acceptance.md`. Source fixtures, policy,
+  pyproject.toml, and uv.lock remain unchanged from `523a8a5`.
+- Stop reason is the genuine browser-execution/access blocker. No independent
+  Step 7 SecOps, QE, or Code Reviewer verdict is claimed. C1/C2 cannot merge before
+  independent SecOps review. Do not call Step 7 complete or demo-ready.
+
+## Earlier Step 7 partial checkpoint: preserved history
 
 - Start: verified current main 523a8a58b9a28c9d977d0512b14fc4b995ac5d21. The uploaded
   project handoff was an older Step 1 snapshot; this request and current repo govern.
@@ -195,8 +251,8 @@ Read [AGENTS.md](AGENTS.md), [architecture](docs/ARCHITECTURE.md),
 | MCP tools | `list_records(filters)`, `read_record(id)`, `search(query)`, `create_record(type, fields)`, `create_from_template(template, venture, fields)`, `update_record(id, changes, expected_version)` |
 | Templates | `templates/initiative.md` and `templates/agent.md`; implemented in Step 4, AC4 passed |
 | Graph/layout | Authorized neutral nodes/edges JSON exists; position and change planning remain later work |
-| Portal | Optional Starlette/uvicorn, one local process, seven GET routes with session/version contracts; gated writes pending |
-| Canvas | React 18 + React Flow v12 + Vite authorized; prototype is the visual source; source assets missing |
+| Portal | One local Python process; original seven GET routes plus layout GET; gated PATCH/PUT on the review branch |
+| Canvas | Approved React 18 + React Flow v12 + Vite scaffold built; F1 browser checks blocked; F2-F6 not started |
 
 Required fields: `id`, `type`, `title`, `status`, `owner`, `venture`, `parent`,
 `next_step`, `updated_at`, `version`. Optional: `depends_on: []`,
@@ -304,7 +360,7 @@ operations are the authorized exception needed for this proof.
 | 4 | Initiative and agent templates | Complete; AC4 passed |
 | 5 | MCP tools and real stdio client integration | Complete; AC2 passed |
 | 6 | Read security and portal backend P1–P4 | Complete; Joe reports local/sample-only review GO |
-| 7 | Live command canvas, gated edits, and per-viewer layout | C-1/C0/C3 complete; C1/C2/F1–F6 remain open |
+| 7 | Live command canvas, gated edits, and per-viewer layout | C1/C2 implemented on gated branch; partial F1 blocked on browser access; F2-F6 open |
 | 8 | Optional Miro export, including scratch contract/deletion probe before adapter and live proofs | Optional; existing C1–C7 still apply |
 | 9 | Chat import as its own separately scoped step | Later |
 
@@ -440,27 +496,18 @@ removed. The configured viewer defaults to reviewer via
 CHASSIS_PORTAL_VIEWER_AGENT and uses CHASSIS_AGENT_TOKEN. Host/Origin, token,
 grant, clearance, generic-error, and no-store controls remain in force.
 
-Seven GET routes are implemented. Session returns an in-memory per-launch CSRF
-and writes_enabled:false. Venture/task projections and graph nodes include source
-versions. Task details also include next_step. Etags cover only visible records
-and their activity; a hidden edit or commit leaves a normal viewer's etag stable.
-All mutation methods remain refused. No canvas bundle or ask endpoint exists.
+The original seven GET contracts remain. Layout adds an eighth GET route;
+PATCH `/api/records/{id}` and PUT `/api/layout` use the shared local write guard.
+Session returns the actual writes_enabled flag and an in-memory per-launch CSRF.
+No credentials enter the bundle, Git, audit, or screenshots. Default read-only
+method behavior is preserved. Counts, health, versions, and viewer-only etags
+retain the existing library protections.
 
-Read/write audit uses ignored .chassis/audit.jsonl; credentials use ignored
-.chassis/agent-tokens.yaml with hashes only. Session CSRF never enters disk or
-logs. The leak collector checks the raw response in memory before redacting CSRF
-from temporary evidence captures. Post-commit recovery facts are preserved.
-
-Joe's supplied status reports Step 6 Code Reviewer PASS WITH NITS, QE PASS, and
-SecOps GO for the local backend with fictional samples. The underlying Step 6
-review files were not available here; this is Joe's reported status, not a new
-independent review. Real Andy data and agent-to-agent channels remain NO-GO.
-The vault, Git history, and cache remain plaintext.
-
-Step 7 C1/C2 must meet SECOPS-STEP6.md section 4 and receive independent SecOps
-review before merge. That source is missing; no HTTP write implementation or
-step7-c1-write branch was created in this checkpoint. F1–F6 also need the approved
-prototype package. Existing authorization covers continuation once sources arrive.
+C1/C2 are available only on `step7-c1-write` pending independent SecOps review.
+The supplied Step 6 SecOps and QE documents are now preserved as dated evidence.
+Their local/sample-only Step 6 verdicts are not approval of these new writes.
+Real Andy data and agent-to-agent channels remain NO-GO. The vault, Git history,
+and cache remain plaintext. F1 browser verification is blocked as recorded above.
 
 Use [project instructions and the next-step prompt](docs/PROJECT_CHAT_SETUP.md).
 At each step's end, update this checkpoint, acceptance evidence, and findings with
@@ -471,36 +518,47 @@ Do not assume a prior scratch filesystem, installed app, or credential persists.
 ## Next chat starting prompt
 
 ```text
-Resume the already authorized Step 7 command canvas, not the superseded P5–P8
-five-screen port. Pull current private main and read AGENTS.md,
-CHASSIS_PROJECT_HANDOFF.md, docs/ARCHITECTURE.md, evidence/acceptance.md,
-FINDINGS.md, docs/PORTAL-ADR.md, and docs/STEP7-CANVAS-SCOPE.md. Preserve history.
+Resume only the already authorized Step 7 command canvas on step7-c1-write.
+Read current private main and the branch HEAD; preserve all history. Main was
+42f0fa0 and must stay untouched until independent SecOps review of C1/C2.
+Read AGENTS.md, CHASSIS_PROJECT_HANDOFF.md, docs/ARCHITECTURE.md,
+evidence/acceptance.md, FINDINGS.md, docs/PORTAL-ADR.md,
+docs/STEP7-CANVAS-SCOPE.md, and docs/reference/step7/SECOPS-STEP6.md section 4.
 
-C-1 is 45be742; C0 is cb26ed9; C3 is 6e1ec10. Runtime is at 6e1ec10, and the
-final test/evidence checkpoint is f297db302150cc2f991c84e97b0234ab2e9b0828.
-Clean locked checkouts passed 598 all-extras tests, 512 core tests (8 modules
-skipped), and 563 portal-only tests (7 modules skipped, 1 warning). The 50-test
-CLI/MCP/API leak run found zero matches in 29 captures, including partial body
-text. Preserve subsequent documentation commits. The original fixtures, policy,
-pyproject.toml, and uv.lock remain unchanged from 523a8a5.
+C1 guard is d3af932; C1 record PATCH is 639d607; C2 layout is 1bcdf60.
+The partial F1/build checkpoint is 83b8d61b06b7b6d04f44d1fcb42f13641b140f38.
+Preserve later docs/evidence commits. Read evidence/step7-resume-verification.json
+for actual executed results. The original fixtures, policy, pyproject.toml,
+and uv.lock remain unchanged from 523a8a5.
 
-Supply and read the missing approved portal-prototype package: index.html,
-README.md, tokens.json, and screens/, including its fonts/theme/contrast assets.
-Also read SECOPS-STEP6.md section 4, ANDY-CHECK-02.md, and CODEX_STEP6_REPORT.md.
-Use QE-STEP6.md if it adds to the criteria already preserved in the scope.
-Do not invent the missing design or treat the older checkpoint as that review.
+The source pack has been supplied and hash-checked. Its text sources are under
+docs/reference/step7/; the exact tokens/contrast script are under frontend/design/.
+Use docs/reference/step7/portal-prototype/screens/ for visual comparison.
+The three font families are self-hosted in the committed build. Do not return to
+the superseded five-screen port or invent a replacement design.
 
-Continue C1 on step7-c1-write, then C2 and F1–F6 against it. Writes are disabled
-by default, use a separate proven normal editor, and call the existing library
-update_record. C1/C2 cannot merge to main before independent SecOps review.
-Use React 18, React Flow v12 MIT core, Vite, exact pins and committed builds.
-Use chassis demo-init for the separate seven-venture fictional vault. Keep the
-seven read routes, visibility, audit, Host/Origin, and concurrency tests green.
+Resolve the browser execution environment first. /usr/bin/chromium failed on
+local Unix-socket creation before page navigation. Elevated execution was rejected
+by the environment policy; the isolated headless-shell download also failed.
+Use an environment that supports Playwright/Chromium without bypassing its policy.
+From frontend, run npm ci, npm run build, npm test, npm run contrast, then
+npm run test:e2e -- scaffold.spec.mjs (CHASSIS_CHROMIUM can select an available
+supported executable). Five browser tests are currently blocked, not passed.
 
-Prove the real stdio MCP/canvas loop, edits/undo, drag persistence, conflict UX,
-XSS defenses, live refresh, both-theme screenshots, reproducible build, license
-and audit checks, and zero API/DOM/layout/bundle leaks. Stretch X1–X3 only after
-F1–F6 are green. No ask/model, real data, Miro, gateway, hosting, or deployment.
-Push each completed tests-first increment; update evidence/findings/handoff;
-report DELIVERED / VERIFIED / RISKS-OPEN / NEXT and stop when Step 7 is complete.
+Finish and verify F1, then implement F2-F6 tests first against the real local
+portal and a separate chassis demo-init fictional vault. The current UI is only
+a shell with loading/empty/error states; it has no tiles, drilldown, persistence
+controls, edit/undo UI, search UI, or MCP/canvas live-loop evidence yet.
+Keep C1/C2 on this branch until independent SecOps review. Review all guard/error
+paths before signoff, including audit failure after a successful record commit.
+Prove both-direction stdio MCP/canvas loop, edits/undo, drag persistence, conflicts,
+XSS, refresh, screenshots, reproducible build, audit/licenses, and zero leaks.
+Stretch X1-X3 only after F1-F6 are green. No real data, ask/model, Miro, gateway,
+hosting, deployment, or agent spawning. Keep the original seven read contracts,
+visibility, audit, Host/Origin, and concurrency tests green.
+
+Working demo: Monday, November 23, 2026, morning, America/Phoenix. Weekend polish
+is intended after the required core evidence passes. Push every bounded increment,
+update evidence/findings/handoff, report DELIVERED / VERIFIED / RISKS-OPEN / NEXT,
+and stop when Step 7 is complete or a genuine access/API blocker is established.
 ```

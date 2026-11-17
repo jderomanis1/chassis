@@ -3,6 +3,12 @@
 Use one build-step chat at a time inside the Chassis ChatGPT project. The private
 repository is the durable engineering source; project files supply shared context.
 
+## Current continuation
+
+Use the latest next-chat prompt in `CHASSIS_PROJECT_HANDOFF.md`. Step 7 C1/C2 are
+on the gated review branch and F1 is partial, blocked by the browser execution
+environment. The source pack is supplied. Main remains unchanged pending SecOps.
+
 ## Add to the project
 
 1. Add `CHASSIS_PROJECT_HANDOFF.md` to the project's shared Sources or files.

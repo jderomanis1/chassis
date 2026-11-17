@@ -1,9 +1,121 @@
 # Acceptance evidence
 
-**Snapshot:** Increment 0, Step 7 PARTIAL: C-1/C0/C3 complete; required source files missing. **Date:** 2026-11-17.
+**Snapshot:** Increment 0, Step 7 PARTIAL: C1/C2 implemented on the review branch; F1 browser-blocked; F2-F6 unstarted. **Date:** 2026-11-17.
 All source records and people are fictional. AC2, AC3, AC4, and AC9 pass; later gates remain pending.
 
-## Step 7 executed checks: partial checkpoint
+## Step 7 resume: C1/C2 and partial F1
+
+**Step 7 is not complete.** Main remains at `42f0fa0`. The new code is on
+`step7-c1-write`, gated from merge by independent SecOps review. The runtime/test
+checkpoint is **`83b8d61b06b7b6d04f44d1fcb42f13641b140f38`**; later commits preserve
+sources and update documentation/evidence only. The complete approved source pack
+is under `docs/reference/step7/`; every manifest hash was checked before use.
+Its older dated status/deadline notes are historical. The current demo target is
+Monday, November 23, 2026, morning, America/Phoenix.
+
+### Delivered on the review branch
+
+| Increment | Commit | Test-first evidence and result |
+| :--- | :--- | :--- |
+| C1 shared guard | [d3af932](https://github.com/jderomanis1/chassis/commit/d3af9324a2bfa10f65e412b6e8967d33043a2c72) | New checks first produced 1 failure/51 setup errors; 76 guard/read-boundary checks then passed |
+| C1 record PATCH | [639d607](https://github.com/jderomanis1/chassis/commit/639d6079ad3cfdbda8c3613df8a7a4d9dcc40583) | 28 new checks failed first; 148 portal/update/permission/concurrency checks then passed |
+| C2 layout | [1bcdf60](https://github.com/jderomanis1/chassis/commit/1bcdf60a158d206d0311b7d4832e4a7e9f8607ef) | 16 new checks failed first; 39 layout/visibility checks then passed; full development suite passed 695 |
+| F1 partial scaffold | [83b8d61](https://github.com/jderomanis1/chassis/commit/83b8d61b06b7b6d04f44d1fcb42f13641b140f38) | Node test first failed on absent module; 4 JavaScript checks pass; browser launch blocked |
+
+C1 writes are off by default, require a separately authenticated normal editor,
+and use the existing library transaction. Tests cover wrong/missing origin,
+wrong host, form/non-JSON content, missing/wrong/cross-launch CSRF, fetch metadata,
+actual byte cap, field allowlist, invalid IDs/paths, revocation, rate limit,
+current-version conflict, dirty target, body cap, uniform hidden/missing/ungranted
+refusal, a single record commit, editor attribution, and etag change.
+Normal-only clearance is rechecked under the record lock. Library committed-error
+recovery facts are preserved by the route's tested error mapping.
+
+C2 tests cover per-viewer layout, no record commit, hidden-ID removal before disk
+and response, newly hidden parents/descendants, missing/corrupt input, coordinate
+validation, symlink refusal, and credential rechecks inside the vault lock.
+A previously stored ID that becomes hidden is not returned; the next save removes
+it from the file. This does not provide direct-filesystem isolation.
+
+### Clean locked verification
+
+Three fresh clones of `83b8d61` started with no virtual environment. Each installed
+from the unchanged uv.lock and ran `.venv/bin/pytest -q`.
+
+| Installation | Observed result | Isolation |
+| :--- | :--- | :--- |
+| `uv sync --locked --all-extras` | **695 passed in 158.27s** | MCP and portal installed |
+| `uv sync --locked` | **512 passed, 8 modules skipped in 69.26s** | MCP, Starlette, uvicorn absent |
+| `uv sync --locked --extra portal` | **660 passed, 7 modules skipped, 1 warning in 101.51s** | MCP absent; existing TestClient development warning |
+
+All three stayed clean. Records, agents.yaml, pyproject.toml, and uv.lock remain
+unchanged from `523a8a5`. Lock SHA-256:
+`68c9c88f407c84e838c5db81889db37dbb4d378229c0603c58c3c22573640932`.
+The earlier accepted 598/512/563 checkpoint remains historical evidence below.
+
+### Restricted-content and actual HTTP checks
+
+The extended transport probe passed **95 tests in 71.88s**, with **zero matches
+in 31 captures / 200 output segments** for restricted ID/title/owner/full body/
+partial sentence, including raw and JSON-escaped forms. Capture totals: CLI 3/66,
+real stdio MCP 10/90, portal 18/44 (files/segments). Session CSRF is checked in
+memory and redacted from persisted captures by the existing evidence helper.
+
+A separate actual uvicorn/CLI smoke check used `chassis demo-init` to create a
+new 63-record fictional vault. It exercised all eight GET routes, gated PATCH,
+and layout PUT. All 21 built assets were served byte-identically over loopback.
+One HTTP record update produced exactly one record-only commit by
+`canvas-editor <canvas-editor@chassis.local>`. Hidden/missing writes returned
+identical 404 bytes. Fourteen API/layout capture segments and the static bundle
+had zero restricted-pattern matches; no generated agent credential appeared in
+assets. These are backend/static-delivery checks, not browser or canvas evidence.
+
+The [verification JSON](step7-resume-verification.json) contains counts, hashes,
+provenance, and the actual HTTP result without credential values or response bodies.
+To repeat the transport probe, append `tests/portal/test_record_writes.py` and
+`tests/portal/test_layout.py` to the earlier 50-test Step 7 command below.
+
+### F1 build evidence and browser blocker
+
+- Exact pins: React/React DOM 18.3.1, React Flow MIT core 12.12.1, Vite 8.3.8,
+  Playwright 1.65.1, and the pinned layout/font packages in package-lock.json.
+- Chakra Petch, IBM Plex Sans, and JetBrains Mono are self-hosted in the build.
+  The copied visual CSS and generated theme tokens come from the approved pack.
+- Four JavaScript checks pass. Both original 64-pair contrast checks pass:
+  dark minimum 5.11:1 and light minimum 4.74:1.
+- A locked `npm ci` followed by build reproduced all **21 static asset hashes**.
+  This proves the scaffold build, not the future F2-F6 bundle.
+- `npm audit --omit=dev` reports **0 vulnerabilities**. The license list contains
+  30 production packages, with full notices preserved and served.
+- All five Playwright scaffold cases failed at browser launch before page
+  navigation. `/usr/bin/chromium` could not create its local Unix socket:
+  `socket() failed: Operation not permitted (1)`.
+- The execution policy automatically rejected the elevated browser-test request
+  because sandbox permission requests are disabled. An isolated Playwright
+  headless-shell fallback also failed to download a valid archive. No workaround
+  changed or bypassed that policy.
+
+**No UI pass is claimed.** There are zero implementation screenshots, no DOM leak
+check, no proved live refresh, and no real stdio MCP/canvas loop. F1 contains only
+an API/theme/loading/empty/error shell. F2-F6 and X1-X3 have not started. The
+original source screenshots are reference artifacts, not pictures of this build.
+
+### Remaining gates and review follow-up
+
+Resolve the browser execution environment, finish F1 tests, then continue F2-F6.
+Independent SecOps must review C1/C2 before merge; QE and Code Reviewer verdicts
+are still outstanding. Engineering tests do not substitute for those reviews.
+One exception-path follow-up is specifically recorded: fault-inject the final
+middleware audit append after a successful record commit and preserve recovery
+facts if that append fails. That case has not been tested; do not infer its result
+from the tested library committed-error mapping.
+
+The current user instruction requires stopping on a genuine access blocker.
+Feature work stopped at this checkpoint; there is no claim of Step 7 completion
+or readiness for the Monday demo. No real data, Miro, model call, ask endpoint,
+gateway, hosting, deployment, or agent spawning was used.
+
+## Earlier Step 7 executed checks: partial checkpoint
 
 Started from verified private main **523a8a58b9a28c9d977d0512b14fc4b995ac5d21**.
 Joe's [Step 7 scope](../docs/STEP7-CANVAS-SCOPE.md) supersedes the older P5–P8

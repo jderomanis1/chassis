@@ -26,7 +26,10 @@ one-build-step-per-chat workflow. Read the current user request first.
   Read `docs/STEP7-CANVAS-SCOPE.md` and the current handoff. Use the approved
   prototype as the visual source for React 18, React Flow v12, and Vite.
   C1/C2 writes stay off main until independent SecOps review; continue on
-  `step7-c1-write` after the required source documents are available.
+  `step7-c1-write`. The required source pack is now available and its text/token
+  sources are preserved in `docs/reference/step7/` and `frontend/design/`.
+  C1/C2 are implemented on the branch; F1 is partial because browser execution
+  is blocked. Read the handoff before resuming F1, then F2-F6.
 - No agent spawning, two-way Miro sync, paid infrastructure, or model-specific
   dependency. Chat import has its own separately scoped later step.
 - Live business-account writes remain out of scope. Explicitly designated scratch

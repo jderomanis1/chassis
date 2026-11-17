@@ -326,13 +326,14 @@ Joe's [Step 7 authorization](STEP7-CANVAS-SCOPE.md) records the client's Novembe
 16 decision: one zoomable card canvas over the live store. It supersedes the
 five-screen P5–P8 port and stub ask flow. The approved prototype is the visual
 source for React 18, React Flow v12, and Vite. Built assets will be committed;
-Node is not a Python runtime requirement. No frontend is implemented yet.
+Node is not a Python runtime requirement. The review branch now has a partial F1
+scaffold and committed assets; browser execution is blocked before page navigation.
 
 | Order | Scope and gate |
 | :--- | :--- |
 | Step 5 | Complete: real stdio MCP proof |
 | Step 6 | Complete: authenticated read security and portal backend P1–P4 |
-| Step 7 | C-1, C0, C3 complete; gated C1/C2 and F1–F6 open, required sources missing |
+| Step 7 | C1/C2 on review branch; partial F1 browser-blocked; F2-F6 open; source pack supplied |
 | Optional Miro | Later export; designated scratch probe before any adapter proof |
 | Chat import | Separately scoped later work |
 
@@ -342,11 +343,11 @@ Node is not a Python runtime requirement. No frontend is implemented yet.
 extra. It binds only `127.0.0.1`; `localhost` is normalized and the remote override
 is removed. The configured viewer defaults to `reviewer` and is proven with
 `CHASSIS_AGENT_TOKEN`. Requests cannot choose another identity or clearance.
-Exact Host and optional matching Origin checks remain; all seven current routes
-are GET-only, with private, no-store responses and generic JSON errors. The
-package static mount contains no frontend assets and never serves the vault.
+Exact Host and optional matching Origin checks remain on the original seven GET
+routes, with private, no-store responses and generic JSON errors. A layout GET is
+added. The package mount serves the built F1 shell and never serves the vault.
 
-`/api/session` returns a fresh per-launch CSRF token, `writes_enabled:false`, and
+`/api/session` returns a fresh per-launch CSRF token, the actual writes_enabled flag, and
 the viewer ID. The token stays in memory. Cards, task projections, and portal
 graph nodes expose source versions; task projections include next_step so an
 editor can preserve it. Full venture and initiative objects already include it.
@@ -357,13 +358,16 @@ hidden edits/commits do not signal activity. Snapshot/drilldown/graph reads reta
 concurrent-change retry behavior. Counts and health use only visible children;
 health retains the pure Phoenix-calendar 3/7/14-day rules.
 
-C1's shared local write guard and C2's per-viewer layout require the complete
-`SECOPS-STEP6.md` section 4, then independent SecOps review before merge. They
-remain unimplemented. Continue on `step7-c1-write` when the source is supplied.
-Use the existing library transaction; no second record-persistence path is
-approved. F1–F6 must preserve the prototype's theme/fonts/tokens and prove the
-real MCP-write/canvas-refresh and canvas-edit/MCP-read loop. No ask endpoint or
-model call is part of this step.
+C1/C2 are implemented on `step7-c1-write` using the supplied SecOps section 4.
+The shared guard requires explicit write enablement, a separate proven normal
+editor, exact Host/Origin, same-origin fetch metadata, JSON, CSRF, bounded input,
+audit, and rate limiting. PATCH delegates to `RecordStore.update_record` with an
+explicit server-bound Git identity and normal-clearance recheck under the lock.
+C2 shares the lock/atomic writer and library visibility for ignored per-viewer
+layout. No second record-persistence path exists. Independent SecOps review must
+precede merge. The F1 shell uses the approved tokens and local font files, but
+its browser checks are blocked. F2-F6 and the live MCP/canvas loop remain pending.
+No ask endpoint or model call is part of this step.
 
 ### Fictional demo generator
 

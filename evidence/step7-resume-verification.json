@@ -1,0 +1,174 @@
+{
+  "date": "2026-11-17",
+  "status": "Step 7 partial; browser execution blocked before page navigation",
+  "branch": "step7-c1-write",
+  "main_unchanged": "42f0fa00e521379bbcbeb2eaa36bf94b563ae3e8",
+  "runtime_and_tests": "83b8d61b06b7b6d04f44d1fcb42f13641b140f38",
+  "commits": {
+    "C1_guard": "d3af9324a2bfa10f65e412b6e8967d33043a2c72",
+    "C1_record": "639d6079ad3cfdbda8c3613df8a7a4d9dcc40583",
+    "C2_layout": "1bcdf60a158d206d0311b7d4832e4a7e9f8607ef",
+    "F1_partial": "83b8d61b06b7b6d04f44d1fcb42f13641b140f38"
+  },
+  "source_pack": {
+    "filename": "step7-source-pack.zip",
+    "sha256": "dc36b4d0cfecd1e76f2d19663deca53c20192b75590792582fca8cabcc76e504",
+    "manifest_checks": "every listed path matched its SHA prefix",
+    "preserved_at": "docs/reference/step7"
+  },
+  "python_clean_checkouts": [
+    {
+      "mode": "all",
+      "install": "uv sync --locked --all-extras",
+      "test_command": ".venv/bin/pytest -q",
+      "result": "695 passed in 158.27s (0:02:38)",
+      "commit": "83b8d61b06b7b6d04f44d1fcb42f13641b140f38",
+      "clean": true,
+      "uv_lock_sha256": "68c9c88f407c84e838c5db81889db37dbb4d378229c0603c58c3c22573640932"
+    },
+    {
+      "mode": "core",
+      "install": "uv sync --locked",
+      "test_command": ".venv/bin/pytest -q",
+      "result": "512 passed, 8 skipped in 69.26s (0:01:09)",
+      "commit": "83b8d61b06b7b6d04f44d1fcb42f13641b140f38",
+      "clean": true,
+      "uv_lock_sha256": "68c9c88f407c84e838c5db81889db37dbb4d378229c0603c58c3c22573640932"
+    },
+    {
+      "mode": "portal",
+      "install": "uv sync --locked --extra portal",
+      "test_command": ".venv/bin/pytest -q",
+      "result": "660 passed, 7 skipped, 1 warning in 101.51s (0:01:41)",
+      "commit": "83b8d61b06b7b6d04f44d1fcb42f13641b140f38",
+      "clean": true,
+      "uv_lock_sha256": "68c9c88f407c84e838c5db81889db37dbb4d378229c0603c58c3c22573640932"
+    }
+  ],
+  "test_first": {
+    "C1_guard": "1 failure and 51 setup errors before implementation; 76 focused checks then passed",
+    "C1_record": "28 failures before implementation; 148 focused checks then passed",
+    "C2": "16 failures and 1 already-passing guard case before implementation; 39 focused checks then passed",
+    "F1": "node test failed on the absent API module before implementation; 4 checks pass; 5 browser cases blocked at launch"
+  },
+  "leak_probe": {
+    "tests": 95,
+    "result": "95 passed in 71.88s",
+    "capture_files": 31,
+    "segments": 200,
+    "matching_files": 0,
+    "surfaces": {
+      "cli": {
+        "files": 3,
+        "segments": 66,
+        "matches": 0
+      },
+      "mcp": {
+        "files": 10,
+        "segments": 90,
+        "matches": 0
+      },
+      "portal": {
+        "files": 18,
+        "segments": 44,
+        "matches": 0
+      }
+    },
+    "patterns": "restricted ID/title/owner/full body/partial sentence, raw and JSON-escaped",
+    "dom_checked": false
+  },
+  "actual_http": {
+    "runtime_commit": "83b8d61b06b7b6d04f44d1fcb42f13641b140f38",
+    "transport": "actual loopback HTTP via chassis portal; not a browser",
+    "get_routes": 8,
+    "static_assets_served_identically": 21,
+    "demo_records": 63,
+    "record_only_commits": 1,
+    "author": "canvas-editor <canvas-editor@chassis.local>",
+    "restricted_patterns": 10,
+    "api_layout_capture_segments": 14,
+    "restricted_matches": 0,
+    "bundle_secret_matches": 0,
+    "browser_ui_verified": false
+  },
+  "frontend": {
+    "node": "24.22.1",
+    "npm": "11.9.0",
+    "unit_tests_passed": 4,
+    "contrast": {
+      "dark": {
+        "pairs": 64,
+        "failures": 0,
+        "lowest_ratio": 5.11
+      },
+      "light": {
+        "pairs": 64,
+        "failures": 0,
+        "lowest_ratio": 4.74
+      }
+    },
+    "production_audit": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "production_license_entries": 30,
+    "reproducible_after_npm_ci": true,
+    "asset_hashes": {
+      "THIRD-PARTY-NOTICES.txt": "01997e503740990b585fcfa3c10a26fae16cc230993cc278d2c2684ac3b243b7",
+      "assets/chakra-petch-latin-500-normal-BR1ody1F.woff2": "36ad966cb653de70ba37355c41003b02de8940b2df6cbcd46480a6ad8cadd65d",
+      "assets/chakra-petch-latin-500-normal-CnUQnZ4D.woff": "4cd37544eb0dc46b75fd44315570bdcbf3fd0dc5e1286514518fd9f2c8bae556",
+      "assets/chakra-petch-latin-600-normal-DQKfcdKo.woff": "8e64347841a0995e991c888d1a8618ac88b11655f48d2083bd4b6a5f958f6947",
+      "assets/chakra-petch-latin-600-normal-DVQm9bgb.woff2": "a5888696e9eb1b4bbbecc8eb3922b8369f49d4bddb72263e033cbd17f399be76",
+      "assets/chakra-petch-latin-700-normal-CnDBPjkL.woff2": "ce5095dc1cb200aaa939e38067a0677018d10e9f26ec38cdcf1557ac524fc775",
+      "assets/chakra-petch-latin-700-normal-D1s_c2du.woff": "ebff5565a21091177d1a15326e959db4e51b324851d4ba13ee45398d06d9116f",
+      "assets/ibm-plex-sans-latin-400-normal-CDDApCn2.woff2": "3b646991d30055a93a4ecc499713d4347953a74a947ecab435ab72070cbdab0e",
+      "assets/ibm-plex-sans-latin-400-normal-CYLoc0-x.woff": "828907bfd14855c880789878bd2b38ffd284a6c27c8b80f6069900f70dae3901",
+      "assets/ibm-plex-sans-latin-500-normal-6ng42L7E.woff2": "0717336fb31fcdcde4b8deb3675bb4a0f7f6d484864afcd6751ac29975962203",
+      "assets/ibm-plex-sans-latin-500-normal-BgVn5rGT.woff": "8d2c7b2eca91869d447851a9c8bd07edf629b26025eacb882291e03b384b4e35",
+      "assets/ibm-plex-sans-latin-600-normal-Cu4Hd6ag.woff": "7861a349af1e925a80d56547c2c9e0b1e9f6a9002a9a6867351da2f05122ad21",
+      "assets/ibm-plex-sans-latin-600-normal-CuJfVYMP.woff2": "8960851d691c054ed38e259bdcf1a6190d157b4203ed5bb32c632a863fb8ec2f",
+      "assets/index-7yiv08fQ.css": "59a512d4f85535b2c14888a9fe7eb0510eb4ab1d5e83160496b36c97e30dcade",
+      "assets/index-CFHQtr2o.js": "92639fe7c64e8efc966a2759e466f132a9c1e7e7eee44015931bce7cfcf29d16",
+      "assets/jetbrains-mono-latin-400-normal-6-qcROiO.woff": "658b9ee07b0249cf910a8d6f3d812d46c962bae81d7379a0355b1db35c61586f",
+      "assets/jetbrains-mono-latin-400-normal-V6pRDFza.woff2": "14425ba9c695763c1547f48a206b7aa60350a33ae23de09f0407877f3fcd89eb",
+      "assets/jetbrains-mono-latin-500-normal-BWZEU5yA.woff2": "cb182feeed4d798ff6961d3c79f7026279448fca0676438aaecb21f3fc39553a",
+      "assets/jetbrains-mono-latin-500-normal-CJOVTJB7.woff": "a270dd0bf13d91053b8999b7c120ffadb59680cfd63fe1a6b388a13bf2809fe1",
+      "index.html": "8922e569421d307ae7f946a02455b0a98245484ae220a85621deee4fd9f5e359",
+      "theme.js": "5782723cf76f47be1e8eb3e2a2bf6517fef740b7c5622f5219ba98912259e0bf"
+    },
+    "lock_sha256": "0a8905fea39455c5a8a8ad9db1d21fd35b54a8f0a2470509a97c190e21d17162"
+  },
+  "browser": {
+    "cases": 5,
+    "passed": 0,
+    "state": "blocked before page navigation",
+    "executable": "/usr/bin/chromium",
+    "failure": "socket() failed: Operation not permitted (1)",
+    "permission_attempt": "Automatically rejected because sandbox approval requests are disabled",
+    "safer_fallback": "Playwright isolated headless-shell download failed with invalid/truncated archive",
+    "screenshots_of_implementation": 0
+  },
+  "preserved_sources": [
+    "records/",
+    "agents.yaml",
+    "pyproject.toml",
+    "uv.lock"
+  ],
+  "open": [
+    "Independent SecOps C1/C2 review and merge gate",
+    "F1 browser verification",
+    "F2-F6 not started",
+    "No DOM leak or live MCP/canvas proof",
+    "Review final middleware audit failure after a successful record commit; fault-injection case not yet covered"
+  ],
+  "demo_target": {
+    "date": "2026-11-23",
+    "time": "morning",
+    "timezone": "America/Phoenix",
+    "replaces": "2026-11-20"
+  }
+}

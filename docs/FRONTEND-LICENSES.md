@@ -35,4 +35,4 @@ Exact resolved production dependencies from frontend/package-lock.json. React Fl
 | `use-sync-external-store` | `1.7.0` | MIT |
 | `zustand` | `4.5.7` | MIT |
 
-Full notices are preserved in THIRD-PARTY-NOTICES.txt. Node 24.22.1 and npm 11.9.0 are pinned for development; Vite 8.3.8 and Playwright 1.65.1 are development dependencies. No Node process is required by chassis portal.
+Full notices are preserved in [THIRD-PARTY-NOTICES.txt](../frontend/THIRD-PARTY-NOTICES.txt). Node 24.22.1 and npm 11.9.0 are pinned for development; Vite 8.3.8 and Playwright 1.65.1 are development dependencies. No Node process is required by chassis portal.

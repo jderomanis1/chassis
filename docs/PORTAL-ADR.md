@@ -1,116 +1,124 @@
 # Portal ADR: local command canvas
 
-Updated 2026-11-17 from [Joe's Step 7 authorization](STEP7-CANVAS-SCOPE.md).
-The client selected a zoomable card canvas on 2026-11-16. This supersedes the
-original five-screen dashboard, vanilla-JS/no-npm choice, and stub ask endpoint.
-The approved prototype remains the visual source. C-1, C0, and C3 are implemented;
-C1/C2 and F1–F6 remain open. See the [handoff](../CHASSIS_PROJECT_HANDOFF.md).
+Updated November 17, 2026 from [Joe's Step 7 authorization](STEP7-CANVAS-SCOPE.md).
+The client selected one zoomable card canvas. This replaces the five-screen port
+and ask flow. The dated original canvas ADR is preserved under
+[reference/step7](reference/step7/PORTAL-ADR.md). Current work is on `step7-c1-write`;
+main stays unchanged until independent SecOps review of C1/C2.
 
 ## 1. Stack and visual source
 
-Runtime remains one local Python process: Starlette and uvicorn serve JSON and
-package-owned static assets. The authorized frontend is React 18 with React Flow
-v12 (`@xyflow/react`, MIT core only) built by Vite. Node/npm is for development
-and CI. Commit the built output under `src/chassis/portal/static/`; require exact
-pins, package-lock.json, reproducible builds, a license list, and an npm audit
-with no high/critical production-dependency findings.
+Runtime remains one local Python process. Starlette/uvicorn serve JSON and built
+package assets. React 18.3.1, React DOM 18.3.1, React Flow MIT core 12.12.1, and
+Vite 8.3.8 are pinned exactly with package-lock.json. Node 24.22.1/npm 11.9.0 are
+for development only. Built output is committed under `src/chassis/portal/static/`.
 
-The approved `portal-prototype/index.html`, `README.md`, `tokens.json`, and
-`screens/` are required before F1. Preserve its colors, typography, glow, tile
-tilt, hover cards, status pulse, theme key `chassis-theme`, and no-flash head
-script. Generate tokens.css from the supplied JSON, self-host the fonts, honor
-reduced motion, and retain keyboard access. These assets were not available at
-this checkpoint. The static mount currently contains no built frontend.
+The supplied source pack was hash-checked. Original prototype HTML/README and
+review notes are preserved in `docs/reference/step7/`. Its colors, typography,
+glow, tilt, hover cards, and pulse are the visual source. The five-screen code is
+not the application. Exact tokens and contrast helper are in `frontend/design/`.
+Generated tokens.css, the `chassis-theme` preference, and a local prepaint theme
+script are implemented. Chakra Petch, IBM Plex Sans, and JetBrains Mono are
+self-hosted from pinned Fontsource packages. There is no Google font CDN request.
+
+F1 is partial: API helper, theme toggle, loading/empty/error shell, and build.
+There are no venture tiles or F2-F6 interactions yet. The five Playwright scaffold
+cases could not launch Chromium because local Unix IPC is denied. Elevated
+execution was rejected by policy; the safer headless-shell download also failed.
+No browser, screenshot, or DOM proof is claimed. See the current handoff.
 
 ## 2. Local HTTP and the write gate
 
-The server binds only `127.0.0.1`; `localhost` is normalized to that address.
-The previous `CHASSIS_PORTAL_ALLOW_REMOTE` bypass has been removed. Every GET
-checks the exact configured Host, permits absent Origin or the matching local
-Origin, rechecks the configured viewer, and returns private, no-store responses.
-There is no CORS response and no browser-selected viewer or clearance.
+The server binds only 127.0.0.1; localhost normalizes to it. GET retains exact Host
+and absent-or-exact Origin checks, configured viewer authentication, and private,
+no-store responses. There are no CORS headers or browser-selected identities.
+The strict CSP permits same-origin scripts/styles/fonts/connects, no unsafe-inline
+or unsafe-eval, no objects, no framing, no base URL, and no form submissions.
 
-C1 will add one record PATCH through the existing library `update_record`, and
-C2 will add view layout. They are authorized but not implemented here. Read
-`SECOPS-STEP6.md` section 4 before implementing them; that required source was
-not supplied. Push C1 and dependent work to `step7-c1-write`. Independent SecOps
-review of C1/C2 is required before any merge to main.
+Writes default off. `--allow-writes` requires CHASSIS_PORTAL_EDITOR_AGENT and
+CHASSIS_PORTAL_EDITOR_TOKEN. The normal editor must be separately authenticated,
+different from the viewer, and never chief-of-staff. Its credential stays server
+side. The existing library rechecks credentials, write grants, and required normal
+clearance under the vault lock. Explicit server-side identity determines Git author.
 
-The shared planned write guard must enforce exact Host/Origin, mandatory Origin,
-Sec-Fetch-Site same-origin, JSON only, constant-time session-CSRF comparison,
-a 64 KiB body limit, server-selected proven editor identity, field allowlists,
-record version checks, body-free audit, and 60 writes/minute/process. Writes are
-off by default. The future `--allow-writes` option requires a separate normal
-editor agent/token, never the viewer credential or chief-of-staff. Missing,
-hidden, and ungranted targets share 404; stale versions return 409 without a
-file change or commit. See the full C1 contract in the preserved scope.
+The shared write guard checks exact Host, mandatory exact Origin, mandatory
+Sec-Fetch-Site same-origin, exact application/json, constant-time session-CSRF
+comparison, actual request bytes capped at 64 KiB, body-free audit, and a 60/minute
+launch budget. Default read-only GET-method refusals retain their earlier contract.
+The browser alone uses this path; local automation continues to use CLI/MCP.
 
-## 3. Visibility
+PATCH accepts only title (240 characters), status, next_step (4096), blocker_reason
+(4096), due_at, and expected_version. Unknown fields and invalid IDs are refused;
+body and owner edits are not allowed. An existing target body above 64 KiB is
+refused. `RecordStore.update_record` remains the only record transaction. A success
+returns id/version/commit, with one record-only commit by the editor. Stale updates
+return 409/current_version with no commit; missing/hidden/ungranted IDs share 404.
+Dirty edits retain the actionable `uncommitted human edit` message.
 
-Library token, grant, and clearance checks govern every projection. Unauthorized
-restricted rows, hidden-parent descendants, identifying edges, search hits, and
-counts are absent. Hidden children cannot affect health. No masked placeholders
-are emitted. Visible-to-restricted transitions must remove old frontend nodes
-on refresh. Future layout storage must drop invisible IDs on write and read.
+C1/C2 are implemented on the review branch but are not independently accepted.
+Review all exception/recovery paths, including a final middleware audit failure
+after a successful record commit, before SecOps signoff or merge.
+
+## 3. Visibility and layout
+
+The library filters every projection using token, venture/type grants, clearance,
+and hidden-parent rules. Hidden records, edges, counts, search hits, and health
+inputs are absent. The future frontend must remove previously visible content
+when access changes; that transition has no UI proof yet.
+
+GET/PUT `/api/layout` uses positions, collapsed/hidden IDs, and viewport. State is
+stored per viewer in ignored `.chassis/layout/<viewer>.json` through the existing
+vault lock and atomic writer. Viewer/editor credentials are checked again under
+the lock. IDs outside the library-visible set are dropped before save and return.
+Missing/corrupt files return empty state. Coordinates and zoom are bounded and
+finite; unsafe symlink paths fail closed. Layout never changes a record or Git.
+A previously saved ID that later becomes hidden is filtered on read and removed
+from disk on the next save. Direct filesystem access is outside API isolation.
 
 ## 4. Health
 
-The existing pure health implementation and frozen-clock tests remain unchanged.
-Phoenix is the default calendar. Tasks use first-match priority: done, blocked,
-overdue, due within 3 days, activity older than 14 days, no signal, then on track.
-A visible unfinished dependency adds waiting_on without changing the color.
-Parents use their own milestone date and visible children: overdue is red, a
-milestone within 7 days is at least yellow, and the worst active known child
-wins. All active unknown children yield unknown; all completed children yield
-green. No children and no milestone yield unknown. Hidden children contribute
-neither a color nor a reason. See [health.py](../src/chassis/portal/health.py).
+The existing pure health implementation is unchanged. Phoenix is the calendar.
+Task priority: done, blocked, overdue, due within 3 days, activity older than
+14 days, no signal, then on track. Visible unfinished dependencies add waiting_on
+without changing color. Parent milestone overdue is red; due within 7 days is
+at least yellow; the worst known active visible child wins. All active unknown
+children yield unknown; completed children yield green. No children/milestone
+yields unknown. Hidden children contribute no color or reason.
 
-## 5. Current API contract
+## 5. API contract
 
-| GET route | Response |
+| Method and route | Response |
 | :--- | :--- |
-| `/api/session` | `{csrf, writes_enabled:false, viewer}`; fresh token per launch, memory only |
-| `/api/version` | `{etag}`; SHA-256 over the configured viewer's visible records and derived activity |
-| `/api/snapshot` | `{etag, generated_at, ventures}`; cards include id, title, version, health, milestone fields, visible counts, and last_activity_at |
-| `/api/ventures/{id}` | Full visible venture and initiatives, including versions, health, progress, and GTM sections |
-| `/api/initiatives/{id}` | Full visible initiative and task projections with id, title, version, owner, status, next_step, due_at, blocker_reason, depends_on, health, last_activity_at |
-| `/api/graph?venture=` | Neutral nodes with id/type/parent/status/version/health and visible dependency edges; no coordinates |
-| `/api/search?q=` | Visible hits with id/type/title |
+| GET `/api/session` | `{csrf,writes_enabled,viewer}`; per-launch CSRF in memory only |
+| GET `/api/version` | `{etag}` over visible records/activity only |
+| GET `/api/snapshot` | Visible venture cards with versions, health, milestones, counts, activity |
+| GET `/api/ventures/{id}` | Visible venture and initiatives with versions, progress, GTM |
+| GET `/api/initiatives/{id}` | Visible initiative/tasks with version, owner, status, next step, due date, blockers, dependencies, health |
+| GET `/api/graph?venture=` | Renderer-neutral visible nodes/edges; no coordinates |
+| GET `/api/search?q=` | Visible id/type/title hits |
+| PATCH `/api/records/{id}` | `{record:{id,version},commit}` through the library transaction |
+| GET/PUT `/api/layout` | `{positions,collapsed,hidden,viewport}` |
 
-The etag no longer includes global Git HEAD, hidden records, or unrelated files.
-Snapshot reads retain concurrent-change retry behavior. The planned canvas polls
-`/api/version` every five seconds and preserves layout/viewport during refresh.
-Errors use `{error:{code,message}}`, with no internal paths or stack traces.
-All current endpoints remain GET-only. CSRF is neither logged nor persisted;
-evidence captures redact it after checking the in-memory response for leaks.
+Errors retain `{error:{code,message}}`, with current_version on conflict and
+available recovery metadata on committed library failures. Etags omit hidden
+records, global HEAD, and unrelated files. The F1 shell polls version every five
+seconds; UI refresh behavior is unverified until a browser can run.
 
-## 6. Canvas, layout, and demo
+## 6. Verification and remaining gates
 
-F1–F6 deliver one live canvas with venture overview, drill-down, hover details,
-zoom/pan/minimap, drag persistence, inline editing, conflict recovery, and ten
-versioned undo operations. All record content must render as escaped text; any
-Markdown needs sanitization. A strict CSP, empty/loading/error states, and
-Playwright checks are required. Every card must come from the live API.
+The separate demo generator remains 7 ventures, 14 initiatives, 42 tasks, one
+restricted task, and separate reviewer/editor/chief credentials. Original source
+fixtures and Python dependency files are unchanged. Actual HTTP checks serve all
+21 compiled assets, exercise eight GET routes plus PATCH/PUT, and observe one
+editor-attributed commit. This does not prove a canvas interaction.
 
-C2 layout is per viewer in ignored `.chassis/layout/<viewer>.json`, protected by
-the same write guard, vault lock, and atomic writer. It is view state, not a
-record. Missing/corrupt files return empty layout. Invisible IDs never persist
-or return. C2 is not implemented at this checkpoint.
+The current verification JSON records clean Python installs, scoped leak checks,
+four JavaScript checks, both 64-pair contrast checks, byte-identical rebuilt assets,
+and a production dependency audit with zero vulnerabilities. Licenses and notices
+are preserved. No independent Step 7 review verdict is inferred.
 
-C3 is implemented: `chassis demo-init <new-directory>` creates 7 ventures,
-14 initiatives, 42 tasks, 29 dependencies, one restricted task, and separate
-reviewer/editor/chief identities. Normal viewers see 62 records and 41 tasks.
-Existing fixtures are unchanged. Tokens print once and only hashes persist.
-
-## 7. Remaining gates
-
-Obtain the prototype package, `SECOPS-STEP6.md`, `ANDY-CHECK-02.md`, and
-`CODEX_STEP6_REPORT.md`. The embedded QE criteria are preserved in the scope;
-provide the standalone `QE-STEP6.md` if it adds requirements. No new review
-verdict is inferred from engineering tests.
-
-C1/C2 require SecOps before merge; F6 requires the real MCP/canvas loop, both-theme
-screenshots, reproducible bundle, zero API/DOM/layout/bundle leaks, and independent
-QE review. None of those UI/build checks has run. X1 hiding, X2 deterministic
-commands, and X3 task links are stretch work only after F1–F6 pass. No ask endpoint,
-model call, Miro, hosted gateway, deployment, or real Andy data belongs here.
+Finish F1 browser verification, then F2-F6: live tiles, zoom/drilldown, search,
+drag persistence, edit/undo/conflict UX, XSS/visibility transitions, real stdio
+MCP/canvas loop, both-theme screenshots, and DOM leak checks. X1-X3 wait until all
+core checks pass. Working demo: Monday, November 23 morning, America/Phoenix.
+No ask/model, real data, Miro, gateway, hosting, deployment, or agent spawning.
