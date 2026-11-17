@@ -1,4 +1,5 @@
 """One-process local API using the authenticated library view."""
+import json
 from pathlib import Path
 from secrets import token_urlsafe
 
@@ -10,7 +11,7 @@ from starlette.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from chassis.audit import record_event
-from chassis.errors import AuthorizationError, NotFoundError
+from chassis.errors import AuditError, AuthorizationError, NotFoundError
 from chassis.index import RecordIndex
 from chassis.policy import authorize_reader
 from chassis.portal.config import validate_bind, version_etag
@@ -24,6 +25,37 @@ ASSET_ROOT = Path(__file__).with_name("static")
 
 def error(code, message, status):
     return JSONResponse({"error": {"code": code, "message": message}}, status_code=status)
+
+
+async def response_payload(response):
+    """Read a middleware response without assuming the body is already buffered."""
+    body = getattr(response, "body", None)
+    if body is None:
+        chunks = []
+        async for chunk in response.body_iterator:
+            if isinstance(chunk, memoryview):
+                chunks.append(chunk.tobytes())
+            elif isinstance(chunk, (bytes, bytearray)):
+                chunks.append(bytes(chunk))
+        body = b"".join(chunks)
+    try:
+        payload = json.loads(body or b"{}")
+    except (TypeError, ValueError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+async def commit_audit_failure(response):
+    """Keep commit recovery visible when the audit append fails after a successful write."""
+    details = {}
+    if response.status_code < 400:
+        payload = await response_payload(response)
+        commit = payload.get("commit")
+        version = (payload.get("record") or {}).get("version")
+        if commit and version is not None:
+            details = {"committed": True, "commit": commit, "current_version": version}
+    body = {"error": {"code": "audit_error", "message": "Audit unavailable", **details}}
+    return JSONResponse(body, status_code=500)
 
 
 def create_app(config, *, clock=None):
@@ -66,8 +98,11 @@ def create_app(config, *, clock=None):
                 response = await guard.check(request, authority)
                 if response is None:
                     response = await call_next(request)
-                    record_event(config.root, config.editor_agent, "portal_write",
-                                 "ok" if response.status_code < 400 else "refused")
+                    try:
+                        record_event(config.root, config.editor_agent, "portal_write",
+                                     "ok" if response.status_code < 400 else "refused")
+                    except AuditError:
+                        response = await commit_audit_failure(response)
             elif (
                     request.headers.get("origin") not in {None, f"http://{authority}"}):
                 response = error("validation", "Origin or host not permitted", 403)

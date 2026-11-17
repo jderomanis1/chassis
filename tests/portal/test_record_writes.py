@@ -112,6 +112,28 @@ def test_dirty_refusal_and_existing_record_body_cap(writer, editor_config):
     assert git(root, "rev-parse", "HEAD") == before
 
 
+def test_middleware_audit_failure_after_commit_keeps_recovery(writer, editor_config, monkeypatch):
+    from chassis.portal import app as portal_app
+    real = portal_app.record_event
+
+    def fail_after_commit(root, agent, tool, outcome, **kwargs):
+        if tool == "portal_write" and outcome == "ok":
+            raise AuditError("Audit unavailable")
+        return real(root, agent, tool, outcome, **kwargs)
+
+    monkeypatch.setattr(portal_app, "record_event", fail_after_commit)
+    root = editor_config.root
+    before = git(root, "rev-parse", "HEAD")
+    response = patch(writer, {"title": "Committed before the audit append failed"})
+    commit = git(root, "rev-parse", "HEAD")
+    assert commit != before
+    assert response.status_code == 500
+    assert response.json()["error"] == {
+        "code": "audit_error", "message": "Audit unavailable", "committed": True,
+        "commit": commit, "current_version": 2}
+    assert "Committed before the audit append failed" in (root / "records/tasks/task-launch-offer.md").read_text()
+
+
 def test_commit_recovery_is_not_reported_as_rollback(writer, monkeypatch):
     def committed(*args, **kwargs):
         raise CommittedIndexError("private path", committed=True, commit="a" * 40, current_version=2)
