@@ -1,5 +1,19 @@
 # Acceptance evidence
 
+## Disk-backed Docker rehearsal | November 18, 2026
+
+Implementation `2b87075911fed91b34d34aa5f99c054750cfd0e5` follows the verified PR head `2737881e80d1968c71f412df207a6e75a664fabd`. The implementation diff contains only deployment files and tests. [CI run 80](https://github.com/jderomanis1/chassis/actions/runs/44395260148) passed all three jobs on attempt 1. The all-extras job passed 731 Python tests and all 85 Playwright tests. Its [Docker rehearsal](https://github.com/jderomanis1/chassis/actions/runs/44395260148/job/135123331402#step:12:1) passed in 36.9 seconds.
+
+| Docker rehearsal check | Observed result |
+| --- | --- |
+| Restart the edited container on its named volume | The API returned the saved Acme title and version 2. Vault HEAD matched the full commit returned by the browser save. |
+| Replace the container with a new one on the same volume | The API returned the same Acme edit and version. Git retained the chief commit at HEAD and the exact editor commit as its parent. |
+| Apply Joe's reset marker and restart | Acme and Cedar matched their original titles, statuses and versions. Git contained only the fictional initialization commit. |
+
+Seven focused Python tests passed locally. A separate local CLI check reopened the saved Acme record at version 2 with the same Git HEAD and reset it to the original title at version 1 with a single baseline commit. Startup without a mount at `/var/data` exited before serving the board. The failure-path test preserved the edited vault after a seed failure and recovered an interrupted reset.
+
+No Render disk was attached and no live reset, restart or redeploy was performed in this increment. The earlier hosted observations apply to the ephemeral build.
+
 ## Hosted Render acceptance | November 18, 2026
 
 Joe added the private repository to the Render GitHub App selection. GitHub reported open draft PR #13 at `3ff1106ad1e813c64e0da3b6e085ae5626662c24`. Its parent was `d0f19a756c8f876df3cbee7cfd59dea2a4a4be16`. The full comparison touched only `CHASSIS_PROJECT_HANDOFF.md`, `FINDINGS.md`, `deploy/README.md`, and `evidence/acceptance.md`.

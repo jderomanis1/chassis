@@ -1,5 +1,13 @@
 # Findings
 
+## Sandbox edits survive container replacement on the same disk | November 18, 2026
+
+The previous startup created the vault inside a temporary directory and removed it on shutdown. Commit `2b87075911fed91b34d34aa5f99c054750cfd0e5` keeps the Git checkout, records and per-vault state under `/var/data/current`. Startup rotates the viewer and editor credentials through the existing CLI. Existing Git history stays intact. A reset marker inside the active vault requests a fresh seed for the next start. A failed seed leaves the current board available on disk.
+
+[CI run 80](https://github.com/jderomanis1/chassis/actions/runs/44395260148) passed all three jobs on attempt 1. After container replacement, Git still linked Homer's commit to the original canvas-editor save. After an explicit reset, the board returned to its seeded records and one baseline commit. [Rehearsal details](evidence/acceptance.md)
+
+Adding a Render disk triggers a deploy. An empty disk does not import the running service's ephemeral checkout. The proposed 1 GB mount costs an additional $0.25 per month. The live cutover and verification await Joe's approval. [Render disk documentation](https://render.com/docs/disks) · [Pricing](https://render.com/pricing)
+
 ## Hosted sandbox findings | November 18, 2026
 
 After Joe enabled repository access for the Render GitHub App, the create request succeeded. Render reported the reviewed PR head `3ff1106ad1e813c64e0da3b6e085ae5626662c24` live on one Starter instance with automatic deploys off. The difference from the Docker-rehearsed source `d0f19a7` was four Markdown files.

@@ -1,5 +1,15 @@
 # Chassis project handoff
 
+## Persistent sandbox vault | November 18, 2026
+
+Draft PR #13 started this increment at `2737881e80d1968c71f412df207a6e75a664fabd`. Commit `2b87075911fed91b34d34aa5f99c054750cfd0e5` moves the fictional Git checkout to `/var/data/current` on one mounted disk. An ordinary restart reopens it. Joe can request a one-time reset from the running Shell. [Reset procedure](deploy/README.md#joes-reset-procedure)
+
+[CI run 80](https://github.com/jderomanis1/chassis/actions/runs/44395260148) passed all three jobs on attempt 1. The existing Render sandbox still runs the previously recorded ephemeral build at `3ff1106ad1e813c64e0da3b6e085ae5626662c24`. Joe's one-instance Starter exception ends December 1. The proposed 1 GB disk adds $0.25 per month and awaits Joe's approval. This increment made no Render changes. [Acceptance evidence](evidence/acceptance.md)
+
+**Next chat prompt**
+
+> Resolve the live head of draft PR #13 on `codex/render-fictional-demo`. The persistence implementation is `2b87075911fed91b34d34aa5f99c054750cfd0e5` and its immediate child records the rehearsal. Verify that child is documentation only and check CI on the live PR head. Wait for Joe's explicit approval of the 1 GB disk at $0.25 per month before any Render change. Before any cutover, preserve the live ephemeral fictional vault off-instance and verify its Git HEAD. Keep PR #13 in draft.
+
 ## Live fictional sandbox | November 18, 2026
 
 Joe's one-instance Starter exception runs through December 1, 2026. The reviewer closed the door.mjs comparison. Render service `srv-dbv016p5efls73airmig` is the existing sandbox. Deploy `dep-dbv01715efls73airn9g` went live at GitHub commit `3ff1106ad1e813c64e0da3b6e085ae5626662c24`. The service has a single Docker instance in Oregon and automatic deploys are off. GitHub confirmed the difference from `d0f19a7` was Markdown only.
