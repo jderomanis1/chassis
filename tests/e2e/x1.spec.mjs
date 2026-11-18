@@ -24,7 +24,7 @@ test('H and a flick hide a card without deleting it', async ({ page, demo }) => 
   const saved = page.waitForResponse(response => response.url().endsWith('/api/layout') && response.request().method() === 'PUT');
   await page.mouse.move(box.x + box.width / 2, box.y + 40);
   await page.mouse.down();
-  await page.mouse.move(Math.max(0, pane.x - 20), Math.min(pane.y + pane.height - 30, box.y + 40), { steps: 12 });
+  await page.mouse.move(0, 0, { steps: 12 });
   await page.mouse.up();
   await saved;
   await expect(page.getByRole('button', { name: 'Show hidden (2)' })).toBeVisible();

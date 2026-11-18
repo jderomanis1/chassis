@@ -30,7 +30,7 @@ export function Editor({ record, message, onClose, onSave }) {
     <>
       <div className="scrim on" onClick={onClose} />
       <form className="drawer on editor-form" role="dialog" aria-label={`Edit ${record.title}`} onSubmit={submit}>
-        <header><h2>Edit</h2><button type="button" className="x" aria-label="Close editor" onClick={onClose}>×</button></header>
+        <header><h2 title={record.title}>Edit {record.title}</h2><button type="button" className="x" aria-label="Close editor" onClick={onClose}>×</button></header>
         <div className="body">
           <label>Title<input id="edit-title" name="title" ref={titleRef} value={fields.title} onChange={event => update('title', event.target.value)} required autoComplete="off" /></label>
           <label>Status<select name="status" value={fields.status} onChange={event => update('status', event.target.value)}>

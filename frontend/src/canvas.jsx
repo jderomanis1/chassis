@@ -51,8 +51,9 @@ function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onC
   useEffect(() => {
     const next = place(model.nodes, model.edges, layout.positions || {}).map(node => bind(node, actions));
     setNodes(current => {
-      const at = Object.fromEntries(current.map(node => [node.id, node.position]));
-      return next.map(node => at[node.id] ? { ...node, position: at[node.id] } : node);
+      const at = Object.fromEntries(current.map(node => [node.id, node]));
+      // keep the measured size so React Flow does not hide the node (visibility:hidden) until it re-measures
+      return next.map(node => at[node.id] ? { ...node, position: at[node.id].position, measured: at[node.id].measured } : node);
     });
     setEdges(model.edges.map(styleEdge));
   }, [model, layout.positions, writes, setNodes, setEdges]);

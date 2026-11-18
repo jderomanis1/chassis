@@ -30,7 +30,7 @@ function App() {
   const [undo, setUndo] = useState([]), [pending, setPending] = useState(null), [focusId, setFocusId] = useState(null);
   const [query, setQuery] = useState(''), [hits, setHits] = useState([]), [hover, setHover] = useState(null);
   const [commandOpen, setCommandOpen] = useState(false), [viewMode, setViewMode] = useState('show-all'), [fitSignal, setFitSignal] = useState(0);
-  const ticket = useRef(0), layoutRef = useRef(null), timer = useRef(0), etagRef = useRef("");
+  const ticket = useRef(0), layoutRef = useRef(null), layoutStamp = useRef(0), layoutBusy = useRef(false), timer = useRef(0), etagRef = useRef(""), loading = useRef(false);
   const writes = Boolean(data?.session.writes_enabled);
 
   async function loadVenture(id) {
@@ -45,27 +45,34 @@ function App() {
   }
   async function load() {
     const current = ++ticket.current;
+    loading.current = true;
     const selected = readVenture(location.hash);
     try {
+      const stamp = layoutStamp.current;
       const [session, snapshot, layout, history] = await Promise.all([
         api('/api/session'), api('/api/snapshot'), api('/api/layout'), api('/api/undo')]);
       const nextDetail = selected ? await loadVenture(selected) : null;
-      if (current !== ticket.current) return;
-      layoutRef.current = layout;
+      if (current !== ticket.current) return false;
+      const layoutNow = stamp === layoutStamp.current && !layoutBusy.current && !timer.current ? layout : layoutRef.current;
+      layoutRef.current = layoutNow;
       etagRef.current = snapshot.etag;
-      setData({ session, snapshot, layout }); setDetail(nextDetail); setVentureId(selected);
+      setData({ session, snapshot, layout: layoutNow }); setDetail(nextDetail); setVentureId(selected);
       setUndo(history.entries || []);
       setError(null); setPending(null);
+      return true;
     } catch (failure) {
-      if (current !== ticket.current) return;
+      if (current !== ticket.current) return false;
       setError(failure.message); setData(null);
+      return false;
+    } finally {
+      if (current === ticket.current) loading.current = false;
     }
   }
   useEffect(() => {
     document.body.tabIndex = -1;
     load();
     const onTheme = () => setTheme(document.documentElement.dataset.theme);
-    const onHash = () => load();
+    const onHash = () => { setHover(null); load(); };
     window.addEventListener('chassis-theme-change', onTheme);
     window.addEventListener('hashchange', onHash);
     return () => { window.removeEventListener('chassis-theme-change', onTheme); window.removeEventListener('hashchange', onHash); };
@@ -75,7 +82,7 @@ function App() {
       if (!etagRef.current) return;
       try {
         const version = await readVersion(etagRef.current);
-        if (version.changed) await load();
+        if (version.changed && !loading.current) await load();
       } catch (failure) {
         if (failure.name !== 'AbortError') setError(failure.message);
       }
@@ -88,6 +95,7 @@ function App() {
       if (event.key === 'Escape') {
         if (commandOpen) { event.preventDefault(); setCommandOpen(false); return; }
         if (editor) { event.preventDefault(); closeEditor(); return; }
+        if (hits.length) { event.preventDefault(); setHits([]); return; }
         if (readVenture(location.hash)) location.hash = '#/';
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !editor && !commandOpen && writes) { event.preventDefault(); undoLast(); }
@@ -102,13 +110,22 @@ function App() {
   }
   function persistLayout(next) {
     if (!writes || !data) return;
+    const stamp = ++layoutStamp.current;
     layoutRef.current = next;
     clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
+      layoutBusy.current = true;
+      timer.current = 0;
       try {
         const saved = await api('/api/layout', { method: 'PUT', csrf: data.session.csrf, data: layoutRef.current });
+        if (stamp !== layoutStamp.current) return;
         layoutRef.current = saved; setData(current => current ? { ...current, layout: saved } : current);
-      } catch (failure) { showNotice(failure.message); }
+      } catch (failure) {
+        if (stamp !== layoutStamp.current) return;
+        showNotice(failure.message);
+      } finally {
+        if (stamp === layoutStamp.current) layoutBusy.current = false;
+      }
     }, 200);
   }
   function onLayout(moved, viewport) {
@@ -152,8 +169,9 @@ function App() {
         data: { changes, expected_version: editing.version } });
       setUndo(stack => [...stack, { id: editing.id, changes: priorValues(changes, editing), version: result.record.version }].slice(-10));
       confirmRecord(editing.id, result.record.version, changes);
-      showNotice(''); await load();
+      showNotice('');
       setEditor(null); setFieldMessage(''); setFocusId(editing.id);
+      await load();
     } catch (failure) {
       setPending(null);
       if (failure.code === 'conflict') {
@@ -257,19 +275,26 @@ function App() {
         {data && <span className="mode mono">{writes ? 'Editing enabled' : 'Read only · editing is off'}</span>}</span></div>
       {ventureId && <p className="crumbs"><button type="button" className="back" onClick={() => { location.hash = '#/'; }}>Back to all</button>
         <span className="mono">{detail?.venture.title || ventureId}</span></p>}
-      {notice ? <p className="attn" role="status">{notice}{reloadOffer ? <button type="button" className="btn" onClick={() => load()}>Reload</button> : null}</p> : null}
       <form className="search" role="search" onSubmit={search}>
         <label className="sr" htmlFor="record-search">Search records</label>
         <input id="record-search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search visible records" />
         <button className="btn" type="submit">Search</button>
       </form>
-      {hits.length ? <ul className="hits">{hits.map(hit => <li key={hit.id}><button type="button" onClick={() => { if (hit.type === 'venture') location.hash = `#/v/${hit.id}`; }}>{hit.title}</button></li>)}</ul> : null}
       <HoverCard record={hover} />
-      {hiddenHere.length ? <button type="button" className="btn ghost" onClick={showHidden}>Show hidden ({hiddenHere.length})</button> : null}
+      <div className="canvas-stack">
+      <div className="canvas-overlays">
+      {notice ? <p className="attn" role="status">{notice}{reloadOffer ? <button type="button" className="btn" onClick={async () => { if (await load()) showNotice(''); }}>Reload</button> : null}</p> : null}
+      {hits.length ? <button type="button" className="btn hits-close" onClick={() => setHits([])}>Close hits</button> : null}
+      {hits.length ? <ul className="hits" onWheel={event => { event.stopPropagation(); event.currentTarget.scrollTop += event.deltaY; }}>{hits.map(hit => <li key={hit.id}>{hit.type === 'venture'
+        ? <button type="button" onClick={() => { location.hash = `#/v/${hit.id}`; }}>{hit.title}</button>
+        : <span className="hit-note">{hit.title}</span>}</li>)}</ul> : null}
+      {hiddenHere.length ? <button type="button" className="btn ghost show-hidden" onClick={showHidden}>Show hidden ({hiddenHere.length})</button> : null}
+      </div>
       {error ? <section className="panel empty" role="alert"><h2>Could not load canvas</h2><p>{error}</p><button className="btn" onClick={load}>Try again</button></section>
         : !data || (ventureId && !model) ? <section className="panel empty" role="status">Loading your canvas…</section>
         : !data.snapshot.ventures.length ? <section className="panel empty"><h2>No ventures yet</h2><p>Your visible ventures will appear here.</p></section>
         : <Canvas model={model} layout={data.layout} writes={writes} fitSignal={fitSignal} onLayout={onLayout} onOpen={id => { location.hash = `#/v/${id}`; }} onEdit={openEdit} onHover={setHover} onClear={() => setHover(null)} onHide={hideCard} onLink={linkCards} />}
+      </div>
     </main>
     {editor ? <Editor record={editor} message={fieldMessage} onClose={closeEditor} onSave={save} /> : null}
     <CommandBar open={commandOpen} ventures={data?.snapshot?.ventures || []} onClose={() => setCommandOpen(false)} onRun={runIntent} /></>;
