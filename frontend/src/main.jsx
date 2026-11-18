@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api, bindSessionRefresh, bindWriteRetry, mergeSession, readVersion } from './api.js';
 import { POLL_MS } from './poll.js';
+import { startIntro } from './intro.js';
 import { Canvas } from './canvas.jsx';
 import { CommandBar } from './command-bar.jsx';
 import { applyCommandView } from './commands.js';
@@ -403,4 +404,6 @@ function App() {
     {editor ? <Editor key={generation} record={editor} message={fieldMessage} canEdit={canEdit} conflict={conflict} bindClose={fn => { closeRef.current = fn; }} onClose={closeEditor} onUseLatest={useLatest} onSave={save} /> : null}
     <CommandBar open={commandOpen} ventures={data?.snapshot?.ventures || []} onClose={() => setCommandOpen(false)} onRun={runIntent} /></>;
 }
+const intro = document.querySelector('#canvas-intro[src]');
+if (intro) startIntro(intro, document);
 createRoot(document.getElementById('root')).render(<App/>);

@@ -1,5 +1,20 @@
 # Acceptance evidence
 
+## November 18 demo sprint | INC-1a and I-002
+
+| Build | Executed check | Result |
+| --- | --- | --- |
+| PR #9 head `72ea32bc` | GitHub Actions run 61, all three jobs | Passed. The [all-extras job](https://github.com/jderomanis1/chassis/actions/runs/44326795343/job/134880143975) records 80 Playwright tests passed in 7.4 minutes. |
+| I-002 before implementation | New playback unit suite and portal media policy assertion | Red. The playback module was absent and the portal denied same-origin media. |
+| I-002 product `01a3bbf1` | Local locked all-extras pytest, frontend unit suite, production Vite build | 723 Python and 29 frontend tests passed. Build succeeded. |
+| I-002 local browser attempt | Chromium launch for the 1280px intro test | Process socket creation was denied. Physical Android and audible desktop checks remain open. |
+
+At asset commit `b2254b4e` the red package test failed on the missing HTML source, then passed after the approved recording was wired in. The test checks the portal response, MIME type and SHA-256 of the served file. A separate live HTTP GET at 127.0.0.1:8765 returned all 222,764 bytes with the approved digest. The input, public source and packaged MP3 match. The Vite build, all 29 frontend tests and both focused portal tests passed locally. FFmpeg EBU R128 measured -16.0 LUFS integrated and -2.0 dBTP before gain, -25.1 LUFS and -11.1 dBTP after 0.35 gain.
+
+On the approved-asset build, the complete local Python suite passed 724 tests. The first actual-clip CI run reached playback and exposed console 404s and a narrow-layout test that waited for a hidden label. The follow-up retains the empty-console assertion and checks the editing indicator across reconnects. The four browser cases use the actual MP3. They cover allowed autoplay, click, keydown and an emulated Pixel 7 tap, completion of playback, rerender, reconnect, local requests, page diagnostics and a fresh boot. The [PR checks](https://github.com/jderomanis1/chassis/pull/10/checks) carry the pass/fail result for the current head. Physical Android Chrome and listening at demo-machine volume remain separate.
+
+Joe's panel approved INC-1a for integration. The actual disconnection and recovery on the walkthrough machine are scheduled for Thursday's recording and Saturday's freeze run. The operator should log the build SHA and both recording timestamps.
+
 ## INC-1a review candidate, November 18
 
 Implementation `15a0f9a9e90a28a77943edc487f11641ebff8240` on draft [PR #9](https://github.com/jderomanis1/chassis/pull/9), based on `9ff76ea`. Product source is +47/-9, 56 lines total. Tests and generated files are separate. The local Vite build completed and all 24 frontend unit tests passed. Chromium startup in the builder environment was blocked at OS socket creation. Use the [PR checks](https://github.com/jderomanis1/chassis/pull/9/checks) for Python, browser and audit results on the exact review head.

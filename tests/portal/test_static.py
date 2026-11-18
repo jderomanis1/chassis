@@ -1,3 +1,5 @@
+import hashlib
+
 from starlette.testclient import TestClient
 
 from chassis.portal import app
@@ -21,3 +23,14 @@ def test_static_mount_uses_package_assets_and_never_the_vault(portal_config, tmp
             assert denied.status_code == 404
             assert denied.json() == {"error": {"code": "not_found", "message": "Not found"}}
             assert_no_leaks([denied.text], restricted_terms(portal_config.root))
+
+
+def test_boot_serves_the_approved_intro(client):
+    page = client.get("/")
+    assert 'src="/intro.mp3"' in page.text
+    response = client.get("/intro.mp3")
+    assert response.status_code == 200
+    assert response.headers["content-type"].split(";")[0] == "audio/mpeg"
+    assert hashlib.sha256(response.content).hexdigest() == (
+        "a6d1543544c714477fab343472d58b5ed07aea358d6bb0a9aea63724b1318a42"
+    )

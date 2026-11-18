@@ -1,5 +1,13 @@
 # Chassis project handoff
 
+## Demo sprint | INC-1a merged, I-002 in draft | November 18
+
+Joe accepted the panel review of PR #9 at `72ea32bc`. CI run 61 passed all three jobs before the head-pinned merge to `step7-c1-write` at `a1ee201dccd6a725e3871215583110773cb67581`. The following cleanup, `6cc0c73d7d31fa304d6cb41b97972dbaf5ea0cd8`, limits push and pull-request targets to the integration branch and main. Main was checked at `42f0fa0`.
+
+Draft [PR #10](https://github.com/jderomanis1/chassis/pull/10) contains the I-002 tests (`c0a20a78`), boot behavior (`01a3bbf1`) and approved recording (`b2254b4e`). The packaged portal serves `/intro.mp3` byte-for-byte with SHA-256 `a6d1543544c714477fab343472d58b5ed07aea358d6bb0a9aea63724b1318a42`. The recording is 6.936 seconds. Its modeled output at the 35% player setting measures -25.1 LUFS integrated and -11.1 dBTP. The UAT check uses the demo speakers and Android Chrome. Thursday’s recording and Saturday’s freeze run cover the idle outage, two drags and recovery.
+
+**Next chat prompt.** Resume PR #10 against `step7-c1-write` for Joe’s one consolidated I-002 review. Check the current head and its CI logs. Record the actual listening and device results separately from the automated Chrome and emulated-touch tests. The merge target is Friday, November 20 at noon Arizona time. Use the operator run sheet for Thursday’s recording and Saturday’s noon freeze. Finalize Andy’s Sunday cue card against the freeze SHA and Joe’s approved exit wording.
+
 ## Demo sprint checkpoint, November 18
 
 Draft [PR #9](https://github.com/jderomanis1/chassis/pull/9) targets `step7-c1-write` at `9ff76ea`. INC-1a implementation `15a0f9a9e90a28a77943edc487f11641ebff8240` follows the test-first branch in place. The previous accepted demo build is `9ff76ea`. The older checkpoints below are preserved for history.

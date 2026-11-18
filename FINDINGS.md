@@ -1,5 +1,17 @@
 # Findings
 
+## Demo intro audio | November 18
+
+The portal used `default-src 'none'` without a media directive. A local MP3 would therefore be blocked. The I-002 draft adds `media-src 'self'` and tests the exact directive. Playback starts at document boot, outside the React component, with click and keydown listeners installed only after an autoplay denial. Each gesture removes both listeners before retrying.
+
+Joe supplied the approved `am_michael` MP3 after the initial wiring draft. The file is 222,764 bytes and its SHA-256 matches his requested digest. Frontend public assets and the packaged portal use identical bytes. The local notices include the Kokoro voice attribution and Apache-2.0 license.
+
+The source is 48 kHz stereo and peaks at -2.0 dBTP. At the selected gain of 0.35 the measured output peak is -11.1 dBTP with integrated loudness of -25.1 LUFS. The canvas has no other audio playback calls in its current source. A physical-device listening check will establish the balance with the actual demonstration setup.
+
+The actual-clip browser run caught console 404s after playback. The boot page now supplies an inline favicon so Chrome can resolve its implicit icon without another request. The emulated phone check follows the visible editing indicator through the outage. The separate connection label is hidden below 700 px by the existing layout.
+
+The browser suite for INC-1a ran inside the all-extras job. The [step log](https://github.com/jderomanis1/chassis/actions/runs/44326795343/job/134880143975#step:12:1) records 80 passed. Joe's live outage check remains on the Thursday and Saturday run sheets.
+
 ## INC-1a handoff findings, November 18
 
 The original PR #9 head `601ca5da` measured 59 raw product lines. Separate statements shared lines in the pointer listener and its cleanup. The revised source relies on React Flow for the pan gesture, records the attempted move for the outage notice, and declares each control's pause description when React renders it. This also covers controls that appear after the connection drops. The header keeps its existing `.mode.mono` styling in both themes.
