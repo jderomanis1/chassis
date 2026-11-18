@@ -10,7 +10,10 @@ not SecOps, QE, or Code Reviewer approval. Main is still `42f0fa0`.
   An unchanged etag is a 304 with an empty body.
 - Undo lived only in the page. After a reload the button did nothing. The page
   now reads the editor's commits and sends the prior visible fields as a new
-  update. A second commit is added. History is not rewritten.
+  update. A second commit is added. History is not rewritten. A commit whose
+  record the viewer cannot see is left out of the list, so the list, its count,
+  and its etag match a history that never had that commit. A viewer who can
+  see the record still gets the entry.
 - Resending a stored hidden `depends_on` id returned 200. That confirmed the
   guess and, sent alone, cleared the visible list. Any proposed id the caller
   cannot see is now the same 400 as a missing id, with no commit. Visible ids
@@ -18,7 +21,16 @@ not SecOps, QE, or Code Reviewer approval. Main is still `42f0fa0`.
 - A title edit ran full graph validation, so a hidden dependency whose record
   had been deleted returned 400. The title edit now drops ids that no longer
   name a record and saves. A hidden id whose record still exists stays in the
-  file and stays out of the response.
+  file and stays out of the response. The portal PATCH was still 400 because
+  the index refresh validated the vault before that drop. The write path now
+  checks visibility without that graph check, then the store drops the missing
+  id and saves.
+- A second edit of the same card could send the version from the first paint.
+  That version changed only when a later reload committed, so a fast second
+  save received 409 and undo could apply against the old card. Save and undo
+  now stamp the version and the fields from the response onto the card before
+  the editor closes. The local run that reported 22 passed used Google Chrome
+  and won the race. CI used Playwright Chromium and lost it.
 - A venture tile, the zoomed cards, initiative progress, and the graph task
   count are all taken from the visible rows. Adding or deleting a restricted
   task does not change those numbers. Acme in the demo vault shows 5 tasks in

@@ -11,7 +11,7 @@ from chassis.atomic import vault_lock
 from chassis.audit import audited
 from chassis.identity import caller_id
 from chassis.errors import AuthorizationError, ConflictError, NotFoundError, WriteError
-from chassis.git import Identity, commit_file, ensure_clean, ensure_repository, has_record_changes
+from chassis.git import GitError, Identity, commit_file, ensure_clean, ensure_repository, has_record_changes, run_git
 from chassis.markdown import ParsedRecord, RecordFileError, parse_record, read_frontmatter
 from chassis.models import RECORD_TYPES, Record, RecordId, RecordType
 from chassis.policy import authorize_writer, require_grant, require_clearance, visible_records, can_read_record
@@ -278,7 +278,17 @@ class RecordStore:
             policy = authorize_writer(self.root, agent, self.token)
             self._check_scopes(path.stem, {}, policy, agent)
             ensure_repository(self.root)
-            records = self._validate_sources(self._read_sources(), policy, agent)
+            items = self._read_sources()
+            dirty = next((item for item in items if item.path == path), None)
+            if dirty is not None:
+                try:
+                    head = parse_record(run_git(self.root, "show", f"HEAD:{relative.as_posix()}"), path).record
+                except (GitError, RecordFileError):
+                    head = None
+                if head is not None and list(dirty.record.depends_on) != list(head.depends_on):
+                    self._merge_stored_dependencies(
+                        head.depends_on, list(dirty.record.depends_on), items, policy, agent)
+            records = self._validate_sources(items, policy, agent)
             item = next((item for item in records.values() if item.path == path), None)
             if item is None:
                 raise WriteError(f"{relative}: record path not found")

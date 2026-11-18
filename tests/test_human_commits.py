@@ -55,6 +55,20 @@ def test_invalid_manual_source_is_not_committed(git_repo):
         RecordStore(git_repo).update_record("task-launch-budget", {}, 1, "chief-of-staff")
 
 
+def test_commit_human_rejects_a_new_hidden_dependency(git_repo, monkeypatch):
+    from test_read_error_safety import normal_writer
+    token = normal_writer(git_repo)
+    monkeypatch.setenv("CHASSIS_AGENT_ID", "normal-writer")
+    monkeypatch.setenv("CHASSIS_AGENT_TOKEN", token)
+    path = git_repo / "records/tasks/task-launch-offer.md"
+    path.write_text(path.read_text().replace("depends_on: []", "depends_on: [task-launch-budget]"))
+    before = git(git_repo, "rev-parse", "HEAD")
+    with pytest.raises(WriteError, match="^invalid dependency$") as caught:
+        RecordStore(git_repo, token=token).commit_human("records/tasks/task-launch-offer.md")
+    assert git(git_repo, "rev-parse", "HEAD") == before
+    assert "task-launch-budget" not in str(caught.value)
+
+
 def test_clean_human_path_is_not_an_empty_commit(git_repo):
     before = git(git_repo, "rev-parse", "HEAD")
     with pytest.raises(WriteError, match="no uncommitted human edit"):

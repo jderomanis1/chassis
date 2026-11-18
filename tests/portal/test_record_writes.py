@@ -5,11 +5,15 @@ import pytest
 import yaml
 
 from chassis.errors import AuditError, CommittedIndexError
-from chassis.portal.writes import CONFLICT_MESSAGE
+from chassis.git import Identity
+from chassis.portal.app import create_app
+from chassis.portal.config import PortalConfig
 from chassis.markdown import read_record
+from chassis.portal.writes import CONFLICT_MESSAGE
 from chassis.store import RecordStore
+from starlette.testclient import TestClient
 from test_security_cli import assert_no_leaks, restricted_terms
-from .helpers import git
+from .helpers import git, issue
 from .test_write_guard import editor_config, writer
 
 TARGET = "/api/records/task-launch-offer"
@@ -18,6 +22,38 @@ TARGET = "/api/records/task-launch-offer"
 def patch(writer, changes=None, version=1, path=TARGET):
     return writer.patch(path, json={"changes": changes or {"title": "Fictional canvas edit"},
                                     "expected_version": version})
+
+
+def test_restricted_editor_history_is_invisible_to_a_normal_viewer(writer, editor_config, monkeypatch):
+    root = editor_config.root
+    saved = patch(writer, {"title": "Visible fictional title"})
+    assert saved.status_code == 200
+    before = writer.get("/api/undo")
+    version = writer.get("/api/version").json()["etag"]
+    assert before.status_code == 200
+    assert before.json()["count"] == len(before.json()["entries"]) == 1
+    chief = issue(root, "chief-of-staff")
+    monkeypatch.setenv("CHASSIS_AGENT_ID", "chief-of-staff")
+    monkeypatch.setenv("CHASSIS_AGENT_TOKEN", chief)
+    RecordStore(root, token=chief, identity=Identity("canvas-editor", "canvas-editor@chassis.local")).update_record(
+        "task-launch-budget", {"title": "Hidden undo title"}, 1, "chief-of-staff")
+    after = writer.get("/api/undo")
+    assert after.content == before.content
+    assert after.json()["count"] == before.json()["count"]
+    assert after.json()["etag"] == before.json()["etag"]
+    assert writer.get("/api/version").json()["etag"] == version
+    for term in (b"task-launch-budget", b"Hidden undo title", b"Set the internal launch test budget"):
+        assert term not in after.content
+    cleared = PortalConfig(root=root, viewer_agent="chief-of-staff", viewer_token=chief,
+                           editor_agent="canvas-editor", editor_token=editor_config.editor_token)
+    with TestClient(create_app(cleared), base_url="http://127.0.0.1:8765") as client:
+        seen = client.get("/api/undo")
+        assert seen.status_code == 200
+        body = seen.json()
+        assert body["count"] == before.json()["count"] + 1
+        assert any(entry["id"] == "task-launch-budget" for entry in body["entries"])
+        assert "Set the internal launch test budget" in seen.text
+        assert body["etag"] != before.json()["etag"]
 
 
 def test_undo_after_a_reload_is_a_second_editor_commit(writer, editor_config):
@@ -165,6 +201,19 @@ def plant_hidden(root, dependencies):
 def offer_dependencies(writer):
     tasks = writer.get("/api/initiatives/initiative-d2c-launch").json()["tasks"]
     return next(task for task in tasks if task["id"] == "task-launch-offer")["depends_on"]
+
+
+def test_portal_title_edit_drops_a_deleted_hidden_dependency(writer, editor_config):
+    root = editor_config.root
+    path = plant_hidden(root, ["task-launch-budget"])
+    (root / "records/tasks/task-launch-budget.md").unlink()
+    response = patch(writer, {"title": "Fictional title after a removed link"})
+    assert response.status_code == 200, response.text
+    assert "Records unavailable" not in response.text
+    assert response.json()["record"]["version"] == 2
+    assert read_record(path).record.title == "Fictional title after a removed link"
+    assert read_record(path).record.depends_on == []
+    assert "task-launch-budget" not in response.text
 
 
 def test_title_patch_leaves_a_stored_hidden_dependency(writer, editor_config):

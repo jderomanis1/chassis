@@ -132,7 +132,7 @@ test('two undos of one card stay in version order', async ({ page, demo }) => {
   }
   await expect.poll(() => Number(git(demo.vault, 'rev-list', '--count', 'HEAD'))).toBe(start + 4);
   await expect(page.getByText('nothing to undo')).toHaveCount(0);
-  await expect(page.getByText('Changed elsewhere. Reloaded the latest.')).toHaveCount(0);
+  await expect(page.getByText('Your edit was not saved')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled();
 });
 

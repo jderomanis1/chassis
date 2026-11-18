@@ -1,4 +1,5 @@
 """One-process local API using the authenticated library view."""
+import hashlib
 import json
 from pathlib import Path
 from secrets import token_urlsafe
@@ -86,7 +87,10 @@ def create_app(config, *, clock=None):
     def undo(request):
         email = f"{config.editor_agent}@chassis.local" if config.editor_agent else ""
         visible = {row["id"] for row in index.list_records()}
-        return JSONResponse({"entries": undo_entries(config.root, email, visible) if email else []})
+        entries = undo_entries(config.root, email, visible) if email else []
+        digest = hashlib.sha256(json.dumps(entries, sort_keys=True, ensure_ascii=False,
+                                           separators=(",", ":")).encode()).hexdigest()
+        return JSONResponse({"entries": entries, "count": len(entries), "etag": digest})
 
     def session(request):
         record_event(config.root, config.viewer_agent, "session", "ok")

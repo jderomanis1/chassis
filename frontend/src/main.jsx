@@ -26,10 +26,11 @@ function App() {
   const [ventureId, setVentureId] = useState(readVenture(location.hash));
   const [editor, setEditor] = useState(null), [fieldMessage, setFieldMessage] = useState('');
   const [notice, setNotice] = useState(''), [reloadOffer, setReloadOffer] = useState(false);
+  const [confirmed, setConfirmed] = useState({});
   const [undo, setUndo] = useState([]), [pending, setPending] = useState(null), [focusId, setFocusId] = useState(null);
   const [query, setQuery] = useState(''), [hits, setHits] = useState([]), [hover, setHover] = useState(null);
   const [commandOpen, setCommandOpen] = useState(false), [viewMode, setViewMode] = useState('show-all'), [fitSignal, setFitSignal] = useState(0);
-  const ticket = useRef(0), layoutRef = useRef(null), timer = useRef(0);
+  const ticket = useRef(0), layoutRef = useRef(null), timer = useRef(0), etagRef = useRef("");
   const writes = Boolean(data?.session.writes_enabled);
 
   async function loadVenture(id) {
@@ -51,6 +52,7 @@ function App() {
       const nextDetail = selected ? await loadVenture(selected) : null;
       if (current !== ticket.current) return;
       layoutRef.current = layout;
+      etagRef.current = snapshot.etag;
       setData({ session, snapshot, layout }); setDetail(nextDetail); setVentureId(selected);
       setUndo(history.entries || []);
       setError(null); setPending(null);
@@ -68,17 +70,17 @@ function App() {
     return () => { window.removeEventListener('chassis-theme-change', onTheme); window.removeEventListener('hashchange', onHash); };
   }, []);
   useEffect(() => {
-    if (!data) return undefined;
     const poll = setInterval(async () => {
+      if (!etagRef.current) return;
       try {
-        const version = await readVersion(data.snapshot.etag);
+        const version = await readVersion(etagRef.current);
         if (version.changed) await load();
       } catch (failure) {
         if (failure.name !== 'AbortError') setError(failure.message);
       }
     }, POLL_MS);
     return () => clearInterval(poll);
-  }, [data]);
+  }, []);
   useEffect(() => {
     function onKey(event) {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); setCommandOpen(true); return; }
@@ -117,6 +119,9 @@ function App() {
     persistLayout({ ...(layoutRef.current || { positions: {}, collapsed: [], viewport: { x: 0, y: 0, zoom: 1 } }), hidden });
   }
   function showNotice(text, offer = false) { setNotice(text); setReloadOffer(offer); }
+  function confirmRecord(id, version, fields = {}) {
+    setConfirmed(current => ({ ...current, [id]: { ...(current[id] || {}), ...fields, version } }));
+  }
   function closeEditor() {
     const id = editor?.id;
     setEditor(null); setFieldMessage('');
@@ -125,9 +130,11 @@ function App() {
   async function openEdit(record) {
     if (!writes) return;
     const source = record.kind === 'venture' ? (await api(`/api/ventures/${record.id}`)).venture : record;
+    const known = confirmed[record.id]?.version || 0;
+    const version = Math.max(known, source.version || 0, record.version || 0);
     const next = record.kind === 'venture'
-      ? { ...record, title: source.title, status: source.status, next_step: source.next_step, version: source.version, kind: 'venture' }
-      : record;
+      ? { ...record, title: source.title, status: source.status, next_step: source.next_step, version, kind: 'venture' }
+      : { ...record, version };
     setFieldMessage(''); setFocusId(null); setEditor(next);
   }
   async function save(fields) {
@@ -142,7 +149,9 @@ function App() {
       const result = await api(`/api/records/${encodeURIComponent(editing.id)}`, { method: 'PATCH', csrf: data.session.csrf,
         data: { changes, expected_version: editing.version } });
       setUndo(stack => [...stack, { id: editing.id, changes: priorValues(changes, editing), version: result.record.version }].slice(-10));
-      setEditor(null); setFieldMessage(''); setFocusId(editing.id); showNotice(''); await load();
+      confirmRecord(editing.id, result.record.version, changes);
+      showNotice(''); await load();
+      setEditor(null); setFieldMessage(''); setFocusId(editing.id);
     } catch (failure) {
       setPending(null);
       if (failure.code === 'conflict') {
@@ -157,6 +166,7 @@ function App() {
       const result = await api(`/api/records/${encodeURIComponent(entry.id)}`, { method: 'PATCH', csrf: data.session.csrf,
         data: { changes: entry.changes, expected_version: entry.version } });
       setUndo(stack => nextUndoStack(stack, entry.id, result.record.version));
+      confirmRecord(entry.id, result.record.version, entry.changes);
       showNotice(''); await load();
     } catch (failure) {
       if (failure.code === 'conflict') { setUndo(stack => stack.slice(0, -1)); showNotice('nothing to undo'); }
@@ -171,11 +181,17 @@ function App() {
   }
   const source = useMemo(() => {
     if (!data) return null;
-    if (!ventureId) return { view: 'overview', nodes: applyPending(overviewNodes(data.snapshot.ventures), pending), edges: [] };
+    const stamp = nodes => nodes.map(node => {
+      const extra = confirmed[node.id];
+      if (!extra || (node.data.version || 0) >= extra.version) return node;
+      const health = extra.status === 'blocked' ? 'red' : extra.status === 'done' ? 'green' : node.data.health;
+      return { ...node, data: { ...node.data, ...extra, health } };
+    });
+    if (!ventureId) return { view: 'overview', nodes: stamp(applyPending(overviewNodes(data.snapshot.ventures), pending)), edges: [] };
     if (!detail) return null;
     const graph = ventureModel(detail);
-    return { view: ventureId, title: detail.venture.title, nodes: applyPending(graph.nodes, pending), edges: graph.edges };
-  }, [data, detail, ventureId, pending]);
+    return { view: ventureId, title: detail.venture.title, nodes: stamp(applyPending(graph.nodes, pending)), edges: graph.edges };
+  }, [data, detail, ventureId, pending, confirmed]);
   const hiddenIds = data?.layout?.hidden || [];
   const hiddenHere = (source?.nodes || []).filter(node => hiddenIds.includes(node.id));
   const model = useMemo(() => {

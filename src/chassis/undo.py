@@ -64,6 +64,9 @@ def undo_entries(root, email, visible, limit=10):
         before, after = _show(root, parent, relative), _show(root, sha, relative)
         if before is None or after is None:
             continue
+        # A commit the viewer cannot see must not change the stack, its count, or its etag.
+        if after.id not in visible or before.id not in visible:
+            continue
         prior, current = _snapshot(before, visible), _snapshot(after, visible)
         forward = {key: current[key] for key in FIELDS if prior[key] != current[key]}
         if not forward:
