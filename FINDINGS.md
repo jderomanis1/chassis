@@ -2,7 +2,7 @@
 
 ## Monday demo UAT fixes
 
-These notes are engineering evidence on `cursor/uat-canvas-fixes-8f6d`. They are
+These notes are engineering evidence at `5052aed` on `cursor/uat-canvas-fixes-8f6d`. They are
 not SecOps, QE, or Code Reviewer approval. Main is still `42f0fa0`.
 
 - The canvas waited on a 5 second poll, so a disk edit could take just over 5

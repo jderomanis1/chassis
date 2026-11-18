@@ -162,7 +162,8 @@ tokenized invitation/tracking links are not copied into the repository.
 
 ## UAT fixes checkpoint: current
 
-- Branch `cursor/uat-canvas-fixes-8f6d` starts at `step7-c1-write` `06a53bc`.
+- Implementation commit `5052aed` on `cursor/uat-canvas-fixes-8f6d` starts at
+  `step7-c1-write` `06a53bc`.
   Do not touch main. Do not merge this pull request from the build chat.
 - The canvas polls `/api/version` every 1 second with `If-None-Match`. A match
   is HTTP 304 and does not reload the snapshot. A disk edit or agent update is

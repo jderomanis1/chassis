@@ -1,6 +1,6 @@
 # Acceptance evidence
 
-**Snapshot:** Monday demo UAT fixes are on `cursor/uat-canvas-fixes-8f6d`, based on `step7-c1-write` at `06a53bc`. The pull request targets `step7-c1-write` and is not merged. Main remains `42f0fa0`. C1/C2 are not independently reviewed. **Date:** 2026-11-17.
+**Snapshot:** Monday demo UAT fixes are commit `5052aed` on `cursor/uat-canvas-fixes-8f6d`, based on `step7-c1-write` at `06a53bc`. The pull request targets `step7-c1-write` and is not merged. Main remains `42f0fa0`. C1/C2 are not independently reviewed. **Date:** 2026-11-17.
 
 ## UAT fixes
 
