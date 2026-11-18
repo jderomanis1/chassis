@@ -87,9 +87,9 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024
       await page.getByRole('button', { name: 'Save', exact: true }).click();
       const saving = page.getByRole('button', { name: 'Saving...' });
       await expect(saving).toBeDisabled();
-      await expect(page.getByLabel('Title')).toHaveJSProperty('readOnly', true);
+      await expect(page.locator('#edit-title')).toHaveJSProperty('readOnly', true);
       await expect(page.getByLabel('Status')).toBeDisabled();
-      await expect(page.getByLabel('Next step')).toHaveJSProperty('readOnly', true);
+      await expect(page.locator('input[name="next_step"]')).toHaveJSProperty('readOnly', true);
       await expect(page.getByRole('dialog')).toHaveCount(0);
     });
 
@@ -117,7 +117,9 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024
       await page.getByRole('button', { name: 'Save', exact: true }).click();
       await expect(page.getByRole('heading', { name: 'Your edit was not saved' })).toBeVisible();
       await page.route('**/api/version', route => route.abort());
-      await page.clock.fastForward(32000);
+      await page.clock.fastForward(4000);
+      await expect(page.getByText('Reconnecting', { exact: true })).toBeVisible();
+      await page.clock.fastForward(40000);
       const keep = page.getByRole('button', { name: 'Keep mine and save again' });
       await expect(page.getByText('Offline', { exact: true })).toBeVisible();
       await expect(keep).toHaveAttribute('aria-disabled', 'true');

@@ -87,8 +87,7 @@ test('stdio MCP update reaches the canvas and both themes capture the demo state
   await page.route('**/api/records/**', route => route.fulfill({ status: 409, json: { error: {
     code: 'conflict', message: 'This record changed before the save landed. Your edit was not saved. Reload to see the latest version.', current_version: 4 } } }));
   await page.getByRole('button', { name: 'Save' }).click();
-  await expect(page.locator('p.attn')).toContainText('Your edit was not saved');
-  await expect(page.getByRole('button', { name: 'Reload' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your edit was not saved' })).toBeVisible();
   await shot(page, 'dark-conflict.png');
 
   await page.unroute('**/api/records/**');
@@ -111,7 +110,6 @@ test('stdio MCP update reaches the canvas and both themes capture the demo state
   await page.route('**/api/records/**', route => route.fulfill({ status: 409, json: { error: {
     code: 'conflict', message: 'This record changed before the save landed. Your edit was not saved. Reload to see the latest version.', current_version: 4 } } }));
   await page.getByRole('button', { name: 'Save' }).click();
-  await expect(page.locator('p.attn')).toContainText('Your edit was not saved');
-  await expect(page.getByRole('button', { name: 'Reload' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your edit was not saved' })).toBeVisible();
   await shot(page, 'light-conflict.png');
 });
