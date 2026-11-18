@@ -351,3 +351,25 @@ test('Use latest and Discard do nothing while Keep mine is saving', async ({ pag
     release();
   }
 });
+
+test('a hung save ends in a failure and the drawer can close', async ({ page, demo }) => {
+  test.setTimeout(30000);
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openTask(page, demo);
+  await page.locator('#edit-title').fill('Hung save title');
+  let patches = 0;
+  await page.route('**/api/records/**', route => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    patches += 1;
+    return new Promise(() => {});
+  });
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Saving...' })).toBeVisible();
+  await expect(page.locator('form.editor-form p[role="alert"]')).toBeVisible({ timeout: 15000 });
+  await settled(page);
+  expect(patches).toBe(1);
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('button', { name: 'Close editor' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Hung save title' })).toHaveCount(0);
+});
