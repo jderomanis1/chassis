@@ -89,3 +89,8 @@ def create_door(public_origin, password):
                                        forwarded, bytes(body))
 
     return app
+
+
+def from_environment():
+    import os
+    return create_door(os.environ["PUBLIC_ORIGIN"], os.environ["DEMO_PASSWORD"])
