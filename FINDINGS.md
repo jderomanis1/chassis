@@ -1,5 +1,19 @@
 # Findings
 
+## Flick-hide diagnosis, November 18
+
+**29 passed, 1 failed (N = 30).** GitHub Actions ran only `tests/e2e/x1.spec.mjs:10` on Chromium at `21239f1`, based on `e371fdf`, with one worker, zero retries and a fresh fictional vault per execution. The third execution failed (`repeat2` in Playwright). All 30 completed. [Diagnosis run](https://github.com/jderomanis1/chassis/actions/runs/44349874303) · [Job log](https://github.com/jderomanis1/chassis/actions/runs/44349874303/job/134962276007#step:7:1)
+
+**Cause in the captured failure.** The test measured Cedar Rentals while the canvas was fitting the view after reload. By mouse-down, the card had moved away from the stored coordinates. The trace shows zoom changing from 0.954 to 0.579 between locating Cedar and pressing at (1158, 348). Immediately after the press, the canvas pane acquired the `dragging` class. Moving the pointer to (0, 0) panned the viewport by exactly (−1158, −348). Cedar’s stored position stayed at (936, 0).
+
+| Failure | Did the layout PUT return? | Did Show hidden update? |
+| --- | --- | --- |
+| Execution 3 of 30 | Yes. Both post-reload PUTs returned HTTP 200. Both requests and responses listed only `venture-juniper` as hidden. The test’s response wait resolved on the first PUT. | The H key had advanced the count to 1. After the flick, the six-second assertion never saw `Show hidden (2)`. The failure snapshot still showed `Show hidden (1)` and Cedar Rentals. |
+
+The archive contains the JSON results, error context and `flick-results/x1-H-and-a-flick-hide-a-card-without-deleting-it-repeat2/trace.zip`. GitHub lists December 18, 2026 as the artifact expiry. [Download failure trace and report](https://github.com/jderomanis1/chassis/actions/runs/44349874303/artifacts/14448222002)
+
+Run 67 reached the same assertion after a layout PUT response, and its error snapshot also showed one hidden card and Cedar still present. That run had tracing disabled, so its pointer target remains unknown. The timing race above was observed in execution 3 of this sample. [Run 67](https://github.com/jderomanis1/chassis/actions/runs/44336259129/job/134913708916#step:12:1)
+
 ## Demo intro audio | November 18
 
 The portal used `default-src 'none'` without a media directive. A local MP3 would therefore be blocked. The I-002 merge `cd07e0d67ccc98f6cdc6b22082c628878e62a7d0` on `step7-c1-write` adds `media-src 'self'` and tests the exact directive. Playback starts at document boot, outside the React component, with click and keydown listeners installed only after an autoplay denial. Each gesture removes both listeners before retrying.
@@ -10,7 +24,7 @@ The source is 48 kHz stereo and peaks at -2.0 dBTP. At the selected gain of 0.35
 
 The actual-clip browser run caught console 404s after playback. The boot page now supplies an inline favicon so Chrome can resolve its implicit icon without another request. The emulated phone check follows the visible editing indicator through the outage. The separate connection label is hidden below 700 px by the existing layout.
 
-**Open flake in card flick.** `tests/e2e/x1.spec.mjs:10` (H and a flick hide a card without deleting it) failed in run 67 at `7ff7df9` and passed in run 68 at `10d27598`. Neither the flick implementation nor its test changed between those commits. The only product edit was an inline favicon in the source and packaged HTML. The cause of the intermittent failure remains open. [Run 67 failure](https://github.com/jderomanis1/chassis/actions/runs/44336259129/job/134913708916#step:12:1) · [Run 68 pass](https://github.com/jderomanis1/chassis/actions/runs/44337935376/job/134919615965#step:12:1) · [Commit comparison](https://github.com/jderomanis1/chassis/compare/7ff7df9...10d27598)
+**Open flake in card flick.** `tests/e2e/x1.spec.mjs:10` (H and a flick hide a card without deleting it) failed in run 67 at `7ff7df9` and passed in run 68 at `10d27598`. Neither the flick implementation nor its test changed between those commits. The only product edit was an inline favicon in the source and packaged HTML. The cause was unknown at that checkpoint. The November 18 diagnosis above covers a later traced failure. [Run 67 failure](https://github.com/jderomanis1/chassis/actions/runs/44336259129/job/134913708916#step:12:1) · [Run 68 pass](https://github.com/jderomanis1/chassis/actions/runs/44337935376/job/134919615965#step:12:1) · [Commit comparison](https://github.com/jderomanis1/chassis/compare/7ff7df9...10d27598)
 
 The browser suite for INC-1a ran inside the all-extras job. The [step log](https://github.com/jderomanis1/chassis/actions/runs/44326795343/job/134880143975#step:12:1) records 80 passed. Joe's live outage check remains on the Thursday and Saturday run sheets.
 
