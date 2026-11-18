@@ -6,7 +6,7 @@ function json(body, status = 200) {
   return { ok: status >= 200 && status < 300, status, json: async () => body };
 }
 
-test('a 403 is retried once when the record version is unchanged', async () => {
+test('a 403 is retried once when the record version is unchanged', { timeout: 2000 }, async () => {
   const writes = [];
   global.fetch = async (path, options = {}) => {
     const method = options.method || 'GET';

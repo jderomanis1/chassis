@@ -113,8 +113,6 @@ function edit(vault, token, id, version, changes) {
 }
 
 test('two undos of one card stay in version order', async ({ page, demo }) => {
-  // Four reloads plus server teardown can cross the 30s test budget on a slow runner.
-  test.setTimeout(60000);
   await page.goto(`${demo.origin}/#/v/venture-ridgeview`);
   const card = page.getByRole('button', { name: 'Ridgeview HOA: launch review 3', exact: true });
   await expect(card).toBeVisible();
