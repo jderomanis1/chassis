@@ -10,7 +10,11 @@ Joe authorized the I-002 merge. GitHub Actions run 68 passed all three checks on
 
 A focused Chromium run on the diagnosis branch recorded 29 passes and one failure in 30 executions of `x1.spec.mjs:10`. On execution 3 the test pressed where Cedar Rentals had been during auto-fit, then panned the canvas. Both layout PUTs returned HTTP 200 with only Juniper hidden. The trace and observations are in [FINDINGS.md](FINDINGS.md#flick-hide-diagnosis-november-18). [Diagnosis run](https://github.com/jderomanis1/chassis/actions/runs/44349874303)
 
-**Next chat prompt.** Resume the demo walkthrough from `step7-c1-write` at `e371fdfb41f9cf0e99852588b3c2e149618878e4`, the verified integration tip. Confirm the live tip before starting. Use the operator run sheet for Thursday’s recording and Saturday’s noon Arizona freeze. Record the build SHA, audible playback on the demo speakers, physical Android Chrome playback, and the outage, two drags and recovery. Keep the flick flake open with its traced diagnosis. Finalize Andy’s Sunday cue card against the freeze SHA and Joe’s approved exit wording.
+Joe explicitly authorized merging [PR #11](https://github.com/jderomanis1/chassis/pull/11) into `step7-c1-write` with a merge commit. The integration tip is [merge `9135a22`](https://github.com/jderomanis1/chassis/commit/9135a22c054f8c990301a5e5b05fa03e9599bd1a) (`9135a22c054f8c990301a5e5b05fa03e9599bd1a`). Core, portal and all-extras passed on attempt 1. [CI run 72](https://github.com/jderomanis1/chassis/actions/runs/44353837120)
+
+The flick test fix is `4a7ce79ca901ec45be7c19f81cc539a5429a0436` on `codex/flick-test-settle`. The test waits for the initial viewport save after navigation and again after reload. It then measures Cedar Rentals and performs the original mouse gesture. The focused Chromium run passed all 30 executions with one worker and zero retries. [Focused run](https://github.com/jderomanis1/chassis/actions/runs/44357179794)
+
+**Next chat prompt.** Start from `step7-c1-write` at `9135a22c054f8c990301a5e5b05fa03e9599bd1a`. Check the live integration tip. For the flick fix, read the [draft PR for `codex/flick-test-settle`](https://github.com/jderomanis1/chassis/pulls?q=is%3Apr+head%3Acodex%2Fflick-test-settle) and verify its current head SHA and first CI attempt before review. Leave the merge decision with Joe. For Thursday’s recording and Saturday’s noon Arizona freeze, use the operator run sheet and record the build SHA, speaker and Android playback, and the outage, two drags and recovery. Finalize Andy’s Sunday cue card against the freeze SHA and Joe’s approved exit wording.
 
 ## Demo sprint checkpoint, November 18
 
@@ -657,7 +661,7 @@ the implementation commit, executed checks, open gaps, and next chat's prompt.
 An uploaded copy is a snapshot; the next chat must read current repo guidance.
 Do not assume a prior scratch filesystem, installed app, or credential persists.
 
-## Next chat starting prompt
+## Archived next-chat prompt for R1
 
 ```text
 Continue from cursor/r1-hidden-deps-ci-1dd7. Open or update the one pull request

@@ -1,5 +1,11 @@
 # Findings
 
+## Cedar Rentals flick after reload, November 18
+
+**30 passed, 0 failed.** GitHub Actions ran `tests/e2e/x1.spec.mjs:10` in Chromium with `--repeat-each=30 --workers=1 --retries=0` at `41fbd26`. Each execution used a fresh fictional vault. [CI run](https://github.com/jderomanis1/chassis/actions/runs/44357179794) · [Playwright log](https://github.com/jderomanis1/chassis/actions/runs/44357179794/job/134988317567#step:7:1)
+
+At `4a7ce79`, the test starts listening for the layout PUT before each navigation. On page load, the canvas schedules this save from React Flow’s `onMoveEnd`. Waiting for its successful response after reload puts the Cedar measurement after the fit animation. The first wait also finishes the original page’s fit save before the H key. The test still flicks with the mouse, checks that the hidden count reaches two, restores both cards and verifies the vault commit. The earlier 29/30 diagnosis and its trace are preserved below.
+
 ## Flick-hide diagnosis, November 18
 
 **29 passed, 1 failed (N = 30).** GitHub Actions ran only `tests/e2e/x1.spec.mjs:10` on Chromium at `21239f1`, based on `e371fdf`, with one worker, zero retries and a fresh fictional vault per execution. The third execution failed (`repeat2` in Playwright). All 30 completed. [Diagnosis run](https://github.com/jderomanis1/chassis/actions/runs/44349874303) · [Job log](https://github.com/jderomanis1/chassis/actions/runs/44349874303/job/134962276007#step:7:1)

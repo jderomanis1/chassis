@@ -8,7 +8,7 @@ async function shot(page, name) {
 }
 
 test('H and a flick hide a card without deleting it', async ({ page, demo }) => {
-  await page.goto(demo.origin);
+  await navigateAndWaitForFit(page, () => page.goto(demo.origin));
   await expect(page.locator('[data-kind="venture"]')).toHaveCount(7);
   const before = git(demo.vault, 'rev-parse', 'HEAD');
   await page.getByRole('button', { name: 'Juniper Events', exact: true }).focus();
@@ -16,12 +16,11 @@ test('H and a flick hide a card without deleting it', async ({ page, demo }) => 
   await expect(page.getByRole('button', { name: 'Show hidden (1)' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Juniper Events', exact: true })).toHaveCount(0);
   expect(git(demo.vault, 'rev-parse', 'HEAD')).toBe(before);
-  await page.reload();
+  await navigateAndWaitForFit(page, () => page.reload());
   await expect(page.getByRole('button', { name: 'Juniper Events', exact: true })).toHaveCount(0);
   const tile = page.locator('[data-record-id="venture-cedar"]');
   const box = await tile.boundingBox();
-  const pane = await page.locator('.react-flow').boundingBox();
-  const saved = page.waitForResponse(response => response.url().endsWith('/api/layout') && response.request().method() === 'PUT');
+  const saved = page.waitForResponse(isLayoutPut);
   await page.mouse.move(box.x + box.width / 2, box.y + 40);
   await page.mouse.down();
   await page.mouse.move(0, 0, { steps: 12 });
@@ -37,3 +36,14 @@ test('H and a flick hide a card without deleting it', async ({ page, demo }) => 
   await expect(page.getByRole('button', { name: 'Cedar Rentals', exact: true })).toBeVisible();
   expect(git(demo.vault, 'rev-parse', 'HEAD')).toBe(before);
 });
+
+function isLayoutPut(response) {
+  return response.url().endsWith('/api/layout') && response.request().method() === 'PUT';
+}
+
+async function navigateAndWaitForFit(page, navigate) {
+  // The initial fit saves the viewport from onMoveEnd. Observe each page's save
+  // before sending input so it cannot be confused with the H or flick save.
+  const [fitSave] = await Promise.all([page.waitForResponse(isLayoutPut), navigate()]);
+  expect(fitSave.ok()).toBe(true);
+}
