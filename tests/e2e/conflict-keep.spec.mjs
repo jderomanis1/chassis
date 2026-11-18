@@ -322,3 +322,32 @@ test('Keep mine is hidden when the latest version did not load', async ({ page, 
   expect(patches).toBe(0);
   await expect(page.locator('#edit-title')).toHaveValue('No blind overwrite');
 });
+
+test('Use latest and Discard do nothing while Keep mine is saving', async ({ page, demo }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openTask(page, demo);
+  await conflict(page, demo, 'Held keep');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Discard' })).toBeVisible();
+  let release = () => {};
+  const gate = new Promise(resolve => { release = resolve; });
+  await page.route('**/api/records/**', async route => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    await gate;
+    await route.fallback();
+  });
+  try {
+    await page.getByRole('button', { name: 'Keep mine and save again' }).click();
+    await expect(page.getByRole('button', { name: 'Saving...' })).toBeVisible();
+    await page.getByRole('button', { name: 'Use latest' }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.locator('#edit-title')).toHaveValue('Held keep');
+    await expect(page.getByRole('button', { name: 'Discard' })).toBeVisible();
+    await page.getByRole('button', { name: 'Discard' }).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Saving...' })).toBeVisible();
+    await expect(page.locator('#edit-title')).toHaveValue('Held keep');
+  } finally {
+    release();
+  }
+});
