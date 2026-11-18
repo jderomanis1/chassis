@@ -66,4 +66,7 @@ body:focus,body:focus-visible{outline:3px solid var(--cyan);outline-offset:-6px}
 .hover-slot dl{flex-wrap:nowrap;min-width:0;overflow:hidden}
 .editor-form header h2{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:640px){.hover-slot{height:44px;padding:4px 12px}}
+.link-reconnecting .dot,.link-reconnecting .dot::after{background:var(--amber);animation:none}
+.link-offline .dot,.link-offline .dot::after{background:var(--red);animation:none}
+.panel.empty .btn:focus{outline:3px solid var(--cyan);outline-offset:3px}
 @media(max-width:700px){header.top{padding:12px 18px}.live{display:none}main#canvas{padding:18px}.intro{align-items:start}.intro h1{font-size:23px}.mode{font-size:9px;white-space:normal}}
