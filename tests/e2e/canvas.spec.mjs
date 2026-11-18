@@ -161,7 +161,7 @@ test('gated edit, undo, conflict, and hidden controls', async ({ page, demo }) =
   const conflicted = page.waitForResponse(response => response.url().includes('/api/records/') && response.request().method() === 'PATCH');
   await page.getByRole('button', { name: 'Save' }).click();
   expect((await conflicted).status()).toBe(409);
-  await expect(page.getByRole('status')).toContainText('Your edit was not saved');
+  await expect(page.locator('p.attn')).toContainText('Your edit was not saved');
   await expect(page.getByRole('button', { name: 'Reload' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Ridgeview conflict attempt' })).toHaveCount(0);
   await page.route('**/api/session', async route => {

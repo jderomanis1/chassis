@@ -215,7 +215,7 @@ test('a save during typing commits the full title once', async ({ page, demo }) 
   });
   expect((await saved).status()).toBe(200);
   await expect(page.getByRole('button', { name: 'UAT canvas title', exact: true })).toBeVisible();
-  await expect(page.getByRole('status')).toHaveCount(0);
+  await expect(page.locator('p.attn')).toHaveCount(0);
   expect(patches).toEqual([200]);
   expect(Number(git(demo.vault, 'rev-list', '--count', 'HEAD'))).toBe(before + 1);
   const text = await readFile(join(demo.vault, 'records/tasks/task-acme-launch-1.md'), 'utf8');

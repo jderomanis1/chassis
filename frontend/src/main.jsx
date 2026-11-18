@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { api, readVersion } from './api.js';
+import { api, bindSessionRefresh, readVersion } from './api.js';
 import { POLL_MS } from './poll.js';
 import { Canvas } from './canvas.jsx';
 import { CommandBar } from './command-bar.jsx';
@@ -21,7 +21,8 @@ function applyPending(nodes, pending) {
 }
 
 function App() {
-  const [data, setData] = useState(null), [detail, setDetail] = useState(null), [error, setError] = useState(null);
+  const [data, setData] = useState(null), [detail, setDetail] = useState(null), [bootError, setBootError] = useState(false);
+  const [link, setLink] = useState('live');
   const [theme, setTheme] = useState(document.documentElement.dataset.theme);
   const [ventureId, setVentureId] = useState(readVenture(location.hash));
   const [editor, setEditor] = useState(null), [fieldMessage, setFieldMessage] = useState('');
@@ -31,7 +32,9 @@ function App() {
   const [query, setQuery] = useState(''), [hits, setHits] = useState([]), [hover, setHover] = useState(null);
   const [commandOpen, setCommandOpen] = useState(false), [viewMode, setViewMode] = useState('show-all'), [fitSignal, setFitSignal] = useState(0);
   const ticket = useRef(0), layoutRef = useRef(null), layoutStamp = useRef(0), layoutBusy = useRef(false), timer = useRef(0), etagRef = useRef(""), loading = useRef(false);
+  const misses = useRef(0), downSince = useRef(0), booted = useRef(false), polling = useRef(false), stale = useRef(false), linkRef = useRef('live'), noticeRef = useRef('');
   const writes = Boolean(data?.session.writes_enabled);
+  const canEdit = writes && link === 'live';
 
   async function loadVenture(id) {
     const venture = await api(`/api/ventures/${id}`);
@@ -58,11 +61,12 @@ function App() {
       etagRef.current = snapshot.etag;
       setData({ session, snapshot, layout: layoutNow }); setDetail(nextDetail); setVentureId(selected);
       setUndo(history.entries || []);
-      setError(null); setPending(null);
+      booted.current = true; setBootError(false); setPending(null);
       return true;
-    } catch (failure) {
+    } catch {
       if (current !== ticket.current) return false;
-      setError(failure.message); setData(null);
+      if (booted.current) stale.current = true;
+      else setBootError(true);
       return false;
     } finally {
       if (current === ticket.current) loading.current = false;
@@ -77,14 +81,41 @@ function App() {
     window.addEventListener('hashchange', onHash);
     return () => { window.removeEventListener('chassis-theme-change', onTheme); window.removeEventListener('hashchange', onHash); };
   }, []);
+  function markLink(ok) {
+    if (ok) {
+      const missed = misses.current > 0 || linkRef.current !== 'live';
+      misses.current = 0; downSince.current = 0; linkRef.current = 'live'; setLink('live');
+      if (missed) refreshSession();
+      if (noticeRef.current.startsWith('Cannot reach the local canvas')) showNotice('');
+      return;
+    }
+    misses.current += 1;
+    if (!downSince.current) downSince.current = Date.now();
+    const elapsed = Date.now() - downSince.current;
+    const next = elapsed >= 30000 ? 'offline' : misses.current >= 3 ? 'reconnecting' : 'live';
+    linkRef.current = next; setLink(next);
+  }
+  async function refreshSession() {
+    const session = await api('/api/session');
+    setData(current => current ? { ...current, session } : current);
+    return session;
+  }
+  useEffect(() => { bindSessionRefresh(refreshSession); }, []);
   useEffect(() => {
     const poll = setInterval(async () => {
-      if (!etagRef.current) return;
+      if (!etagRef.current || polling.current) {
+        if (etagRef.current && polling.current) markLink(false);
+        return;
+      }
+      polling.current = true;
       try {
-        const version = await readVersion(etagRef.current);
-        if (version.changed && !loading.current) await load();
+        const version = await readVersion(etagRef.current, AbortSignal.timeout(2 * POLL_MS));
+        markLink(true);
+        if ((version.changed || stale.current) && !loading.current && await load()) stale.current = false;
       } catch (failure) {
-        if (failure.name !== 'AbortError') setError(failure.message);
+        if (failure.name !== 'AbortError') markLink(false);
+      } finally {
+        polling.current = false;
       }
     }, POLL_MS);
     return () => clearInterval(poll);
@@ -98,7 +129,7 @@ function App() {
         if (hits.length) { event.preventDefault(); setHits([]); return; }
         if (readVenture(location.hash)) location.hash = '#/';
       }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !editor && !commandOpen && writes) { event.preventDefault(); undoLast(); }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !editor && !commandOpen && canEdit) { event.preventDefault(); undoLast(); }
     }
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
@@ -109,7 +140,7 @@ function App() {
     try { localStorage.setItem('chassis-theme', next); } catch { /* preference is optional */ }
   }
   function persistLayout(next) {
-    if (!writes || !data) return;
+    if (!canEdit || !data) return;
     const stamp = ++layoutStamp.current;
     layoutRef.current = next;
     clearTimeout(timer.current);
@@ -137,7 +168,7 @@ function App() {
     const hidden = [...new Set([...(layoutRef.current?.hidden || []), id])].sort();
     persistLayout({ ...(layoutRef.current || { positions: {}, collapsed: [], viewport: { x: 0, y: 0, zoom: 1 } }), hidden });
   }
-  function showNotice(text, offer = false) { setNotice(text); setReloadOffer(offer); }
+  function showNotice(text, offer = false) { noticeRef.current = text; setNotice(text); setReloadOffer(offer); }
   function confirmRecord(id, version, fields = {}) {
     setConfirmed(current => ({ ...current, [id]: { ...(current[id] || {}), ...fields, version } }));
   }
@@ -147,7 +178,7 @@ function App() {
     if (id) setFocusId(id);
   }
   async function openEdit(record) {
-    if (!writes) return;
+    if (!canEdit) return;
     const source = record.kind === 'venture' ? (await api(`/api/ventures/${record.id}`)).venture : record;
     const known = confirmed[record.id]?.version || 0;
     const version = Math.max(known, source.version || 0, record.version || 0);
@@ -157,6 +188,7 @@ function App() {
     setFieldMessage(''); setFocusId(null); setEditor(next);
   }
   async function save(fields) {
+    if (!canEdit) return;
     const editing = editor;
     if (editing.kind === 'task' && fields.status === 'blocked' && !fields.blocker_reason.trim()) {
       setFieldMessage('blocker_reason is required when a task is blocked'); return;
@@ -180,8 +212,9 @@ function App() {
     }
   }
   async function undoLast() {
+    if (!canEdit) return;
     const entry = undo.at(-1);
-    if (!entry || !writes) return;
+    if (!entry) return;
     try {
       const result = await api(`/api/records/${encodeURIComponent(entry.id)}`, { method: 'PATCH', csrf: data.session.csrf,
         data: { changes: entry.changes, expected_version: entry.version } });
@@ -229,6 +262,7 @@ function App() {
     }
   }
   async function linkCards(connection) {
+    if (!canEdit) return;
     const nodes = source?.nodes || [];
     const visible = nodes.map(node => node.id);
     const proposal = linkChange(nodes.find(node => node.id === connection.source)?.data,
@@ -267,11 +301,11 @@ function App() {
 
   return <><header className="top"><a className="brand" href="#/"><span className="brand-mark">✦</span>
     <span><b>CHASSIS</b><small className="mono">Chief of staff console</small></span></a>
-    <span className="live mono">{data ? <><i className="dot"/>Live store</> : 'Connecting'}</span>
+    <span className={`live mono link-${link}`} role="status" aria-live="polite"><i className="dot" aria-hidden="true"/>{!data ? 'Connecting' : link === 'offline' ? 'Offline' : link === 'reconnecting' ? 'Reconnecting' : 'Live store'}</span>
     <button className="theme-btn" onClick={toggle} aria-label={`Theme: ${theme}. Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>{theme === 'dark' ? '☾' : '☀'} {theme}</button></header>
     <main id="canvas" tabIndex={-1}><div className="intro"><div><p className="mono">Command canvas</p>
       <h1>Every venture. One clear view.</h1><p className="lede">Open a venture to see the work, the links, and what needs you next.</p></div>
-      <span className="intro-actions">{writes ? <button className="btn ghost" type="button" onClick={undoLast} disabled={!undo.length}>Undo</button> : null}
+      <span className="intro-actions">{writes ? <button className="btn ghost" type="button" onClick={undoLast} disabled={!undo.length} aria-disabled={!canEdit || undefined} title={canEdit ? undefined : 'Reconnect to edit'}>Undo</button> : null}
         {data && <span className="mode mono">{writes ? 'Editing enabled' : 'Read only · editing is off'}</span>}</span></div>
       {ventureId && <p className="crumbs"><button type="button" className="back" onClick={() => { location.hash = '#/'; }}>Back to all</button>
         <span className="mono">{detail?.venture.title || ventureId}</span></p>}
@@ -290,13 +324,13 @@ function App() {
         : <span className="hit-note">{hit.title}</span>}</li>)}</ul> : null}
       {hiddenHere.length ? <button type="button" className="btn ghost show-hidden" onClick={showHidden}>Show hidden ({hiddenHere.length})</button> : null}
       </div>
-      {error ? <section className="panel empty" role="alert"><h2>Could not load canvas</h2><p>{error}</p><button className="btn" onClick={load}>Try again</button></section>
+      {bootError && !data ? <section className="panel empty" role="alert"><h2>Could not load canvas</h2><p>Couldn't load your ventures. The live store didn't answer.</p><button className="btn" autoFocus onClick={load}>Try again</button></section>
         : !data || (ventureId && !model) ? <section className="panel empty" role="status">Loading your canvas…</section>
         : !data.snapshot.ventures.length ? <section className="panel empty"><h2>No ventures yet</h2><p>Your visible ventures will appear here.</p></section>
-        : <Canvas model={model} layout={data.layout} writes={writes} fitSignal={fitSignal} onLayout={onLayout} onOpen={id => { location.hash = `#/v/${id}`; }} onEdit={openEdit} onHover={setHover} onClear={() => setHover(null)} onHide={hideCard} onLink={linkCards} />}
+        : <Canvas model={model} layout={data.layout} writes={writes} canEdit={canEdit} fitSignal={fitSignal} onLayout={onLayout} onOpen={id => { location.hash = `#/v/${id}`; }} onEdit={openEdit} onHover={setHover} onClear={() => setHover(null)} onHide={hideCard} onLink={linkCards} />}
       </div>
     </main>
-    {editor ? <Editor record={editor} message={fieldMessage} onClose={closeEditor} onSave={save} /> : null}
+    {editor ? <Editor record={editor} message={fieldMessage} canEdit={canEdit} onClose={closeEditor} onSave={save} /> : null}
     <CommandBar open={commandOpen} ventures={data?.snapshot?.ventures || []} onClose={() => setCommandOpen(false)} onRun={runIntent} /></>;
 }
 createRoot(document.getElementById('root')).render(<App/>);

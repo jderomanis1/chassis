@@ -63,7 +63,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024
       await page.keyboard.press('Escape');
       await expect(list).toHaveCount(0);
       await reload.click();
-      await expect(page.getByRole('status')).toHaveCount(0);
+      await expect(page.locator('p.attn')).toHaveCount(0);
     });
   });
 }

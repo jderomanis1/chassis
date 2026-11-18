@@ -35,7 +35,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024
         await page.getByLabel('Title').fill('Juniper fictional overlay title');
         edit(demo.vault, demo.credentials['canvas-editor'], 'task-juniper-launch-2', 1, { next_step: 'Updated from another terminal.' });
         await page.getByRole('button', { name: 'Save', exact: true }).click();
-        await expect(page.getByRole('status')).toContainText('Your edit was not saved');
+        await expect(page.locator('p.attn')).toContainText('Your edit was not saved');
         await page.getByLabel('Search records').fill('Juniper');
         await page.getByRole('button', { name: 'Search', exact: true }).click();
         const hits = page.locator('.hits li');
