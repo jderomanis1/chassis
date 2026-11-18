@@ -1,5 +1,11 @@
 # Chassis project handoff
 
+## Demo sprint checkpoint, November 18
+
+Draft [PR #9](https://github.com/jderomanis1/chassis/pull/9) targets `step7-c1-write` at `9ff76ea`. INC-1a implementation `15a0f9a9e90a28a77943edc487f11641ebff8240` follows the test-first branch in place. The previous accepted demo build is `9ff76ea`. The older checkpoints below are preserved for history.
+
+**Next chat prompt.** Resume from PR #9 and Joe's consolidated walkthrough feedback. Check the current head, exact-head CI and approval before any merge to the integration branch. After INC-1a, pick up I-002 using the approved am_michael intro.mp3. The clip is named in the handoff and absent from its ZIP. Run sheet polish, exit-brief inputs and the freeze-build walkthrough script follow. Freeze is Saturday, November 21 at noon Arizona time. Monday's demo uses the frozen localhost build and fictional records. Keep I-043 out of the demo.
+
 **Checkpoint date: 2026-11-18. PR #4 is merged into `step7-c1-write` at `fef33be`. I-038, the wrong-record edit, is on `cursor/wrong-record-strip-8f6d`, based on that commit. Its pull request targets `step7-c1-write`. Do not merge. Main is still `42f0fa0`. C1/C2 stay off main until independent SecOps review.**
 This file preserves the approved build decisions and evidence so each step can
 continue in a separate chat. Read current repository HEAD before making changes.

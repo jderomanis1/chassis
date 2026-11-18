@@ -63,6 +63,7 @@ export function Editor({ record, message, canEdit = true, conflict, bindClose, o
     run(next);
   }
   const locked = canEdit ? undefined : true;
+  const description = canEdit ? undefined : 'editing-paused';
   const reconnect = canEdit ? undefined : 'Reconnect to edit';
   return (
     <>
@@ -81,6 +82,7 @@ export function Editor({ record, message, canEdit = true, conflict, bindClose, o
             {conflict.latest ? <button
               type="button"
               className="btn"
+              aria-describedby={description}
               aria-disabled={locked}
               title={reconnect}
               onClick={() => run(fields)}
@@ -100,7 +102,8 @@ export function Editor({ record, message, canEdit = true, conflict, bindClose, o
           {task ? <label>Blocker reason<input name="blocker_reason" value={fields.blocker_reason} readOnly={busy} onChange={event => update('blocker_reason', event.target.value)} autoComplete="off" /></label> : null}
           {task ? <label>Due date<input name="due_at" value={fields.due_at} readOnly={busy} placeholder="YYYY-MM-DD" onChange={event => update('due_at', event.target.value)} autoComplete="off" /></label> : null}
           {message ? <p role="alert">{message}</p> : null}
-          <button className="btn" type="submit" disabled={busy || undefined} aria-disabled={locked} title={reconnect}>{busy ? 'Saving...' : 'Save'}</button>
+          <button className="btn" type="submit" disabled={busy || undefined}
+            aria-describedby={description} aria-disabled={locked} title={reconnect}>{busy ? 'Saving...' : 'Save'}</button>
         </div>
       </form>
     </>

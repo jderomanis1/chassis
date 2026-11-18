@@ -28,6 +28,7 @@ body:focus,body:focus-visible{outline:3px solid var(--cyan);outline-offset:-6px}
 .react-flow__attribution{background:var(--panel);color:var(--text-3)}
 .react-flow__handle{width:10px;height:10px;background:var(--bg-0);border:2px solid var(--text-3)}
 .node-card{width:260px;min-height:96px;padding:12px 14px;border-radius:12px;color:var(--text);text-align:left;cursor:grab}
+.react-flow__node:not(.draggable) .node-card{cursor:default}
 .node-card .t{display:block;margin-top:8px;font-weight:500;font-size:14px;line-height:1.3;white-space:normal}
 .node-card.is-blocked,.health-red{border-color:color-mix(in srgb,var(--red) 65%,transparent);box-shadow:var(--glow-red)}
 .health-yellow{border-color:color-mix(in srgb,var(--amber) 65%,transparent)}

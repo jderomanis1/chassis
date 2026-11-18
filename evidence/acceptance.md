@@ -1,5 +1,11 @@
 # Acceptance evidence
 
+## INC-1a review candidate, November 18
+
+Implementation `15a0f9a9e90a28a77943edc487f11641ebff8240` on draft [PR #9](https://github.com/jderomanis1/chassis/pull/9), based on `9ff76ea`. Product source is +47/-9, 56 lines total. Tests and generated files are separate. The local Vite build completed and all 24 frontend unit tests passed. Chromium startup in the builder environment was blocked at OS socket creation. Use the [PR checks](https://github.com/jderomanis1/chassis/pull/9/checks) for Python, browser and audit results on the exact review head.
+
+The browser specs cover five paused controls, a retry button appearing after connection loss, a 100 px paused drag, layout request counts, the first-move notice, and fit after two different saved zooms. A11 checks reconnecting and offline at widths 1280 and 768 and compares the chip's computed color with the approved dark and light text-3 values. Read-only is exercised separately. The independent walkthrough and freeze run remain open.
+
 **Follow-up:** `cursor/read-path-followups-8f6d` starts at `step7-c1-write` `eb37a42`. Portal reads skip a deleted hidden or missing dependency. The editor guard uses clearance. The camera check waits for a stable frame. Editor fields and a 375 pixel task card are 44 pixel targets. CI counts for that head are in the pull request. This is not an independent review. **Date:** 2026-11-18.
 
 

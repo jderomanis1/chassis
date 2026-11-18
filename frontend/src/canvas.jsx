@@ -39,8 +39,9 @@ function bind(node, actions) {
     onClear: () => actions.current.onClear() } };
 }
 
-function Surface({ model, layout, writes, canEdit, onLayout, onOpen, onEdit, onHover, onClear, onHide, onLink, fitSignal }) {
+function Surface({ model, layout, writes, canEdit, onLayout, onOpen, onEdit, onHover, onClear, onHide, onLink, fitSignal, onPausedMove }) {
   const flow = useReactFlow();
+  const pressedCard = useRef(null);
   const actions = useRef({});
   actions.current = { onOpen, onEdit, onHover, onClear, onHide, writes, canEdit };
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -87,6 +88,19 @@ function Surface({ model, layout, writes, canEdit, onLayout, onOpen, onEdit, onH
     observer.observe(pane, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, []);
+  function trackPausedPress(event) {
+    if (!event.isPrimary) return;
+    const card = event.target.closest('[data-record-id]');
+    const control = event.target.closest('button, .react-flow__handle');
+    pressedCard.current = writes && !canEdit && !event.button && card && !control ? event.nativeEvent : null;
+  }
+  function announcePausedPan(event) {
+    const start = pressedCard.current;
+    if (!start || canEdit || event.pointerId !== start.pointerId || event.buttons !== 1) return;
+    if (start.clientX === event.clientX && start.clientY === event.clientY) return;
+    pressedCard.current = null;
+    onPausedMove();
+  }
   function publish(nextNodes, viewport) {
     if (!nextNodes.length) return;
     onLayout(nextNodes.map(node => ({ id: node.id, position: node.position })), roundViewport(viewport || flow.getViewport()));
@@ -99,11 +113,15 @@ function Surface({ model, layout, writes, canEdit, onLayout, onOpen, onEdit, onH
   }
   return (
     <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} nodeTypes={nodeTypes}
+      onPointerDownCapture={trackPausedPress}
+      onPointerMoveCapture={announcePausedPan}
+      onPointerCancelCapture={() => { pressedCard.current = null; }}
+      onPointerUpCapture={() => { pressedCard.current = null; }}
       onNodeDragStop={(event, node, next) => dropped(event, node, next)}
       onMove={(_, viewport) => rememberZoom(viewport.zoom)}
       onMoveEnd={(_, viewport) => { rememberZoom(viewport.zoom); publish(nodes, viewport); }}
       minZoom={matchMedia('(max-width: 375px)').matches ? 0.5 : 0.1} maxZoom={4}
-      nodesDraggable={!matchMedia('(max-width: 375px)').matches} nodesConnectable panOnScroll fitView={false}
+      nodesDraggable={canEdit && !matchMedia('(max-width: 375px)').matches} nodesConnectable panOnScroll fitView={false}
       nodesFocusable={false} edgesFocusable={false} tabIndex={-1}
       onConnect={connection => onLink?.(connection)}
       colorMode={document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'}
