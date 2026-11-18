@@ -224,3 +224,21 @@ test('Escape during a save does not drop a later conflict', async ({ page, demo 
   await expect(page.getByRole('heading', { name: 'Your edit was not saved' })).toBeVisible();
   await expect(page.locator('#edit-title')).toHaveValue('Held during save');
 });
+
+test('Save and Enter do not overwrite after a 409', async ({ page, demo }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openTask(page, demo);
+  const typed = await conflict(page, demo, 'Do not overwrite');
+  let patches = 0;
+  page.on('request', request => {
+    if (request.method() === 'PATCH' && request.url().includes('/api/records/')) patches += 1;
+  });
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await page.waitForTimeout(400);
+  expect(patches).toBe(0);
+  await page.locator('#edit-title').press('Enter');
+  await page.waitForTimeout(400);
+  expect(patches).toBe(0);
+  await expect(page.locator('#edit-title')).toHaveValue(typed);
+  await expect(page.getByRole('heading', { name: 'Your edit was not saved' })).toBeVisible();
+});
