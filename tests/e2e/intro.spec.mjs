@@ -19,7 +19,7 @@ for (const gesture of ['autoplay', 'click', 'keydown', 'tap']) {
       const media = [];
       const foreign = [];
       page.on('console', message => {
-        if (['error', 'warning'].includes(message.type())) diagnostics.push(message.text());
+        if (['error', 'warning'].includes(message.type())) diagnostics.push([message.location().url, message.text()]);
       });
       page.on('pageerror', error => diagnostics.push(error.message));
       page.on('request', request => {
@@ -46,9 +46,9 @@ for (const gesture of ['autoplay', 'click', 'keydown', 'tap']) {
       await page.waitForFunction(() => document.getElementById('canvas-intro').ended);
       await page.getByRole('button', { name: /^Theme:/ }).click();
       await page.route('**/api/version', route => route.fulfill({ status: 200, body: 'offline' }));
-      await expect(page.getByText('Reconnecting', { exact: true })).toBeVisible();
+      await expect(page.getByText('EDITING PAUSED', { exact: true })).toBeVisible();
       await page.unroute('**/api/version');
-      await expect(page.getByText('Live store', { exact: true })).toBeVisible();
+      await expect(page.getByText('Editing enabled', { exact: true })).toBeVisible();
       await page.keyboard.press('Tab');
       expect(await starts()).toBe(1);
       expect(new Set(media)).toEqual(new Set([url]));
