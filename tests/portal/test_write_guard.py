@@ -117,5 +117,6 @@ def test_editor_revocation_and_rate_limit_stop_writes(writer, editor_config):
 
 def test_csp_is_strict_and_local(client):
     csp = client.get("/api/session").headers["content-security-policy"]
+    assert "media-src 'self'" in [directive.strip() for directive in csp.split(";")]
     assert "unsafe-inline" not in csp and "unsafe-eval" not in csp
     assert "connect-src 'self'" in csp and "frame-ancestors 'none'" in csp
