@@ -84,6 +84,39 @@ test('editor focus returns to the card and connectors are not tab stops', async 
   expect(ring).not.toBe('none');
 });
 
+test('editor fields and a phone task card are 44 pixel targets', async ({ page, demo }) => {
+  await page.setViewportSize({ width: 375, height: 700 });
+  await page.goto(`${demo.origin}/#/v/venture-ridgeview`);
+  await expect.poll(async () => {
+    const pane = await page.locator('.react-flow').boundingBox();
+    const count = await page.locator('[data-kind="task"]').count();
+    for (let index = 0; index < count; index += 1) {
+      const box = await page.locator('[data-kind="task"]').nth(index).boundingBox();
+      if (box && pane && box.width >= 44 && box.height >= 44 && box.x >= pane.x && box.y >= pane.y
+          && box.x + 44 <= pane.x + pane.width && box.y + 44 <= pane.y + pane.height) return index;
+    }
+    return -1;
+  }).toBeGreaterThanOrEqual(0);
+  const index = await page.locator('[data-kind="task"]').evaluateAll((nodes, paneBox) => {
+    const pane = document.querySelector('.react-flow').getBoundingClientRect();
+    return nodes.findIndex(node => {
+      const box = node.getBoundingClientRect();
+      return box.width >= 44 && box.height >= 44 && box.x >= pane.x && box.y >= pane.y
+        && box.x + 44 <= pane.x + pane.width && box.y + 44 <= pane.y + pane.height;
+    });
+  });
+  const card = page.locator('[data-kind="task"]').nth(index);
+  const box = await card.boundingBox();
+  expect(box.width).toBeGreaterThanOrEqual(44);
+  expect(box.height).toBeGreaterThanOrEqual(44);
+  await card.click({ position: { x: 22, y: 22 } });
+  await expect(page.getByLabel('Title')).toBeVisible();
+  for (const name of ['Title', 'Status', 'Next step', 'Blocker reason', 'Due date']) {
+    const field = await page.getByLabel(name).boundingBox();
+    expect(field.height, name).toBeGreaterThanOrEqual(44);
+  }
+});
+
 test('primary controls are at least 44 pixels', async ({ page, demo }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(demo.origin);

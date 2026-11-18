@@ -203,6 +203,22 @@ def offer_dependencies(writer):
     return next(task for task in tasks if task["id"] == "task-launch-offer")["depends_on"]
 
 
+@pytest.mark.parametrize("target", ["task-launch-budget", "task-missing"])
+def test_dangling_dependency_does_not_fail_portal_reads(writer, editor_config, target):
+    root = editor_config.root
+    plant_hidden(root, [target])
+    if target == "task-launch-budget":
+        (root / "records/tasks/task-launch-budget.md").unlink()
+    bodies = []
+    for path in ("/api/version", "/api/snapshot", "/api/undo"):
+        response = writer.get(path)
+        assert response.status_code == 200, response.text
+        for term in (b"task-launch-budget", b"task-missing", b"Set the internal launch test budget"):
+            assert term not in response.content
+        bodies.append(response.status_code)
+    assert bodies == [200, 200, 200]
+
+
 def test_portal_title_edit_drops_a_deleted_hidden_dependency(writer, editor_config):
     root = editor_config.root
     path = plant_hidden(root, ["task-launch-budget"])

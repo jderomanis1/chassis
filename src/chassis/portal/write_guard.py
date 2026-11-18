@@ -17,7 +17,7 @@ CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'
 
 def editor_policy(config):
     if (not config.editor_agent or not config.editor_token or
-            config.editor_agent in {config.viewer_agent, "chief-of-staff"} or
+            config.editor_agent == config.viewer_agent or
             hmac.compare_digest(config.editor_token.encode(), (config.viewer_token or "").encode())):
         raise AuthorizationError("Portal requires a separate proven normal editor")
     policy = authorize_writer(config.root, config.editor_agent, config.editor_token)

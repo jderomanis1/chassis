@@ -44,9 +44,12 @@ test('seven live venture tiles use health colors, controls, and inert text', asy
     expect(separated, id).toBe(true);
   }
   await page.evaluate(() => document.fonts.ready);
-  const before = await page.locator('.react-flow__viewport').evaluate(node => node.style.transform);
-  await page.waitForTimeout(400);
-  expect(camerasClose(before, await page.locator('.react-flow__viewport').evaluate(node => node.style.transform))).toBe(true);
+  const viewport = page.locator('.react-flow__viewport');
+  await expect.poll(async () => {
+    const first = await viewport.evaluate(node => node.style.transform);
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    return camerasClose(first, await viewport.evaluate(node => node.style.transform));
+  }).toBe(true);
   const path = join(demo.vault, 'records/ventures/venture-acme.md');
   const original = await readFile(path, 'utf8');
   await writeFile(path, original.replace('title: Acme D2C', 'title: "Acme <img src=x onerror=alert(1)>"'));

@@ -14,7 +14,9 @@ function rememberZoom(zoom) {
 
 function fit(flow) {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  flow.fitView({ duration: reduce ? 0 : 250, padding: FIT_PADDING, maxZoom: 0.9 });
+  const phone = matchMedia('(max-width: 375px)').matches;
+  const padding = phone ? { top: '12px', left: '12px', right: '12px', bottom: '12px' } : FIT_PADDING;
+  flow.fitView({ duration: reduce ? 0 : 250, padding, minZoom: phone ? 0.5 : 0.1, maxZoom: phone ? 1 : 0.9 });
   rememberZoom(flow.getViewport().zoom);
 }
 
@@ -99,7 +101,8 @@ function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onC
       onNodeDragStop={(event, node, next) => dropped(event, node, next)}
       onMove={(_, viewport) => rememberZoom(viewport.zoom)}
       onMoveEnd={(_, viewport) => { rememberZoom(viewport.zoom); publish(nodes, viewport); }}
-      minZoom={0.1} maxZoom={4} nodesConnectable panOnScroll fitView={false}
+      minZoom={matchMedia('(max-width: 375px)').matches ? 0.5 : 0.1} maxZoom={4}
+      nodesDraggable={!matchMedia('(max-width: 375px)').matches} nodesConnectable panOnScroll fitView={false}
       nodesFocusable={false} edgesFocusable={false} tabIndex={-1}
       onConnect={connection => onLink?.(connection)}
       colorMode={document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'}
