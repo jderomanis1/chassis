@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { api, bindSessionRefresh, readVersion } from './api.js';
+import { api, bindSessionRefresh, bindWriteRetry, mergeSession, readVersion } from './api.js';
 import { POLL_MS } from './poll.js';
 import { Canvas } from './canvas.jsx';
 import { CommandBar } from './command-bar.jsx';
@@ -35,6 +35,8 @@ function App() {
   const misses = useRef(0), downSince = useRef(0), booted = useRef(false), polling = useRef(false), stale = useRef(false), linkRef = useRef('live'), noticeRef = useRef('');
   const writes = Boolean(data?.session.writes_enabled);
   const canEdit = writes && link === 'live';
+  const canEditRef = useRef(false);
+  canEditRef.current = canEdit;
 
   async function loadVenture(id) {
     const venture = await api(`/api/ventures/${id}`);
@@ -96,11 +98,11 @@ function App() {
     linkRef.current = next; setLink(next);
   }
   async function refreshSession() {
-    const session = await api('/api/session');
-    setData(current => current ? { ...current, session } : current);
-    return session;
+    const incoming = await api('/api/session');
+    setData(current => current?.session ? { ...current, session: mergeSession(current.session, incoming) } : current);
+    return { csrf: incoming.csrf };
   }
-  useEffect(() => { bindSessionRefresh(refreshSession); }, []);
+  useEffect(() => { bindSessionRefresh(refreshSession); bindWriteRetry(() => canEditRef.current); }, []);
   useEffect(() => {
     const poll = setInterval(async () => {
       if (!etagRef.current || polling.current) {
@@ -108,15 +110,17 @@ function App() {
         return;
       }
       polling.current = true;
+      let version;
       try {
-        const version = await readVersion(etagRef.current, AbortSignal.timeout(2 * POLL_MS));
-        markLink(true);
-        if ((version.changed || stale.current) && !loading.current && await load()) stale.current = false;
+        version = await readVersion(etagRef.current, AbortSignal.timeout(2 * POLL_MS));
       } catch (failure) {
         if (failure.name !== 'AbortError') markLink(false);
+        return;
       } finally {
         polling.current = false;
       }
+      markLink(true);
+      if ((version.changed || stale.current) && !loading.current && await load()) stale.current = false;
     }, POLL_MS);
     return () => clearInterval(poll);
   }, []);

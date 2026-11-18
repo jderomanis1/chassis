@@ -1,6 +1,11 @@
 const CONFLICT = 'This record changed before the save landed. Your edit was not saved. Reload to see the latest version.';
 let refreshSession = async () => null;
+let allowRetry = () => true;
 export function bindSessionRefresh(fn) { refreshSession = fn; }
+export function bindWriteRetry(fn) { allowRetry = fn; }
+export function mergeSession(current = {}, incoming = {}) {
+  return { ...current, csrf: incoming.csrf, writes_enabled: incoming.writes_enabled };
+}
 
 export class ApiError extends Error {
   constructor(status, error) { super(error.message || 'Request failed'); Object.assign(this, error, { status }); }
@@ -35,6 +40,7 @@ export async function api(path, { method = 'GET', data, csrf, signal } = {}, ret
           throw new ApiError(409, { code: 'conflict', message: CONFLICT, current_version: node?.version });
         }
       }
+      if (!allowRetry()) throw new ApiError(response.status, error);
       return api(path, { method, data, csrf: session.csrf, signal }, true);
     }
   }

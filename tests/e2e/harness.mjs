@@ -22,6 +22,13 @@ async function unusedPort() {
   await new Promise(resolve => server.close(resolve));
   return port;
 }
+function running(child) {
+  return child.exitCode === null && child.signalCode === null;
+}
+function whenExited(child) {
+  if (!running(child)) return Promise.resolve();
+  return new Promise(resolve => child.once('exit', resolve));
+}
 export const test = base.extend({
   demo: async ({}, use) => {
     const parent = await mkdtemp(join(tmpdir(), 'chassis-canvas-'));
@@ -33,8 +40,14 @@ export const test = base.extend({
     const env = { ...process.env, CHASSIS_AGENT_TOKEN: credentials.reviewer,
       CHASSIS_PORTAL_VIEWER_AGENT: 'reviewer', CHASSIS_PORTAL_EDITOR_AGENT: 'canvas-editor',
       CHASSIS_PORTAL_EDITOR_TOKEN: credentials['canvas-editor'] };
-    const server = spawn(CLI, ['portal', '--vault', vault, '--port', String(port), '--allow-writes'],
-      { cwd: ROOT, env, stdio: ['ignore', 'ignore', 'pipe'] });
+    // Mirrors _portal at src/chassis/cli.py:124. Test-only: timeout_graceful_shutdown=2.
+    const server = spawn(PYTHON, ['-c', [
+      'import os, uvicorn',
+      'from chassis.portal.app import create_app',
+      'from chassis.portal.config import PortalConfig',
+      'config = PortalConfig.from_env(os.environ["CHASSIS_E2E_VAULT"], port=int(os.environ["CHASSIS_E2E_PORT"]), allow_writes=True)',
+      'uvicorn.run(create_app(config), host=config.host, port=config.port, access_log=False, timeout_graceful_shutdown=2)',
+    ].join('\n')], { cwd: ROOT, env: { ...env, CHASSIS_E2E_VAULT: vault, CHASSIS_E2E_PORT: String(port) }, stdio: ['ignore', 'ignore', 'pipe'] });
     let startup = '';
     server.stderr.on('data', part => { startup += part; });
     try {
@@ -45,11 +58,13 @@ export const test = base.extend({
       }
       await use({ vault, origin, credentials, env, server });
     } finally {
-      if (server.exitCode === null) server.kill('SIGTERM');
-      await Promise.race([
-        new Promise(resolve => server.exitCode !== null ? resolve() : server.once('exit', resolve)),
-        delay(2000),
-      ]);
+      if (running(server)) server.kill('SIGTERM');
+      const exited = whenExited(server);
+      const stopped = await Promise.race([exited.then(() => true), delay(2000).then(() => false)]);
+      if (!stopped && running(server)) {
+        server.kill('SIGKILL');
+        await whenExited(server);
+      }
       await rm(parent, { recursive: true, force: true });
     }
   },
