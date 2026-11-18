@@ -1,11 +1,12 @@
 """One-process local API using the authenticated library view."""
+import hashlib
 import json
 from pathlib import Path
 from secrets import token_urlsafe
 
 from pydantic import ValidationError
 from starlette.applications import Starlette
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -15,6 +16,7 @@ from chassis.errors import AuditError, AuthorizationError, NotFoundError
 from chassis.index import RecordIndex
 from chassis.policy import authorize_reader
 from chassis.portal.config import validate_bind, version_etag
+from chassis.undo import undo_entries
 from chassis.portal.api import routes
 from chassis.portal.writes import routes as write_routes
 from chassis.portal.layout import routes as layout_routes
@@ -73,8 +75,22 @@ def create_app(config, *, clock=None):
 
     def version(request):
         etag = version_etag(index)
-        record_event(config.root, config.viewer_agent, "version", "ok")
-        return JSONResponse({"etag": etag})
+        quoted = f'"{etag}"'
+        if request.headers.get("if-none-match", "").strip() in {quoted, etag}:
+            response = Response(status_code=304)
+        else:
+            record_event(config.root, config.viewer_agent, "version", "ok")
+            response = JSONResponse({"etag": etag})
+        response.headers["ETag"] = quoted
+        return response
+
+    def undo(request):
+        email = f"{config.editor_agent}@chassis.local" if config.editor_agent else ""
+        visible = {row["id"] for row in index.list_records()}
+        entries = undo_entries(config.root, email, visible) if email else []
+        digest = hashlib.sha256(json.dumps(entries, sort_keys=True, ensure_ascii=False,
+                                           separators=(",", ":")).encode()).hexdigest()
+        return JSONResponse({"entries": entries, "count": len(entries), "etag": digest})
 
     def session(request):
         record_event(config.root, config.viewer_agent, "session", "ok")
@@ -85,7 +101,8 @@ def create_app(config, *, clock=None):
         return error("not_found", "Not found", 404)
 
     app = Starlette(routes=[Route("/api/session", session, methods=["GET"]),
-                    Route("/api/version", version, methods=["GET"]), *routes, *write_routes, *layout_routes,
+                    Route("/api/version", version, methods=["GET"]),
+                    Route("/api/undo", undo, methods=["GET"]), *routes, *write_routes, *layout_routes,
                     Route("/api/{path:path}", lambda request: error("not_found", "Not found", 404), methods=["GET"]),
                     Mount("/", app=StaticFiles(directory=ASSET_ROOT, html=True), name="static")],
                     exception_handlers={404: http_error})

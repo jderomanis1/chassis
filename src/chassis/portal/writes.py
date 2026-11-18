@@ -9,8 +9,10 @@ from chassis.errors import AuthorizationError, ConflictError, DirtyRecordError, 
 from chassis.markdown import RecordFileError
 from chassis.git import Identity
 from chassis.models import IsoDate, RecordId
+from chassis.policy import authorize_reader, visible_records
 from chassis.portal.write_guard import MAX_BODY
 from chassis.store import RecordStore
+from chassis.validation import read_vault
 
 Text = Annotated[str, StringConstraints(strict=True, strip_whitespace=True, min_length=1, max_length=4096)]
 
@@ -37,8 +39,30 @@ class Edit(BaseModel):
     expected_version: Annotated[int, Field(ge=1)]
 
 
+CONFLICT_MESSAGE = ("This record changed before the save landed. Your edit was not saved. "
+                    "Reload to see the latest version.")
+
+
 def failure(code, message, status, **details):
     return JSONResponse({"error": {"code": code, "message": message, **details}}, status_code=status)
+
+
+def viewer_record(config, identifier):
+    """Visibility without a vault-wide graph check.
+
+    The index refresh validates every dependency. A deleted hidden link would
+    fail that check before the store can drop the id and save the edit.
+    """
+    policy = authorize_reader(config.root, config.viewer_agent, config.viewer_token)
+    if policy is None:
+        return None
+    try:
+        items = read_vault(config.root)
+    except RecordFileError:
+        return None
+    rows = [item.record.model_dump(mode="json") | {"body": item.body} for item in items]
+    return next((row for row in visible_records(rows, policy, config.viewer_agent)
+                 if row["id"] == identifier), None)
 
 
 def patch_record(request):
@@ -46,7 +70,7 @@ def patch_record(request):
     try:
         identifier = TypeAdapter(RecordId).validate_python(request.path_params["id"])
         edit = Edit.model_validate_json(request.state.payload)
-        visible = request.app.state.index.get_record(identifier)
+        visible = viewer_record(config, identifier)
         if visible is None:
             raise NotFoundError("Not found")
         if len(visible["body"].encode()) > MAX_BODY:
@@ -61,12 +85,15 @@ def patch_record(request):
     except (AuthorizationError, NotFoundError):
         return failure("not_found", "Not found", 404)
     except ConflictError as exc:
-        return failure("conflict", "Changed elsewhere. Reload the latest.", 409,
+        return failure("conflict", CONFLICT_MESSAGE, 409,
                        current_version=exc.details["current_version"])
     except DirtyRecordError as exc:
         return failure("dirty_record", str(exc), 409)
     except ValidationError as exc:
         issue = exc.errors(include_input=False, include_context=False)[0]
+        # A repeated id is a validation failure. The body stays the generic envelope.
+        if "duplicate" in issue.get("msg", "").casefold():
+            return failure("validation", "Record update could not be completed", 400)
         field = ".".join(map(str, issue["loc"]))
         return failure("validation", f"{field}: {issue['msg']}" if field else issue["msg"], 400)
     except RecordFileError as exc:

@@ -6,6 +6,17 @@ import { place, roundViewport } from './place.js';
 import { flickedOff } from './records.js';
 
 const nodeTypes = { venture: VentureNode, card: CardNode };
+const FIT_PADDING = { top: '24px', left: '24px', right: '210px', bottom: '150px' };
+
+function rememberZoom(zoom) {
+  document.querySelector('[data-testid="command-canvas"]')?.style.setProperty('--canvas-zoom', String(zoom || 1));
+}
+
+function fit(flow) {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  flow.fitView({ duration: reduce ? 0 : 250, padding: FIT_PADDING, maxZoom: 0.9 });
+  rememberZoom(flow.getViewport().zoom);
+}
 
 function styleEdge(edge) {
   const blocking = Boolean(edge.data?.blocking);
@@ -49,22 +60,30 @@ function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onC
     document.fonts.ready.then(() => {
       if (cancel || framed.current) return;
       framed.current = true;
-      const saved = model.nodes.some(node => layout.positions?.[node.id]);
-      const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (saved && layout.viewport) flow.setViewport(roundViewport(layout.viewport), { duration: 0 });
-      else flow.fitView({ duration: reduce ? 0 : 350, padding: 0.18, maxZoom: 0.9 });
+      fit(flow);
     });
     return () => { cancel = true; };
-  }, [measured, nodes.length, flow, model.nodes, layout.positions, layout.viewport]);
+  }, [measured, nodes.length, flow]);
   useEffect(() => {
     if (!fitSignal || fitted.current === fitSignal || nodes.length !== model.nodes.length) return undefined;
     fitted.current = fitSignal;
-    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const frame = requestAnimationFrame(() => {
-      flow.fitView({ duration: reduce ? 0 : 250, padding: 0.2, maxZoom: 1.15 });
-    });
+    const frame = requestAnimationFrame(() => fit(flow));
     return () => cancelAnimationFrame(frame);
   }, [fitSignal, nodes.length, model.nodes.length, flow]);
+  useEffect(() => {
+    const onResize = () => { if (framed.current) fit(flow); };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [flow]);
+  useEffect(() => {
+    const pane = document.querySelector('[data-testid="command-canvas"]');
+    if (!pane) return undefined;
+    const quiet = () => pane.querySelectorAll('.react-flow__attribution, .react-flow__attribution a').forEach(node => { node.tabIndex = -1; });
+    quiet();
+    const observer = new MutationObserver(quiet);
+    observer.observe(pane, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
   function publish(nextNodes, viewport) {
     if (!nextNodes.length) return;
     onLayout(nextNodes.map(node => ({ id: node.id, position: node.position })), roundViewport(viewport || flow.getViewport()));
@@ -77,21 +96,24 @@ function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onC
   }
   return (
     <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} nodeTypes={nodeTypes}
-      onNodeDragStop={(event, node, next) => dropped(event, node, next)} onMoveEnd={(_, viewport) => publish(nodes, viewport)}
+      onNodeDragStop={(event, node, next) => dropped(event, node, next)}
+      onMove={(_, viewport) => rememberZoom(viewport.zoom)}
+      onMoveEnd={(_, viewport) => { rememberZoom(viewport.zoom); publish(nodes, viewport); }}
       minZoom={0.1} maxZoom={4} nodesConnectable panOnScroll fitView={false}
+      nodesFocusable={false} edgesFocusable={false} tabIndex={-1}
       onConnect={connection => onLink?.(connection)}
       colorMode={document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'}
       proOptions={{ hideAttribution: false }}>
       <Background gap={48} color="var(--line)" />
       <Controls showInteractive={false} />
-      <MiniMap pannable zoomable />
+      <MiniMap pannable zoomable style={{ width: 180, height: 120 }} position="bottom-right" />
     </ReactFlow>
   );
 }
 
 export function Canvas(props) {
   return (
-    <div className="flow-wrap" data-testid="command-canvas">
+    <div className="flow-wrap" data-testid="command-canvas" data-task-count={props.model.nodes.filter(node => node.data?.kind === 'task').length}>
       <ReactFlowProvider>
         <Surface key={props.model.view} {...props} onHover={props.onHover} onClear={props.onClear} />
       </ReactFlowProvider>

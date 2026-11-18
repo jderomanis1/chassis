@@ -1,6 +1,6 @@
 # Chassis project handoff
 
-**Checkpoint date: 2026-11-17. R1 hidden-dependency preservation and CI are on `cursor/r1-hidden-deps-ci-1dd7`, branched from `step7-c1-write` at `f2bc7d9` (PR #1 is in that history). Open one pull request back into `step7-c1-write`. Do not merge. Main is still `42f0fa0`. C1/C2 stay off main until independent SecOps review.**
+**Checkpoint date: 2026-11-18. Monday demo UAT fixes and the review fixes are on `cursor/uat-canvas-fixes-8f6d` at `c335ad2`, branched from `step7-c1-write` at `06a53bc` (PR #2 is merged). Pull request #3 targets `step7-c1-write`. Do not merge. Main is still `42f0fa0`. C1/C2 stay off main until independent SecOps review.**
 This file preserves the approved build decisions and evidence so each step can
 continue in a separate chat. Read current repository HEAD before making changes.
 
@@ -159,6 +159,60 @@ tokenized invitation/tracking links are not copied into the repository.
   restricted-clearance viewers with grants see 13 records and Acme task total 3.
   The restricted fixture's owner is now a unique fictional name for an unambiguous
   leak scan. No real data, frontend, ask endpoint, Miro call, or deployment was used.
+
+## UAT fixes checkpoint: current
+
+- Product commit `c335ad2` on `cursor/uat-canvas-fixes-8f6d` starts at
+  `step7-c1-write` `06a53bc`. The earlier UAT commit is `5052aed`.
+  Do not touch main. Do not merge this pull request from the build chat.
+- CI run `44210561714` on `c335ad2` is success for all-extras, core, and portal.
+  https://github.com/jderomanis1/chassis/actions/runs/44210561714
+  Counts from that run are in `evidence/acceptance.md`. They are not an
+  independent review.
+- The canvas polls `/api/version` every 1 second with `If-None-Match`. A match
+  is HTTP 304 and does not reload the snapshot. A disk edit or agent update is
+  visible in under 3 seconds in the worst case the tests lock.
+- Undo after a reload comes from canvas-editor commits. It is a new commit.
+  Git history is not rewritten. A stale expected version still returns 409 and
+  the canvas says `nothing to undo`.
+- A proposed `depends_on` id the caller cannot see is rejected, including an id
+  that is already stored. The refusal matches a missing id: 400 `invalid
+  dependency`, no id in the body, no commit. A list of only visible ids still
+  keeps the stored hidden ids.
+- A title edit drops a stored dependency whose record is gone, then saves. A
+  hidden dependency that still exists stays in the file and stays out of the
+  response.
+- Venture tile counts, initiative progress, task cards, and graph task nodes
+  are computed from the same visible rows. Adding or removing a restricted task
+  does not change them.
+- The editor takes focus when it opens and returns focus to the card after save
+  or cancel. Edge handles and the canvas wrapper are not in the tab order.
+  Edit, zoom, fit, Search, Undo, and Back to all are at least 44 pixels on screen.
+- The minimap keeps a clear corner at 1280 wide. Zooming back and resizing the
+  window fit the cards again.
+- A save reads the form fields at submit time and ignores a second submit while
+  the first is in flight. A 409 says the edit was not saved and offers Reload.
+  After a successful save or undo, the card version and fields come from that
+  response, so the next edit does not send the version from the first paint.
+- A portal title edit whose hidden dependency was deleted checks visibility
+  without rebuilding the index first. The store then drops the missing id and
+  saves. Index reads still reject a vault whose relationships are broken.
+- `GET /api/undo` omits any entry the viewer cannot see. The list, its count,
+  and its etag match a history that never contained that commit. A viewer who
+  can see the record still receives it.
+- `commit-human` rejects a newly added dependency the caller cannot see, with
+  the same `invalid dependency` refusal and no commit. An unchanged dependency
+  list is not rechecked.
+- Long titles wrap inside the card.
+- Theme, Close editor, Save, and the skip link are at least 44 pixels. Escape
+  returns focus to the card. Enter on a card opens the editor. Enter in Next
+  step submits. The React Flow credit is not a tab stop. Body focus shows an
+  inset ring.
+- Duplicate ids in `depends_on` use the error envelope
+  `{error:{code,message}}` and do not echo the id.
+- CI on pull requests into `step7-c1-write` runs all-extras, core-only, and
+  portal-only pytest. uv is pinned to 0.13.9. Checkout does not persist
+  credentials. Playwright still uses the committed canvas build.
 
 ## R1 and CI checkpoint: current
 

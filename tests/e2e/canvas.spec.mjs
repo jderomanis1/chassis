@@ -1,6 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { camerasClose } from '../../frontend/src/camera.js';
 import { test, expect, CLI, git } from './harness.mjs';
 
 const RESTRICTED = ['task-launch-budget', 'Review the private fictional budget', 'Fictional Private Steward',
@@ -45,7 +46,7 @@ test('seven live venture tiles use health colors, controls, and inert text', asy
   await page.evaluate(() => document.fonts.ready);
   const before = await page.locator('.react-flow__viewport').evaluate(node => node.style.transform);
   await page.waitForTimeout(400);
-  await expect(page.locator('.react-flow__viewport')).toHaveAttribute('style', new RegExp(before.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  expect(camerasClose(before, await page.locator('.react-flow__viewport').evaluate(node => node.style.transform))).toBe(true);
   const path = join(demo.vault, 'records/ventures/venture-acme.md');
   const original = await readFile(path, 'utf8');
   await writeFile(path, original.replace('title: Acme D2C', 'title: "Acme <img src=x onerror=alert(1)>"'));
@@ -94,7 +95,7 @@ test('drag persists across reload and a live refresh keeps the camera still', as
   git(demo.vault, 'add', 'records/ventures/venture-juniper.md');
   git(demo.vault, 'commit', '-qm', 'rename fictional venture');
   await expect(page.getByRole('button', { name: 'Juniper Events West', exact: true })).toBeVisible({ timeout: 12000 });
-  await expect(page.locator('.react-flow__viewport')).toHaveAttribute('style', new RegExp(camera.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  expect(camerasClose(camera, await page.locator('.react-flow__viewport').evaluate(node => node.style.transform))).toBe(true);
   await page.reload();
   await expect(page.locator('[data-record-id="venture-cedar"]')).toBeVisible();
   const again = await page.evaluate(async () => (await fetch('/api/layout')).json());
@@ -131,7 +132,7 @@ test('two undos of one card stay in version order', async ({ page, demo }) => {
   }
   await expect.poll(() => Number(git(demo.vault, 'rev-list', '--count', 'HEAD'))).toBe(start + 4);
   await expect(page.getByText('nothing to undo')).toHaveCount(0);
-  await expect(page.getByText('Changed elsewhere. Reloaded the latest.')).toHaveCount(0);
+  await expect(page.getByText('Your edit was not saved')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeDisabled();
 });
 
@@ -157,7 +158,8 @@ test('gated edit, undo, conflict, and hidden controls', async ({ page, demo }) =
   const conflicted = page.waitForResponse(response => response.url().includes('/api/records/') && response.request().method() === 'PATCH');
   await page.getByRole('button', { name: 'Save' }).click();
   expect((await conflicted).status()).toBe(409);
-  await expect(page.getByRole('status')).toContainText('Changed elsewhere. Reloaded the latest.');
+  await expect(page.getByRole('status')).toContainText('Your edit was not saved');
+  await expect(page.getByRole('button', { name: 'Reload' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Ridgeview conflict attempt' })).toHaveCount(0);
   await page.route('**/api/session', async route => {
     const response = await route.fetch();

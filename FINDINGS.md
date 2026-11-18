@@ -1,5 +1,71 @@
 # Findings
 
+## Monday demo UAT fixes
+
+These notes are engineering evidence at `c335ad2` on `cursor/uat-canvas-fixes-8f6d`. They are
+not SecOps, QE, or Code Reviewer approval. Main is still `42f0fa0`. CI run
+`44210561714` on that commit is success.
+
+- The canvas waited on a 5 second poll, so a disk edit could take just over 5
+  seconds. It now checks `/api/version` every 1 second with `If-None-Match`.
+  An unchanged etag is a 304 with an empty body.
+- Undo lived only in the page. After a reload the button did nothing. The page
+  now reads the editor's commits and sends the prior visible fields as a new
+  update. A second commit is added. History is not rewritten. A commit whose
+  record the viewer cannot see is left out of the list, so the list, its count,
+  and its etag match a history that never had that commit. A viewer who can
+  see the record still gets the entry.
+- Resending a stored hidden `depends_on` id returned 200. That confirmed the
+  guess and, sent alone, cleared the visible list. Any proposed id the caller
+  cannot see is now the same 400 as a missing id, with no commit. Visible ids
+  still keep the stored hidden ids on disk.
+- A title edit ran full graph validation, so a hidden dependency whose record
+  had been deleted returned 400. The title edit now drops ids that no longer
+  name a record and saves. A hidden id whose record still exists stays in the
+  file and stays out of the response. The portal PATCH was still 400 because
+  the index refresh validated the vault before that drop. The write path now
+  checks visibility without that graph check, then the store drops the missing
+  id and saves. Index reads still reject a vault whose relationships are broken.
+  `commit-human` uses the same unseen-id refusal when the working tree adds a
+  dependency the caller cannot see. An unchanged list is not rechecked.
+- A second edit of the same card could send the version from the first paint.
+  That version changed only when a later reload committed, so a fast second
+  save received 409 and undo could apply against the old card. Save and undo
+  now stamp the version and the fields from the response onto the card before
+  the editor closes. The local run that reported 22 passed used Google Chrome
+  and won that race. CI run `44208147816` used Playwright Chromium and lost it:
+  the second save returned 409, undo left the card in progress, and the MCP
+  update stayed green. A later local rerun also returned 409, so the miss was
+  timing, not a Chrome-only difference. Run `44210561714` on the stamp is
+  green, including those three Playwright cases.
+- A venture tile, the zoomed cards, initiative progress, and the graph task
+  count are all taken from the visible rows. Adding or deleting a restricted
+  task does not change those numbers. Acme in the demo vault shows 5 tasks in
+  each of those places. The restricted task is the sixth file and is not shown.
+- The first save in a live pass could commit a short title such as `UA` and
+  the next save then said the record changed elsewhere. The title field is a
+  controlled input. Submit read the React state from the previous render, so a
+  submit in the same turn as an input event stored only the characters already
+  flushed (the live pass stored `UA`). A second submit then sent the rest of
+  the title with the old version and received 409. Save now reads the form
+  fields at submit time and ignores another submit while the first request is
+  open. The 409 text says the edit was not saved and offers Reload.
+- Focus moves into the title field when the editor opens and back to the card
+  after save or cancel. Connection handles and the canvas wrapper are not tab
+  stops. The named controls are at least 44 pixels on screen. Edit is inside
+  the zoomed canvas, so it scales back up when the camera is zoomed out.
+- The minimap sat on top of cards. Fit leaves a corner clear, including after
+  Back to all and after the window is resized. A camera check allows one pixel
+  of drift so a fractional transform does not fail the suite.
+- A long unbroken title wraps inside the tile instead of spilling out.
+- Theme, Close editor, Save, and the skip link are at least 44 pixels. Escape
+  closes the editor and returns focus to the card. Enter on a focused card
+  opens the editor, and Enter in Next step submits it. The React Flow credit
+  stays visible and is not a tab stop. The page body can take focus and shows
+  an inset ring, because an outside outline is clipped.
+- A repeated `depends_on` id uses the generic error envelope and does not
+  include the id.
+
 ## Hidden dependency updates
 
 A normal writer can hold a task whose `depends_on` already names a restricted
@@ -11,9 +77,11 @@ and did not save. A PATCH that sent only the visible dependency list returned
 
 - When `depends_on` is absent, the stored list is left unchanged and is not
   checked again. A title or next-step edit saves.
-- When `depends_on` is present, only ids that are not already stored are
-  checked. A new missing id and a new hidden id both raise `invalid dependency`,
-  with the same body, no id in the error, no file write, and no commit.
+- When `depends_on` is present, every proposed id the caller cannot see is
+  rejected, including an id that is already stored. A stored hidden id, a new
+  hidden id, and a missing id all raise `invalid dependency`, with the same
+  body, no id in the error, no file write, and no commit. The earlier rule that
+  skipped ids already stored is withdrawn because a 200 confirmed the guess.
 - The stored list is the caller's visible ids, in the caller's order, followed
   by hidden ids that were already stored. The caller cannot remove or reveal a
   link they cannot see. The update response and later reads still omit those ids.

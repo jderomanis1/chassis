@@ -5,10 +5,15 @@ import pytest
 import yaml
 
 from chassis.errors import AuditError, CommittedIndexError
+from chassis.git import Identity
+from chassis.portal.app import create_app
+from chassis.portal.config import PortalConfig
 from chassis.markdown import read_record
+from chassis.portal.writes import CONFLICT_MESSAGE
 from chassis.store import RecordStore
+from starlette.testclient import TestClient
 from test_security_cli import assert_no_leaks, restricted_terms
-from .helpers import git
+from .helpers import git, issue
 from .test_write_guard import editor_config, writer
 
 TARGET = "/api/records/task-launch-offer"
@@ -17,6 +22,55 @@ TARGET = "/api/records/task-launch-offer"
 def patch(writer, changes=None, version=1, path=TARGET):
     return writer.patch(path, json={"changes": changes or {"title": "Fictional canvas edit"},
                                     "expected_version": version})
+
+
+def test_restricted_editor_history_is_invisible_to_a_normal_viewer(writer, editor_config, monkeypatch):
+    root = editor_config.root
+    saved = patch(writer, {"title": "Visible fictional title"})
+    assert saved.status_code == 200
+    before = writer.get("/api/undo")
+    version = writer.get("/api/version").json()["etag"]
+    assert before.status_code == 200
+    assert before.json()["count"] == len(before.json()["entries"]) == 1
+    chief = issue(root, "chief-of-staff")
+    monkeypatch.setenv("CHASSIS_AGENT_ID", "chief-of-staff")
+    monkeypatch.setenv("CHASSIS_AGENT_TOKEN", chief)
+    RecordStore(root, token=chief, identity=Identity("canvas-editor", "canvas-editor@chassis.local")).update_record(
+        "task-launch-budget", {"title": "Hidden undo title"}, 1, "chief-of-staff")
+    after = writer.get("/api/undo")
+    assert after.content == before.content
+    assert after.json()["count"] == before.json()["count"]
+    assert after.json()["etag"] == before.json()["etag"]
+    assert writer.get("/api/version").json()["etag"] == version
+    for term in (b"task-launch-budget", b"Hidden undo title", b"Set the internal launch test budget"):
+        assert term not in after.content
+    cleared = PortalConfig(root=root, viewer_agent="chief-of-staff", viewer_token=chief,
+                           editor_agent="canvas-editor", editor_token=editor_config.editor_token)
+    with TestClient(create_app(cleared), base_url="http://127.0.0.1:8765") as client:
+        seen = client.get("/api/undo")
+        assert seen.status_code == 200
+        body = seen.json()
+        assert body["count"] == before.json()["count"] + 1
+        assert any(entry["id"] == "task-launch-budget" for entry in body["entries"])
+        assert "Set the internal launch test budget" in seen.text
+        assert body["etag"] != before.json()["etag"]
+
+
+def test_undo_after_a_reload_is_a_second_editor_commit(writer, editor_config):
+    root = editor_config.root
+    before = git(root, "rev-parse", "HEAD")
+    saved = patch(writer, {"title": "Fictional title to undo"})
+    assert saved.status_code == 200
+    stacked = writer.get("/api/undo").json()["entries"]
+    assert stacked[-1]["id"] == "task-launch-offer"
+    assert stacked[-1]["changes"] == {"title": "Draft the starter-kit offer"}
+    assert stacked[-1]["version"] == 2
+    undone = patch(writer, stacked[-1]["changes"], stacked[-1]["version"])
+    assert undone.status_code == 200
+    assert "Draft the starter-kit offer" in (root / "records/tasks/task-launch-offer.md").read_text()
+    assert git(root, "rev-parse", "HEAD^") == saved.json()["commit"]
+    assert git(root, "rev-list", "--count", f"{before}..HEAD") == "2"
+    assert writer.get("/api/undo").json()["entries"] == []
 
 
 def test_canvas_uses_library_one_record_commit_editor_author_and_etag(writer, editor_config, monkeypatch):
@@ -49,7 +103,7 @@ def test_conflict_keeps_bytes_and_history_and_exposes_only_current_version(write
     old = path.read_bytes()
     response = patch(writer, {"title": "Must not overwrite"})
     assert response.status_code == 409
-    assert response.json() == {"error": {"code": "conflict", "message": "Changed elsewhere. Reload the latest.", "current_version": 2}}
+    assert response.json() == {"error": {"code": "conflict", "message": CONFLICT_MESSAGE, "current_version": 2}}
     assert path.read_bytes() == old and git(root, "rev-parse", "HEAD") == before
 
 
@@ -149,6 +203,19 @@ def offer_dependencies(writer):
     return next(task for task in tasks if task["id"] == "task-launch-offer")["depends_on"]
 
 
+def test_portal_title_edit_drops_a_deleted_hidden_dependency(writer, editor_config):
+    root = editor_config.root
+    path = plant_hidden(root, ["task-launch-budget"])
+    (root / "records/tasks/task-launch-budget.md").unlink()
+    response = patch(writer, {"title": "Fictional title after a removed link"})
+    assert response.status_code == 200, response.text
+    assert "Records unavailable" not in response.text
+    assert response.json()["record"]["version"] == 2
+    assert read_record(path).record.title == "Fictional title after a removed link"
+    assert read_record(path).record.depends_on == []
+    assert "task-launch-budget" not in response.text
+
+
 def test_title_patch_leaves_a_stored_hidden_dependency(writer, editor_config):
     root = editor_config.root
     path = plant_hidden(root, ["task-launch-budget"])
@@ -181,6 +248,33 @@ def test_link_gesture_and_undo_keep_hidden_dependencies(writer, editor_config):
     assert read_depends(path) == ["task-launch-budget"]
     assert offer_dependencies(writer) == []
     assert "task-launch-budget" not in writer.get("/api/graph?venture=venture-acme").text
+
+
+def test_resending_a_stored_hidden_dependency_matches_a_missing_one(writer, editor_config):
+    root = editor_config.root
+    path = plant_hidden(root, ["task-audience-interviews", "task-launch-budget"])
+    original, head = path.read_bytes(), git(root, "rev-parse", "HEAD")
+    alone_hidden = patch(writer, {"depends_on": ["task-launch-budget"]})
+    alone_missing = patch(writer, {"depends_on": ["task-missing"]})
+    mixed_hidden = patch(writer, {"depends_on": ["task-audience-interviews", "task-launch-budget"]})
+    mixed_missing = patch(writer, {"depends_on": ["task-audience-interviews", "task-missing"]})
+    assert [response.status_code for response in (alone_hidden, alone_missing, mixed_hidden, mixed_missing)] == [400, 400, 400, 400]
+    assert alone_hidden.content == alone_missing.content == mixed_hidden.content == mixed_missing.content
+    assert alone_hidden.json()["error"] == {"code": "validation", "message": "invalid dependency"}
+    for term in (b"task-launch-budget", b"task-missing", b"task-audience-interviews"):
+        assert term not in alone_hidden.content
+    assert path.read_bytes() == original
+    assert git(root, "rev-parse", "HEAD") == head
+
+
+def test_duplicate_dependency_list_uses_the_error_envelope(writer, editor_config):
+    root = editor_config.root
+    before = git(root, "rev-parse", "HEAD")
+    response = patch(writer, {"depends_on": ["task-audience-interviews", "task-audience-interviews"]})
+    assert response.status_code == 400
+    assert response.json() == {"error": {"code": "validation", "message": "Record update could not be completed"}}
+    assert b"task-audience-interviews" not in response.content
+    assert git(root, "rev-parse", "HEAD") == before
 
 
 def test_new_hidden_and_missing_patches_match_when_a_hidden_link_is_stored(writer, editor_config):

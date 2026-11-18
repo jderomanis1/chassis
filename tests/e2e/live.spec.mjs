@@ -85,9 +85,10 @@ test('stdio MCP update reaches the canvas and both themes capture the demo state
   await shot(page, 'dark-edit.png');
   await page.getByLabel('Title').fill('Should not stick');
   await page.route('**/api/records/**', route => route.fulfill({ status: 409, json: { error: {
-    code: 'conflict', message: 'Changed elsewhere. Reload the latest.', current_version: 4 } } }));
+    code: 'conflict', message: 'This record changed before the save landed. Your edit was not saved. Reload to see the latest version.', current_version: 4 } } }));
   await page.getByRole('button', { name: 'Save' }).click();
-  await expect(page.getByRole('status')).toContainText('Changed elsewhere. Reloaded the latest.');
+  await expect(page.getByRole('status')).toContainText('Your edit was not saved');
+  await expect(page.getByRole('button', { name: 'Reload' })).toBeVisible();
   await shot(page, 'dark-conflict.png');
 
   await page.unroute('**/api/records/**');
@@ -108,8 +109,9 @@ test('stdio MCP update reaches the canvas and both themes capture the demo state
   await shot(page, 'light-edit.png');
   await page.getByLabel('Title').fill('Should not stick');
   await page.route('**/api/records/**', route => route.fulfill({ status: 409, json: { error: {
-    code: 'conflict', message: 'Changed elsewhere. Reload the latest.', current_version: 4 } } }));
+    code: 'conflict', message: 'This record changed before the save landed. Your edit was not saved. Reload to see the latest version.', current_version: 4 } } }));
   await page.getByRole('button', { name: 'Save' }).click();
-  await expect(page.getByRole('status')).toContainText('Changed elsewhere. Reloaded the latest.');
+  await expect(page.getByRole('status')).toContainText('Your edit was not saved');
+  await expect(page.getByRole('button', { name: 'Reload' })).toBeVisible();
   await shot(page, 'light-conflict.png');
 });
