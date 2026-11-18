@@ -203,3 +203,24 @@ test('Enter does not save while the discard prompt is open', async ({ page, demo
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.locator('#edit-title')).toHaveValue(typed);
 });
+
+test('Escape during a save does not drop a later conflict', async ({ page, demo }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openTask(page, demo);
+  let release = () => {};
+  const gate = new Promise(resolve => { release = resolve; });
+  await page.route('**/api/records/**', async route => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    await gate;
+    await route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ error: {
+      code: 'conflict', message: 'This record changed before the save landed.', current_version: 4 } }) });
+  });
+  await page.locator('#edit-title').fill('Held during save');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Saving...' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  release();
+  await expect(page.getByRole('heading', { name: 'Your edit was not saved' })).toBeVisible();
+  await expect(page.locator('#edit-title')).toHaveValue('Held during save');
+});
