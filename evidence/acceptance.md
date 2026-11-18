@@ -1,5 +1,13 @@
 # Acceptance evidence
 
+## Handoff verification | November 18, 2026
+
+All 283 tracked file blobs matched application commit 329e0faa10df33998396795f2ab53c4829047867. A Git bundle restored that exact commit and the 186 commits reachable from the 15 pre-handoff branches. A clean clone passed Git fsck. [CI run 81](https://github.com/jderomanis1/chassis/actions/runs/44397271893) finished with three successful jobs on attempt 1.
+
+A clean source copy passed 731 Python tests with locked dependencies and all extras. A fresh local launcher served seven ventures. An Acme edit advanced to version 2, changed one file as canvas-editor and retained its exact commit across local restart. Firefox saved and reloaded a Cedar title, undid it, then showed a Lumen health change without reload after a local stdio MCP read and update. Git showed the chief-of-staff commit followed by two canvas-editor commits in reverse chronological order. Local Chromium could not start because its process socket was unavailable. The browser observations above were in Firefox.
+
+Render metadata confirmed the existing deploy. No new hosted browser, shell, restart, reset or mobile observation was made for this handoff.
+
 ## Disk-backed Docker rehearsal | November 18, 2026
 
 Implementation `2b87075911fed91b34d34aa5f99c054750cfd0e5` follows the verified PR head `2737881e80d1968c71f412df207a6e75a664fabd`. The implementation diff contains only deployment files and tests. [CI run 80](https://github.com/jderomanis1/chassis/actions/runs/44395260148) passed all three jobs on attempt 1. The all-extras job passed 731 Python tests and all 85 Playwright tests. Its [Docker rehearsal](https://github.com/jderomanis1/chassis/actions/runs/44395260148/job/135123331402#step:12:1) passed in 36.9 seconds.

@@ -1,5 +1,11 @@
 # Findings
 
+## Transition to Andy | November 18, 2026
+
+The November 16 upload is an early checkpoint. The current canvas and the disk-backed Docker rehearsal are on later branches. The local demo can be run from the source export using fresh credentials, independently of Joe's GitHub or Render accounts. The hosted sandbox continues to use ephemeral storage. Its live working vault was not copied. [Recipient guide](START-HERE-ANDY.md)
+
+The original application source is 329e0faa10df33998396795f2ab53c4829047867. The package was checked against its Git tree and the restored history passed fsck. Local API, Firefox, MCP, restart and suite results are recorded in the [handoff acceptance entry](evidence/acceptance.md).
+
 ## Sandbox edits survive container replacement on the same disk | November 18, 2026
 
 The previous startup created the vault inside a temporary directory and removed it on shutdown. Commit `2b87075911fed91b34d34aa5f99c054750cfd0e5` keeps the Git checkout, records and per-vault state under `/var/data/current`. Startup rotates the viewer and editor credentials through the existing CLI. Existing Git history stays intact. A reset marker inside the active vault requests a fresh seed for the next start. A failed seed leaves the current board available on disk.

@@ -1,5 +1,13 @@
 # Chassis project handoff
 
+## Andy transition | November 18, 2026
+
+Joe requested an independent handoff for Andy and Homer. [Start here](START-HERE-ANDY.md). The application was exported from 329e0faa10df33998396795f2ab53c4829047867 on draft PR #13. The integration canvas remains at 94974a2 and the hosted sandbox at 3ff1106. The handoff branch records this transition separately. [Acceptance evidence](evidence/acceptance.md)
+
+**Next chat prompt**
+
+> Read START-HERE-ANDY.md on handoff/andy-transition-2026-11-18. Trace one fictional task through storage, the connector and the canvas. Recommend what Andy can keep, adapt or omit and one small experiment. Let Andy choose before changing the build.
+
 ## Persistent sandbox vault | November 18, 2026
 
 Draft PR #13 started this increment at `2737881e80d1968c71f412df207a6e75a664fabd`. Commit `2b87075911fed91b34d34aa5f99c054750cfd0e5` moves the fictional Git checkout to `/var/data/current` on one mounted disk. An ordinary restart reopens it. Joe can request a one-time reset from the running Shell. [Reset procedure](deploy/README.md#joes-reset-procedure)
