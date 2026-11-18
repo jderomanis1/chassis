@@ -15,6 +15,7 @@ export function VentureNode({ data }) {
   const open = Math.max(0, (data.counts?.tasks || 0) - (data.counts?.done || 0) - blocked);
   return (
     <div role="button" tabIndex={0} aria-label={data.title} data-record-id={data.id} data-kind="venture" data-health={data.health}
+      data-task-count={data.counts?.tasks || 0}
       className={`tile panel health-${data.health}${blocked ? ' has-block' : ''}`}
       onClick={() => data.onOpen(data.id)}
       onKeyDown={event => {
@@ -52,11 +53,11 @@ export function CardNode({ data }) {
         }
       }}
       {...watchers(data)}>
-      <Handle className="nodrag" type="target" position={Position.Left} isConnectable={data.kind === 'task'} />
+      <Handle className="nodrag" type="target" position={Position.Left} isConnectable={data.kind === 'task'} tabIndex={-1} />
       <span className={`pill s-${data.status}`}>{String(data.status || '').replaceAll('_', ' ')}</span>
       <span className="t">{data.title}</span>
       {data.writes ? <button type="button" className="btn ghost nodrag nopan" onClick={event => { event.stopPropagation(); data.onEdit(data); }}>Edit</button> : null}
-      <Handle className="nodrag" type="source" position={Position.Right} isConnectable={data.kind === 'task'} />
+      <Handle className="nodrag" type="source" position={Position.Right} isConnectable={data.kind === 'task'} tabIndex={-1} />
     </div>
   );
 }

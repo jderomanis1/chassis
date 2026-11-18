@@ -1,6 +1,31 @@
 # Acceptance evidence
 
-**Snapshot:** R1 hidden-dependency preservation and CI are on `cursor/r1-hidden-deps-ci-1dd7`, based on `step7-c1-write` at `f2bc7d9`. The pull request targets `step7-c1-write` and is not merged. Main remains `42f0fa0`. C1/C2 are not independently reviewed. **Date:** 2026-11-17.
+**Snapshot:** Monday demo UAT fixes are on `cursor/uat-canvas-fixes-8f6d`, based on `step7-c1-write` at `06a53bc`. The pull request targets `step7-c1-write` and is not merged. Main remains `42f0fa0`. C1/C2 are not independently reviewed. **Date:** 2026-11-17.
+
+## UAT fixes
+
+These runs used the working tree on this branch. They are not a fresh three-mode checkout, and they are not SecOps, QE, or Code Reviewer approval. Python 3.12.3. Node 24.22.1 and npm 11.9.0. uv 0.13.9. The lock file was not edited. Playwright used `/usr/bin/google-chrome`.
+
+| Command | Result |
+| :--- | :--- |
+| `uv sync --locked --all-extras` then `.venv/bin/pytest -q` | **718 passed in 62.72s** |
+| `uv sync --locked` then pytest | **523 passed, 9 skipped in 25.74s** |
+| `uv sync --locked --extra portal` then pytest | **682 passed, 8 skipped, 1 warning in 38.63s** |
+| `npm test` | **19 passed**, 0 failed |
+| `npm audit --omit=dev` | 0 vulnerabilities |
+| Playwright, `CHASSIS_CHROMIUM=/usr/bin/google-chrome` | **22 passed (1.0m)** |
+
+Core skips are the portal module and 8 MCP modules. Portal skips are the 8 MCP modules. The warning is the existing `StarletteDeprecationWarning` for `TestClient` at `tests/portal/conftest.py:6`.
+
+The new tests cover:
+
+1. `/api/version` returns 304 for a matching `If-None-Match`, and the poll interval plus one second of request time is under 3 seconds. A Playwright disk edit appears within 3 seconds.
+2. Undo derived from editor commits restores the prior title as a second commit. `HEAD^` is the edit. A cached version conflicts after a newer edit.
+3. Resending a stored hidden dependency, alone or with a visible id, matches a missing id: 400, identical body, no commit. A visible-only list still keeps the hidden id.
+4. A title edit after the hidden dependency file is deleted saves, drops that id, and does not mention it.
+5. Adding and removing a restricted task leaves snapshot counts, initiative progress, task-card totals, and graph task counts unchanged. The Acme tile, zoomed cards, and progress total are all 5.
+6. A duplicate `depends_on` list returns `{error:{code:"validation", message:"Record update could not be completed"}}` and does not echo the id.
+7. Playwright checks focus return, 44 pixel controls, the minimap at 1280 after zoom-back and resize, wrapping a long title, one commit for a save started mid-typing, and a 1 pixel camera tolerance.
 
 ## R1 hidden dependencies and CI
 

@@ -69,6 +69,48 @@ def test_visible_dependency_list_keeps_hidden_ids_through_link_and_undo(git_repo
     assert read_record(path).record.depends_on == [HIDDEN]
 
 
+def test_resending_a_stored_hidden_id_matches_a_missing_id(git_repo, monkeypatch):
+    path = plant(git_repo, [VISIBLE, HIDDEN])
+    store, handlers = open_writer(git_repo, monkeypatch)
+    original, head = path.read_bytes(), git(git_repo, "rev-parse", "HEAD")
+
+    def refuse(proposed):
+        try:
+            store.update_record(TARGET, {"depends_on": proposed}, 1, AGENT)
+        except WriteError as exc:
+            library = exc
+        else:
+            raise AssertionError("update wrote a guessed dependency")
+        mcp = handlers.call("update_record", {"id": TARGET, "expected_version": 1,
+                                              "changes": {"depends_on": proposed}})
+        return library, mcp
+
+    alone_hidden, alone_missing = refuse([HIDDEN]), refuse(["task-missing"])
+    mixed_hidden, mixed_missing = refuse([VISIBLE, HIDDEN]), refuse([VISIBLE, "task-missing"])
+    assert str(alone_hidden[0]) == str(alone_missing[0]) == str(mixed_hidden[0]) == str(mixed_missing[0]) == "invalid dependency"
+    assert alone_hidden[0].as_dict() == alone_missing[0].as_dict() == mixed_hidden[0].as_dict() == mixed_missing[0].as_dict()
+    assert alone_hidden[1] == alone_missing[1] == mixed_hidden[1] == mixed_missing[1]
+    blob = json.dumps([alone_hidden[0].as_dict(), alone_hidden[1], mixed_hidden[1], mixed_missing[1]])
+    assert HIDDEN not in blob and "task-missing" not in blob
+    assert path.read_bytes() == original
+    assert git(git_repo, "rev-parse", "HEAD") == head
+    kept = store.update_record(TARGET, {"depends_on": [VISIBLE]}, 1, AGENT)
+    assert kept["record"]["depends_on"] == [VISIBLE]
+    assert HIDDEN not in json.dumps(kept)
+    assert read_record(path).record.depends_on == [VISIBLE, HIDDEN]
+
+
+def test_title_edit_survives_a_deleted_hidden_dependency(git_repo, monkeypatch):
+    path = plant(git_repo, [HIDDEN])
+    (git_repo / "records/tasks" / f"{HIDDEN}.md").unlink()
+    store, _handlers = open_writer(git_repo, monkeypatch)
+    result = store.update_record(TARGET, {"title": "Fictional title after a removed link"}, 1, AGENT)
+    assert result["record"]["title"] == "Fictional title after a removed link"
+    assert HIDDEN not in json.dumps(result)
+    assert read_record(path).record.depends_on == []
+    assert read_record(path).record.version == 2
+
+
 def test_new_hidden_and_missing_dependencies_stay_indistinguishable(git_repo, monkeypatch):
     path = plant(git_repo, [HIDDEN])
     other = git_repo / "records/tasks/task-resident-faq.md"

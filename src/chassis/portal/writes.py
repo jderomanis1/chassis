@@ -37,6 +37,10 @@ class Edit(BaseModel):
     expected_version: Annotated[int, Field(ge=1)]
 
 
+CONFLICT_MESSAGE = ("This record changed before the save landed. Your edit was not saved. "
+                    "Reload to see the latest version.")
+
+
 def failure(code, message, status, **details):
     return JSONResponse({"error": {"code": code, "message": message, **details}}, status_code=status)
 
@@ -61,12 +65,15 @@ def patch_record(request):
     except (AuthorizationError, NotFoundError):
         return failure("not_found", "Not found", 404)
     except ConflictError as exc:
-        return failure("conflict", "Changed elsewhere. Reload the latest.", 409,
+        return failure("conflict", CONFLICT_MESSAGE, 409,
                        current_version=exc.details["current_version"])
     except DirtyRecordError as exc:
         return failure("dirty_record", str(exc), 409)
     except ValidationError as exc:
         issue = exc.errors(include_input=False, include_context=False)[0]
+        # A repeated id is a validation failure. The body stays the generic envelope.
+        if "duplicate" in issue.get("msg", "").casefold():
+            return failure("validation", "Record update could not be completed", 400)
         field = ".".join(map(str, issue["loc"]))
         return failure("validation", f"{field}: {issue['msg']}" if field else issue["msg"], 400)
     except RecordFileError as exc:

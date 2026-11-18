@@ -138,10 +138,16 @@ class RecordStore:
             require_grant(policy, agent, record.venture, record.type)
             items = self._read_sources()
             if "depends_on" in changes:
-                # Already-stored ids are not rechecked. New missing and hidden ids share one error.
+                # Any proposed id the caller cannot see is invalid, even if it is already stored.
                 merged = self._merge_stored_dependencies(
                     current.record.depends_on, record.depends_on, items, policy, agent)
                 record = record.model_copy(update={"depends_on": merged})
+            else:
+                # A title edit does not recheck stored links. Drop ids whose records are gone
+                # so the save is not rejected for a deleted hidden dependency.
+                known = {item.record.id for item in items}
+                record = record.model_copy(update={"depends_on": [
+                    dependency for dependency in record.depends_on if dependency in known]})
             proposed = ParsedRecord(path, record, body)
             self._validate_sources([proposed if item.record.id == identifier else item
                                     for item in items], policy, agent)
@@ -227,10 +233,9 @@ class RecordStore:
         return {row["id"] for row in visible_records(rows, policy, agent)}
 
     def _merge_stored_dependencies(self, stored, proposed, items, policy, agent):
-        """Keep ids the caller cannot see. Reject only newly added missing or hidden ids."""
+        """Keep stored hidden ids. Reject every proposed id the caller cannot see."""
         visible = self._visible_ids(items, policy, agent)
-        stored_ids = set(stored)
-        if any(dependency not in visible for dependency in proposed if dependency not in stored_ids):
+        if any(dependency not in visible for dependency in proposed):
             raise WriteError("invalid dependency")
         caller_visible = [dependency for dependency in proposed if dependency in visible]
         hidden = [dependency for dependency in stored if dependency not in visible]

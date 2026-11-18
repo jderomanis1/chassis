@@ -1,5 +1,47 @@
 # Findings
 
+## Monday demo UAT fixes
+
+These notes are engineering evidence on `cursor/uat-canvas-fixes-8f6d`. They are
+not SecOps, QE, or Code Reviewer approval. Main is still `42f0fa0`.
+
+- The canvas waited on a 5 second poll, so a disk edit could take just over 5
+  seconds. It now checks `/api/version` every 1 second with `If-None-Match`.
+  An unchanged etag is a 304 with an empty body.
+- Undo lived only in the page. After a reload the button did nothing. The page
+  now reads the editor's commits and sends the prior visible fields as a new
+  update. A second commit is added. History is not rewritten.
+- Resending a stored hidden `depends_on` id returned 200. That confirmed the
+  guess and, sent alone, cleared the visible list. Any proposed id the caller
+  cannot see is now the same 400 as a missing id, with no commit. Visible ids
+  still keep the stored hidden ids on disk.
+- A title edit ran full graph validation, so a hidden dependency whose record
+  had been deleted returned 400. The title edit now drops ids that no longer
+  name a record and saves. A hidden id whose record still exists stays in the
+  file and stays out of the response.
+- A venture tile, the zoomed cards, initiative progress, and the graph task
+  count are all taken from the visible rows. Adding or deleting a restricted
+  task does not change those numbers. Acme in the demo vault shows 5 tasks in
+  each of those places. The restricted task is the sixth file and is not shown.
+- The first save in a live pass could commit a short title such as `UA` and
+  the next save then said the record changed elsewhere. The title field is a
+  controlled input. Submit read the React state from the previous render, so a
+  submit in the same turn as an input event stored only the characters already
+  flushed (the live pass stored `UA`). A second submit then sent the rest of
+  the title with the old version and received 409. Save now reads the form
+  fields at submit time and ignores another submit while the first request is
+  open. The 409 text says the edit was not saved and offers Reload.
+- Focus moves into the title field when the editor opens and back to the card
+  after save or cancel. Connection handles and the canvas wrapper are not tab
+  stops. The named controls are at least 44 pixels on screen. Edit is inside
+  the zoomed canvas, so it scales back up when the camera is zoomed out.
+- The minimap sat on top of cards. Fit leaves a corner clear, including after
+  Back to all and after the window is resized. A camera check allows one pixel
+  of drift so a fractional transform does not fail the suite.
+- A long unbroken title wraps inside the tile instead of spilling out.
+- A repeated `depends_on` id uses the generic error envelope and does not
+  include the id.
+
 ## Hidden dependency updates
 
 A normal writer can hold a task whose `depends_on` already names a restricted
@@ -11,9 +53,11 @@ and did not save. A PATCH that sent only the visible dependency list returned
 
 - When `depends_on` is absent, the stored list is left unchanged and is not
   checked again. A title or next-step edit saves.
-- When `depends_on` is present, only ids that are not already stored are
-  checked. A new missing id and a new hidden id both raise `invalid dependency`,
-  with the same body, no id in the error, no file write, and no commit.
+- When `depends_on` is present, every proposed id the caller cannot see is
+  rejected, including an id that is already stored. A stored hidden id, a new
+  hidden id, and a missing id all raise `invalid dependency`, with the same
+  body, no id in the error, no file write, and no commit. The earlier rule that
+  skipped ids already stored is withdrawn because a 200 confirmed the guess.
 - The stored list is the caller's visible ids, in the caller's order, followed
   by hidden ids that were already stored. The caller cannot remove or reveal a
   link they cannot see. The update response and later reads still omit those ids.

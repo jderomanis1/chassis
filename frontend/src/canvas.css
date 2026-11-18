@@ -14,8 +14,13 @@ button{font:inherit}button:disabled{opacity:.6;cursor:not-allowed}
 .react-flow__node-venture{width:420px}
 .react-flow__node-venture .tile{min-height:188px}
 .react-flow__node-card{width:260px}
-.react-flow__controls-button{background:var(--panel);border-bottom:1px solid var(--line);fill:var(--text)}
+.react-flow__controls-button{width:44px;height:44px;background:var(--panel);border-bottom:1px solid var(--line);fill:var(--text)}
 .react-flow__minimap{background:var(--panel)!important}
+.intro-actions .btn,.search .btn,.back{min-width:44px;min-height:44px}
+.tile .btn,.node-card .btn{min-width:44px;min-height:44px;transform:scale(calc(1 / var(--canvas-zoom, 1)));transform-origin:center}
+.tile .row h3,.node-card .t,.hover-slot h4{min-width:0;overflow-wrap:anywhere}
+.tile .row h3{flex:1}
+.node-card .t{overflow-wrap:anywhere}
 .react-flow__attribution{background:var(--panel);color:var(--text-3)}
 .react-flow__handle{width:10px;height:10px;background:var(--bg-0);border:2px solid var(--text-3)}
 .node-card{width:260px;min-height:96px;padding:12px 14px;border-radius:12px;color:var(--text);text-align:left;cursor:grab}

@@ -41,6 +41,16 @@ def test_cli_refuses_remote_bind_before_server_start(git_repo, monkeypatch):
     assert "Portal requires a loopback host" in result.stderr
 
 
+def test_matching_etag_returns_not_modified_without_a_body(client):
+    first = client.get("/api/version")
+    etag = first.json()["etag"]
+    assert first.headers["etag"] == f'"{etag}"'
+    matched = client.get("/api/version", headers={"If-None-Match": f'"{etag}"'})
+    assert matched.status_code == 304
+    assert matched.content == b""
+    assert client.get("/api/version", headers={"If-None-Match": '"missing"'}).json()["etag"] == etag
+
+
 def test_version_etag_tracks_visible_commit_and_uncommitted_bytes(client, git_repo, monkeypatch):
     first = client.get("/api/version")
     assert first.status_code == 200
