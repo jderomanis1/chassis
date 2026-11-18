@@ -36,7 +36,7 @@ export function VentureNode({ data }) {
       <p className="legend"><span><i className="sw c-done" />{data.counts?.done || 0} done</span>
         <span><i className="sw c-blocked" />{blocked} blocked</span>
         <span><i className="sw c-planned" />{open} open</span></p>
-      {data.writes ? <button type="button" className="btn ghost nodrag nopan" onClick={event => { event.stopPropagation(); data.onEdit(data); }}>Edit</button> : null}
+      {data.writes ? <button type="button" className="btn ghost nodrag nopan" disabled={!data.canEdit} title={data.canEdit ? undefined : 'Reconnect to edit'} onClick={event => { event.stopPropagation(); data.onEdit(data); }}>Edit</button> : null}
     </div>
   );
 }
@@ -46,13 +46,13 @@ export function CardNode({ data }) {
     <div role="button" tabIndex={0} aria-label={data.title} data-record-id={data.id} data-kind={data.kind} data-health={data.health} data-status={data.status}
       className={`node-card panel health-${data.health}${data.status === 'blocked' ? ' is-blocked' : ''}`}
       onPointerDown={event => {
-        if (!matchMedia('(max-width: 375px)').matches || event.target.closest('button')) return;
+        if (!data.canEdit || !matchMedia('(max-width: 375px)').matches || event.target.closest('button')) return;
         event.stopPropagation();
         data.onEdit?.(data);
       }}
-      onDoubleClick={() => data.onEdit(data)}
+      onDoubleClick={() => { if (data.canEdit) data.onEdit(data); }}
       onKeyDown={event => {
-        if (event.key === 'Enter') { event.preventDefault(); data.onEdit(data); }
+        if (event.key === 'Enter') { event.preventDefault(); if (data.canEdit) data.onEdit(data); }
         if (event.key.toLowerCase() === 'h' && !event.metaKey && !event.ctrlKey && !event.altKey) {
           event.preventDefault(); data.onHide?.(data.id);
         }
@@ -61,7 +61,7 @@ export function CardNode({ data }) {
       <Handle className="nodrag" type="target" position={Position.Left} isConnectable={data.kind === 'task'} tabIndex={-1} />
       <span className={`pill s-${data.status}`}>{String(data.status || '').replaceAll('_', ' ')}</span>
       <span className="t">{data.title}</span>
-      {data.writes ? <button type="button" className="btn ghost nodrag nopan" onClick={event => { event.stopPropagation(); data.onEdit(data); }}>Edit</button> : null}
+      {data.writes ? <button type="button" className="btn ghost nodrag nopan" disabled={!data.canEdit} title={data.canEdit ? undefined : 'Reconnect to edit'} onClick={event => { event.stopPropagation(); data.onEdit(data); }}>Edit</button> : null}
       <Handle className="nodrag" type="source" position={Position.Right} isConnectable={data.kind === 'task'} tabIndex={-1} />
     </div>
   );

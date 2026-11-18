@@ -31,18 +31,18 @@ function styleEdge(edge) {
 }
 
 function bind(node, actions) {
-  return { ...node, data: { ...node.data, writes: actions.current.writes,
+  return { ...node, data: { ...node.data, writes: actions.current.writes, canEdit: actions.current.canEdit,
     onOpen: id => actions.current.onOpen(id),
     onHide: id => actions.current.onHide?.(id),
-    onEdit: record => actions.current.writes && actions.current.onEdit(record),
+    onEdit: record => actions.current.canEdit && actions.current.onEdit(record),
     onHover: (record, rect) => actions.current.onHover(record, rect),
     onClear: () => actions.current.onClear() } };
 }
 
-function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onClear, onHide, onLink, fitSignal }) {
+function Surface({ model, layout, writes, canEdit, onLayout, onOpen, onEdit, onHover, onClear, onHide, onLink, fitSignal }) {
   const flow = useReactFlow();
   const actions = useRef({});
-  actions.current = { onOpen, onEdit, onHover, onClear, onHide, writes };
+  actions.current = { onOpen, onEdit, onHover, onClear, onHide, writes, canEdit };
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const measured = useNodesInitialized();
@@ -56,7 +56,7 @@ function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onC
       return next.map(node => at[node.id] ? { ...node, position: at[node.id].position, measured: at[node.id].measured } : node);
     });
     setEdges(model.edges.map(styleEdge));
-  }, [model, layout.positions, writes, setNodes, setEdges]);
+  }, [model, layout.positions, writes, canEdit, setNodes, setEdges]);
   useEffect(() => {
     if (!measured || !nodes.length || framed.current) return undefined;
     let cancel = false;

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 const STATUSES = ['planned', 'in_progress', 'blocked', 'done'];
 
-export function Editor({ record, message, onClose, onSave }) {
+export function Editor({ record, message, canEdit = true, onClose, onSave }) {
   const titleRef = useRef(null);
   const saving = useRef(false);
   const [fields, setFields] = useState({
@@ -36,11 +36,11 @@ export function Editor({ record, message, onClose, onSave }) {
           <label>Status<select name="status" value={fields.status} onChange={event => update('status', event.target.value)}>
             {STATUSES.map(status => <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>)}
           </select></label>
-          <label>Next step<input name="next_step" value={fields.next_step} onChange={event => update('next_step', event.target.value)} required autoComplete="off" onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} /></label>
+          <label>Next step<input name="next_step" value={fields.next_step} onChange={event => update('next_step', event.target.value)} required autoComplete="off" onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); if (canEdit) event.currentTarget.form?.requestSubmit(); } }} /></label>
           {task ? <label>Blocker reason<input name="blocker_reason" value={fields.blocker_reason} onChange={event => update('blocker_reason', event.target.value)} autoComplete="off" /></label> : null}
           {task ? <label>Due date<input name="due_at" value={fields.due_at} placeholder="YYYY-MM-DD" onChange={event => update('due_at', event.target.value)} autoComplete="off" /></label> : null}
           {message ? <p role="alert">{message}</p> : null}
-          <button className="btn" type="submit">Save</button>
+          <button className="btn" type="submit" disabled={!canEdit} title={canEdit ? undefined : 'Reconnect to edit'}>Save</button>
         </div>
       </form>
     </>

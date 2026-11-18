@@ -27,7 +27,7 @@ test('loading and empty states', async ({ page, demo }) => {
   const wait = new Promise(resolve => { release = resolve; });
   await page.route('**/api/snapshot', async route => { await wait; await route.fulfill({ json: { etag: 'empty', ventures: [] } }); });
   await page.goto(demo.origin);
-  await expect(page.getByRole('status')).toContainText('Loading');
+  await expect(page.getByText(/Loading your canvas/)).toBeVisible();
   release();
   await expect(page.getByText('No ventures yet', { exact: true })).toBeVisible();
 });

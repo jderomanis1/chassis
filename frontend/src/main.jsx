@@ -32,8 +32,9 @@ function App() {
   const [query, setQuery] = useState(''), [hits, setHits] = useState([]), [hover, setHover] = useState(null);
   const [commandOpen, setCommandOpen] = useState(false), [viewMode, setViewMode] = useState('show-all'), [fitSignal, setFitSignal] = useState(0);
   const ticket = useRef(0), layoutRef = useRef(null), layoutStamp = useRef(0), layoutBusy = useRef(false), timer = useRef(0), etagRef = useRef(""), loading = useRef(false);
-  const misses = useRef(0), downSince = useRef(0), booted = useRef(false);
+  const misses = useRef(0), downSince = useRef(0), booted = useRef(false), polling = useRef(false), stale = useRef(false);
   const writes = Boolean(data?.session.writes_enabled);
+  const canEdit = writes && link === 'live';
 
   async function loadVenture(id) {
     const venture = await api(`/api/ventures/${id}`);
@@ -64,7 +65,8 @@ function App() {
       return true;
     } catch {
       if (current !== ticket.current) return false;
-      if (!booted.current) setBootError(true);
+      if (booted.current) stale.current = true;
+      else setBootError(true);
       return false;
     } finally {
       if (current === ticket.current) loading.current = false;
@@ -88,32 +90,23 @@ function App() {
   }
   useEffect(() => {
     const poll = setInterval(async () => {
-      if (!etagRef.current) return;
+      if (!etagRef.current || polling.current) {
+        if (etagRef.current && polling.current) markLink(false);
+        return;
+      }
+      polling.current = true;
       try {
-        const version = await readVersion(etagRef.current);
+        const version = await readVersion(etagRef.current, AbortSignal.timeout(2 * POLL_MS));
         markLink(true);
-        if (version.changed && !loading.current) await load();
+        if ((version.changed || stale.current) && !loading.current && await load()) stale.current = false;
       } catch (failure) {
         if (failure.name !== 'AbortError') markLink(false);
+      } finally {
+        polling.current = false;
       }
     }, POLL_MS);
     return () => clearInterval(poll);
   }, []);
-  useEffect(() => {
-    const down = link !== 'live';
-    const mark = () => document.querySelectorAll('.tile .btn, .node-card .btn, .editor-form .btn').forEach(button => {
-      const name = button.textContent.trim();
-      if (name !== 'Edit' && name !== 'Save') return;
-      button.disabled = down;
-      if (down) button.title = 'Reconnect to edit';
-      else button.removeAttribute('title');
-    });
-    mark();
-    if (!down) return undefined;
-    const observer = new MutationObserver(mark);
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, [link]);
   useEffect(() => {
     function onKey(event) {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); setCommandOpen(true); return; }
@@ -123,7 +116,7 @@ function App() {
         if (hits.length) { event.preventDefault(); setHits([]); return; }
         if (readVenture(location.hash)) location.hash = '#/';
       }
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !editor && !commandOpen && writes) { event.preventDefault(); undoLast(); }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !editor && !commandOpen && canEdit) { event.preventDefault(); undoLast(); }
     }
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
@@ -134,7 +127,7 @@ function App() {
     try { localStorage.setItem('chassis-theme', next); } catch { /* preference is optional */ }
   }
   function persistLayout(next) {
-    if (!writes || !data) return;
+    if (!canEdit || !data) return;
     const stamp = ++layoutStamp.current;
     layoutRef.current = next;
     clearTimeout(timer.current);
@@ -172,7 +165,7 @@ function App() {
     if (id) setFocusId(id);
   }
   async function openEdit(record) {
-    if (!writes) return;
+    if (!canEdit) return;
     const source = record.kind === 'venture' ? (await api(`/api/ventures/${record.id}`)).venture : record;
     const known = confirmed[record.id]?.version || 0;
     const version = Math.max(known, source.version || 0, record.version || 0);
@@ -182,6 +175,7 @@ function App() {
     setFieldMessage(''); setFocusId(null); setEditor(next);
   }
   async function save(fields) {
+    if (!canEdit) return;
     const editing = editor;
     if (editing.kind === 'task' && fields.status === 'blocked' && !fields.blocker_reason.trim()) {
       setFieldMessage('blocker_reason is required when a task is blocked'); return;
@@ -205,8 +199,9 @@ function App() {
     }
   }
   async function undoLast() {
+    if (!canEdit) return;
     const entry = undo.at(-1);
-    if (!entry || !writes) return;
+    if (!entry) return;
     try {
       const result = await api(`/api/records/${encodeURIComponent(entry.id)}`, { method: 'PATCH', csrf: data.session.csrf,
         data: { changes: entry.changes, expected_version: entry.version } });
@@ -254,6 +249,7 @@ function App() {
     }
   }
   async function linkCards(connection) {
+    if (!canEdit) return;
     const nodes = source?.nodes || [];
     const visible = nodes.map(node => node.id);
     const proposal = linkChange(nodes.find(node => node.id === connection.source)?.data,
@@ -292,11 +288,11 @@ function App() {
 
   return <><header className="top"><a className="brand" href="#/"><span className="brand-mark">✦</span>
     <span><b>CHASSIS</b><small className="mono">Chief of staff console</small></span></a>
-    <span className={`live mono link-${link}`}><i className="dot" aria-hidden="true"/>{!data ? 'Connecting' : link === 'offline' ? 'Offline' : link === 'reconnecting' ? 'Reconnecting' : 'Live store'}</span>
+    <span className={`live mono link-${link}`} role="status"><i className="dot" aria-hidden="true"/>{!data ? 'Connecting' : link === 'offline' ? 'Offline' : link === 'reconnecting' ? 'Reconnecting' : 'Live store'}</span>
     <button className="theme-btn" onClick={toggle} aria-label={`Theme: ${theme}. Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>{theme === 'dark' ? '☾' : '☀'} {theme}</button></header>
     <main id="canvas" tabIndex={-1}><div className="intro"><div><p className="mono">Command canvas</p>
       <h1>Every venture. One clear view.</h1><p className="lede">Open a venture to see the work, the links, and what needs you next.</p></div>
-      <span className="intro-actions">{writes ? <button className="btn ghost" type="button" onClick={undoLast} disabled={!undo.length}>Undo</button> : null}
+      <span className="intro-actions">{writes ? <button className="btn ghost" type="button" onClick={undoLast} disabled={!canEdit || !undo.length} title={canEdit ? undefined : 'Reconnect to edit'}>Undo</button> : null}
         {data && <span className="mode mono">{writes ? 'Editing enabled' : 'Read only · editing is off'}</span>}</span></div>
       {ventureId && <p className="crumbs"><button type="button" className="back" onClick={() => { location.hash = '#/'; }}>Back to all</button>
         <span className="mono">{detail?.venture.title || ventureId}</span></p>}
@@ -318,10 +314,10 @@ function App() {
       {bootError && !data ? <section className="panel empty" role="alert"><h2>Could not load canvas</h2><p>Couldn't load your ventures. The live store didn't answer.</p><button className="btn" autoFocus onClick={load}>Try again</button></section>
         : !data || (ventureId && !model) ? <section className="panel empty" role="status">Loading your canvas…</section>
         : !data.snapshot.ventures.length ? <section className="panel empty"><h2>No ventures yet</h2><p>Your visible ventures will appear here.</p></section>
-        : <Canvas model={model} layout={data.layout} writes={writes} fitSignal={fitSignal} onLayout={onLayout} onOpen={id => { location.hash = `#/v/${id}`; }} onEdit={openEdit} onHover={setHover} onClear={() => setHover(null)} onHide={hideCard} onLink={linkCards} />}
+        : <Canvas model={model} layout={data.layout} writes={writes} canEdit={canEdit} fitSignal={fitSignal} onLayout={onLayout} onOpen={id => { location.hash = `#/v/${id}`; }} onEdit={openEdit} onHover={setHover} onClear={() => setHover(null)} onHide={hideCard} onLink={linkCards} />}
       </div>
     </main>
-    {editor ? <Editor record={editor} message={fieldMessage} onClose={closeEditor} onSave={save} /> : null}
+    {editor ? <Editor record={editor} message={fieldMessage} canEdit={canEdit} onClose={closeEditor} onSave={save} /> : null}
     <CommandBar open={commandOpen} ventures={data?.snapshot?.ventures || []} onClose={() => setCommandOpen(false)} onRun={runIntent} /></>;
 }
 createRoot(document.getElementById('root')).render(<App/>);

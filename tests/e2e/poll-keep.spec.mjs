@@ -102,7 +102,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024
       await page.clock.fastForward(2000);
       await expect(page.getByText('Live store', { exact: true })).toBeVisible();
       await card.dblclick();
-      await page.getByLabel('Title').fill('Juniper recovered title');
+      await page.locator('#edit-title').fill('Juniper recovered title');
       const again = page.waitForResponse(response => response.request().method() === 'PATCH');
       await page.getByRole('button', { name: 'Save', exact: true }).click();
       expect((await again).ok()).toBeTruthy();
@@ -132,6 +132,7 @@ test.describe('at 375px', () => {
   await page.route('**/api/version', route => blocked ? route.abort() : route.continue());
   await page.clock.fastForward(3500);
   await expect(page.locator('.react-flow')).toBeVisible();
+  await expect.poll(() => page.locator('.live').textContent()).toContain('Reconnecting');
   await card.dispatchEvent('pointerdown', { bubbles: true, button: 0 });
   await expect(page.getByRole('dialog')).toHaveCount(0);
   });
