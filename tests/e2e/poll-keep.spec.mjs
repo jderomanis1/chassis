@@ -33,8 +33,8 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024
       await page.clock.fastForward(3500);
       await expect(page.locator('.react-flow')).toBeVisible();
       await expect(page.getByText('Reconnecting', { exact: true })).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Edit', exact: true }).first()).toBeDisabled();
-      await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+      await expect(page.getByRole('button', { name: 'Edit', exact: true }).first()).toHaveAttribute('aria-disabled', 'true');
+      await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveAttribute('aria-disabled', 'true');
       await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveAttribute('title', 'Reconnect to edit');
       expect(await paneTop(page)).toBe(top);
       await expect(title).toBeFocused();

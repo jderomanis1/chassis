@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { api, readVersion } from './api.js';
+import { api, bindSessionRefresh, readVersion } from './api.js';
 import { POLL_MS } from './poll.js';
 import { Canvas } from './canvas.jsx';
 import { CommandBar } from './command-bar.jsx';
@@ -32,7 +32,7 @@ function App() {
   const [query, setQuery] = useState(''), [hits, setHits] = useState([]), [hover, setHover] = useState(null);
   const [commandOpen, setCommandOpen] = useState(false), [viewMode, setViewMode] = useState('show-all'), [fitSignal, setFitSignal] = useState(0);
   const ticket = useRef(0), layoutRef = useRef(null), layoutStamp = useRef(0), layoutBusy = useRef(false), timer = useRef(0), etagRef = useRef(""), loading = useRef(false);
-  const misses = useRef(0), downSince = useRef(0), booted = useRef(false), polling = useRef(false), stale = useRef(false);
+  const misses = useRef(0), downSince = useRef(0), booted = useRef(false), polling = useRef(false), stale = useRef(false), linkRef = useRef('live'), noticeRef = useRef('');
   const writes = Boolean(data?.session.writes_enabled);
   const canEdit = writes && link === 'live';
 
@@ -82,12 +82,25 @@ function App() {
     return () => { window.removeEventListener('chassis-theme-change', onTheme); window.removeEventListener('hashchange', onHash); };
   }, []);
   function markLink(ok) {
-    if (ok) { misses.current = 0; downSince.current = 0; setLink('live'); return; }
+    if (ok) {
+      const missed = misses.current > 0 || linkRef.current !== 'live';
+      misses.current = 0; downSince.current = 0; linkRef.current = 'live'; setLink('live');
+      if (missed) refreshSession();
+      if (noticeRef.current.startsWith('Cannot reach the local canvas')) showNotice('');
+      return;
+    }
     misses.current += 1;
     if (!downSince.current) downSince.current = Date.now();
     const elapsed = Date.now() - downSince.current;
-    setLink(elapsed >= 30000 ? 'offline' : misses.current >= 3 ? 'reconnecting' : 'live');
+    const next = elapsed >= 30000 ? 'offline' : misses.current >= 3 ? 'reconnecting' : 'live';
+    linkRef.current = next; setLink(next);
   }
+  async function refreshSession() {
+    const session = await api('/api/session');
+    setData(current => current ? { ...current, session } : current);
+    return session;
+  }
+  useEffect(() => { bindSessionRefresh(refreshSession); }, []);
   useEffect(() => {
     const poll = setInterval(async () => {
       if (!etagRef.current || polling.current) {
@@ -155,7 +168,7 @@ function App() {
     const hidden = [...new Set([...(layoutRef.current?.hidden || []), id])].sort();
     persistLayout({ ...(layoutRef.current || { positions: {}, collapsed: [], viewport: { x: 0, y: 0, zoom: 1 } }), hidden });
   }
-  function showNotice(text, offer = false) { setNotice(text); setReloadOffer(offer); }
+  function showNotice(text, offer = false) { noticeRef.current = text; setNotice(text); setReloadOffer(offer); }
   function confirmRecord(id, version, fields = {}) {
     setConfirmed(current => ({ ...current, [id]: { ...(current[id] || {}), ...fields, version } }));
   }
@@ -288,11 +301,11 @@ function App() {
 
   return <><header className="top"><a className="brand" href="#/"><span className="brand-mark">✦</span>
     <span><b>CHASSIS</b><small className="mono">Chief of staff console</small></span></a>
-    <span className={`live mono link-${link}`} role="status"><i className="dot" aria-hidden="true"/>{!data ? 'Connecting' : link === 'offline' ? 'Offline' : link === 'reconnecting' ? 'Reconnecting' : 'Live store'}</span>
+    <span className={`live mono link-${link}`} role="status" aria-live="polite"><i className="dot" aria-hidden="true"/>{!data ? 'Connecting' : link === 'offline' ? 'Offline' : link === 'reconnecting' ? 'Reconnecting' : 'Live store'}</span>
     <button className="theme-btn" onClick={toggle} aria-label={`Theme: ${theme}. Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>{theme === 'dark' ? '☾' : '☀'} {theme}</button></header>
     <main id="canvas" tabIndex={-1}><div className="intro"><div><p className="mono">Command canvas</p>
       <h1>Every venture. One clear view.</h1><p className="lede">Open a venture to see the work, the links, and what needs you next.</p></div>
-      <span className="intro-actions">{writes ? <button className="btn ghost" type="button" onClick={undoLast} disabled={!canEdit || !undo.length} title={canEdit ? undefined : 'Reconnect to edit'}>Undo</button> : null}
+      <span className="intro-actions">{writes ? <button className="btn ghost" type="button" onClick={undoLast} disabled={!undo.length} aria-disabled={!canEdit || undefined} title={canEdit ? undefined : 'Reconnect to edit'}>Undo</button> : null}
         {data && <span className="mode mono">{writes ? 'Editing enabled' : 'Read only · editing is off'}</span>}</span></div>
       {ventureId && <p className="crumbs"><button type="button" className="back" onClick={() => { location.hash = '#/'; }}>Back to all</button>
         <span className="mono">{detail?.venture.title || ventureId}</span></p>}

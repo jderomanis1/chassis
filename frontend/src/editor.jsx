@@ -14,7 +14,7 @@ export function Editor({ record, message, canEdit = true, onClose, onSave }) {
   function update(name, value) { setFields(current => ({ ...current, [name]: value })); }
   function submit(event) {
     event.preventDefault();
-    if (saving.current) return;
+    if (saving.current || !canEdit) return;
     saving.current = true;
     const data = new FormData(event.currentTarget);
     const next = {
@@ -40,7 +40,7 @@ export function Editor({ record, message, canEdit = true, onClose, onSave }) {
           {task ? <label>Blocker reason<input name="blocker_reason" value={fields.blocker_reason} onChange={event => update('blocker_reason', event.target.value)} autoComplete="off" /></label> : null}
           {task ? <label>Due date<input name="due_at" value={fields.due_at} placeholder="YYYY-MM-DD" onChange={event => update('due_at', event.target.value)} autoComplete="off" /></label> : null}
           {message ? <p role="alert">{message}</p> : null}
-          <button className="btn" type="submit" disabled={!canEdit} title={canEdit ? undefined : 'Reconnect to edit'}>Save</button>
+          <button className="btn" type="submit" aria-disabled={canEdit ? undefined : true} title={canEdit ? undefined : 'Reconnect to edit'}>Save</button>
         </div>
       </form>
     </>

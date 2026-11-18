@@ -37,7 +37,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024
         await expect(page.getByText('Live store', { exact: true })).toBeVisible();
         await card.dblclick();
         await page.locator('#edit-title').fill('Juniper restart title');
-        const saved = page.waitForResponse(response => response.url().includes('/api/records/') && response.request().method() === 'PATCH');
+        const saved = page.waitForResponse(response => response.url().includes('/api/records/') && response.request().method() === 'PATCH' && response.status() === 200);
         await page.getByRole('button', { name: 'Save', exact: true }).click();
         expect((await saved).status()).toBe(200);
         const text = await readFile(join(demo.vault, 'records/tasks/task-juniper-launch-2.md'), 'utf8');
