@@ -71,7 +71,8 @@ def create_app(config, *, clock=None):
         raise AuthorizationError("Portal viewer authentication failed")
     if config.allow_writes:
         editor_policy(config)
-    index = RecordIndex(config.root, agent=config.viewer_agent, token=config.viewer_token)
+    index = RecordIndex(config.root, agent=config.viewer_agent, token=config.viewer_token,
+                        drop_dangling=True)
 
     def version(request):
         etag = version_etag(index)

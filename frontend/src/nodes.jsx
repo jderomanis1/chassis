@@ -45,6 +45,11 @@ export function CardNode({ data }) {
   return (
     <div role="button" tabIndex={0} aria-label={data.title} data-record-id={data.id} data-kind={data.kind} data-health={data.health} data-status={data.status}
       className={`node-card panel health-${data.health}${data.status === 'blocked' ? ' is-blocked' : ''}`}
+      onPointerDown={event => {
+        if (!matchMedia('(max-width: 375px)').matches || event.target.closest('button')) return;
+        event.stopPropagation();
+        data.onEdit?.(data);
+      }}
       onDoubleClick={() => data.onEdit(data)}
       onKeyDown={event => {
         if (event.key === 'Enter') { event.preventDefault(); data.onEdit(data); }

@@ -1,5 +1,9 @@
 # Acceptance evidence
 
+**Follow-up:** `cursor/read-path-followups-8f6d` starts at `step7-c1-write` `eb37a42`. Portal reads skip a deleted hidden or missing dependency. The editor guard uses clearance. The camera check waits for a stable frame. Editor fields and a 375 pixel task card are 44 pixel targets. CI counts for that head are in the pull request. This is not an independent review. **Date:** 2026-11-18.
+
+
+
 **Snapshot:** Review fixes are commit `c335ad2` on `cursor/uat-canvas-fixes-8f6d`, based on `step7-c1-write` at `06a53bc`. The pull request targets `step7-c1-write` and is not merged. Main remains `42f0fa0`. C1/C2 are not independently reviewed. **Date:** 2026-11-18.
 
 ## UAT fixes

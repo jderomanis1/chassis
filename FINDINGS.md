@@ -1,5 +1,24 @@
 # Findings
 
+## Read-path follow-up
+
+These notes are engineering evidence on `cursor/read-path-followups-8f6d`,
+based on `step7-c1-write` at `eb37a42`. They are not an independent review.
+Main is still `42f0fa0`.
+
+- A stored dependency whose record was deleted made the portal index fail graph
+  validation, so version, snapshot, and undo returned 500. Portal reads now skip
+  that id before validation. A deleted hidden target and a missing id take the
+  same path and neither id is returned. A library list still fails when a
+  deletion breaks a relationship.
+- The write guard no longer names `chief-of-staff`. Normal clearance is the
+  rule, and the restricted chief still cannot write through the portal.
+- The overview camera check waits until two frames agree. It does not use a
+  longer sleep.
+- Editor inputs are 44 pixels tall. On a 375 pixel wide screen the task card
+  stays large enough to tap and that tap opens the editor. The phone minimap
+  and zoom controls are hidden so they do not cover the card.
+
 ## Monday demo UAT fixes
 
 These notes are engineering evidence at `c335ad2` on `cursor/uat-canvas-fixes-8f6d`. They are

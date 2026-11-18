@@ -12,11 +12,11 @@ from pydantic import ValidationError
 from chassis.atomic import vault_lock, write_atomic
 from chassis.audit import audited, mark_denied
 from chassis.identity import caller_id
-from chassis.policy import authorize_reader, visible_records
+from chassis.policy import authorize_reader, load_policy, visible_records
 from chassis.git import record_activity
 from chassis.markdown import ParsedRecord, RecordFileError, parse_record
 from chassis.models import Record, iso_date
-from chassis.validation import load_vault
+from chassis.validation import load_vault, read_vault, validate_records
 
 SCHEMA = """
 CREATE TABLE records (
@@ -71,9 +71,10 @@ def _row_hash(row: tuple) -> str:
 
 
 class RecordIndex:
-    def __init__(self, root: Path, agent=None, token=None):
+    def __init__(self, root: Path, agent=None, token=None, *, drop_dangling=False):
         self.root = Path(root).resolve()
         self.agent, self.token = caller_id(agent), token
+        self.drop_dangling = drop_dangling
         self.path = self.root / ".chassis" / "index.sqlite"
 
     def _check_path(self):
@@ -81,8 +82,14 @@ class RecordIndex:
             if path.is_symlink():
                 raise IndexFileError(f"{path}: index paths cannot be symlinks")
 
+    def _remember(self, rows, activity, item, relative, fingerprint):
+        values = item.record.model_dump(mode="json") | {"last_activity_at": activity.get(relative)}
+        row = tuple(values[field] for field in FIELDS) + (
+            item.body, item.record.model_dump_json(), relative, *fingerprint)
+        rows[relative] = row + (_row_hash(row),)
+
     def _source_rows(self, cached=None) -> dict[str, tuple]:
-        cached, rows = cached or {}, {}
+        cached, rows, pending = cached or {}, {}, []
         activity = record_activity(self.root)
 
         def read(path):
@@ -102,15 +109,29 @@ class RecordIndex:
                     item = ParsedRecord(path, Record.model_validate_json(old["record_json"]), old["body"])
                 else:
                     item = parse_record(raw.decode("utf-8"), path)
-                values = item.record.model_dump(mode="json") | {"last_activity_at": activity.get(relative)}
-                row = tuple(values[field] for field in FIELDS) + (
-                    item.body, item.record.model_dump_json(), relative, *fingerprint)
-                rows[relative] = row + (_row_hash(row),)
+                pending.append((item, relative, fingerprint))
                 return item
             except (OSError, UnicodeError) as exc:
                 raise RecordFileError(f"{path}: {exc}") from exc
 
+        if self.drop_dangling:
+            # A deleted hidden target and a missing id are the same absent record.
+            # Skip both before validation so a read does not fail or echo the id.
+            items = read_vault(self.root, reader=read)
+            known = {item.record.id for item in items}
+            cleaned = []
+            for item, relative, fingerprint in pending:
+                kept = [dependency for dependency in item.record.depends_on if dependency in known]
+                if kept != list(item.record.depends_on):
+                    item = ParsedRecord(item.path, item.record.model_copy(update={"depends_on": kept}), item.body)
+                cleaned.append((item, relative, fingerprint))
+            validate_records(self.root, [item for item, _, _ in cleaned], load_policy(self.root))
+            for item, relative, fingerprint in cleaned:
+                self._remember(rows, activity, item, relative, fingerprint)
+            return rows
         load_vault(self.root, reader=read)
+        for item, relative, fingerprint in pending:
+            self._remember(rows, activity, item, relative, fingerprint)
         return rows
 
     @audited("rebuild", many=True)

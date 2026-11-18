@@ -1,6 +1,6 @@
 # Chassis project handoff
 
-**Checkpoint date: 2026-11-18. Monday demo UAT fixes and the review fixes are on `cursor/uat-canvas-fixes-8f6d` at `c335ad2`, branched from `step7-c1-write` at `06a53bc` (PR #2 is merged). Pull request #3 targets `step7-c1-write`. Do not merge. Main is still `42f0fa0`. C1/C2 stay off main until independent SecOps review.**
+**Checkpoint date: 2026-11-18. PR #3 is merged into `step7-c1-write` at `eb37a42`. The follow-up branch is `cursor/read-path-followups-8f6d`, based on that commit. Its pull request targets `step7-c1-write`. Do not merge. Main is still `42f0fa0`. C1/C2 stay off main until independent SecOps review.**
 This file preserves the approved build decisions and evidence so each step can
 continue in a separate chat. Read current repository HEAD before making changes.
 
@@ -159,6 +159,22 @@ tokenized invitation/tracking links are not copied into the repository.
   restricted-clearance viewers with grants see 13 records and Acme task total 3.
   The restricted fixture's owner is now a unique fictional name for an unambiguous
   leak scan. No real data, frontend, ask endpoint, Miro call, or deployment was used.
+
+## Read-path follow-up: current
+
+- Branch `cursor/read-path-followups-8f6d` starts at `step7-c1-write` `eb37a42`.
+  Do not touch main. Do not merge this pull request from the build chat.
+- Portal reads skip a `depends_on` id whose record is gone, whether that id was
+  hidden or missing. `GET /api/version`, `/api/snapshot`, and `/api/undo` stay
+  200 and do not echo the id. Library `list_records` still rejects a vault whose
+  relationships are broken.
+- The portal editor check uses clearance, not the `chief-of-staff` name. A
+  restricted chief still cannot be the portal editor.
+- The camera-still check waits until two frames match, inside the existing
+  Playwright timeouts. Config stays 30s, 6s, one worker, no retries.
+- Editor fields are at least 44 pixels tall. At 375 pixels wide, a zoomed task
+  card is a 44 pixel tap that opens the editor.
+- CI counts for this head belong in the pull request body after the run finishes.
 
 ## UAT fixes checkpoint: current
 
