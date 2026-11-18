@@ -1,5 +1,37 @@
 # Acceptance evidence
 
+## Render provisioning attempt | November 18, 2026
+
+GitHub confirmed draft PR #13 at `d0f19a756c8f876df3cbee7cfd59dea2a4a4be16` on `codex/render-fictional-demo`. Joe approved one Starter instance through December 1, 2026. The reviewer closed the door.mjs comparison.
+
+| Request field | Value |
+| --- | --- |
+| Operation | Render `create_web_service` in Joe's My Workspace |
+| Source | `https://github.com/jderomanis1/chassis`, branch `codex/render-fictional-demo` |
+| Runtime and build | `docker`, Dockerfile `deploy/Dockerfile`, build context `.` |
+| Compute | `starter`, region `oregon` |
+| Automatic deploys | `no` |
+| Environment | `DEMO_PASSWORD` supplied as a secret |
+
+Render returned `INVALID_ARGUMENT` with the following response.
+
+```text
+received response code 400: passed in repository URL is invalid or unfetchable: https://github.com/jderomanis1/chassis. Accepted formats are: https://github.com/{namespace}/{repository}, https://gitlab.com/{namespace}/{repository}, https://bitbucket.org/{namespace}/{repository}, or https://cursor.com/codebase/{namespace}/{repository}. You may pass in a branch in the branch field.
+```
+
+Workspace inventories before and after the request both showed the same two unrelated services. The create request returned no service or deploy ID. There was no build or runtime log line, and a manual deploy was never triggered.
+
+| Check on the Render address | Result |
+| --- | --- |
+| Wrong-password session request returns 401 | Unrun |
+| Second browser shows the saved edit without reload, with one canvas-editor commit on one path | Unrun |
+| Authenticated cross-site PATCH returns 403 with unchanged vault HEAD | Unrun |
+| After chief-write, the second browser shows Cedar done without reload and history contains three commits | Unrun |
+| First click after 20 idle minutes works and earlier edits persist | Unrun |
+| Already-open browser recovers to the fresh board after one restart, with no error left on screen | Unrun. No recovery time measured. |
+
+[CI run 77](https://github.com/jderomanis1/chassis/actions/runs/44372930337) passed the earlier Docker rehearsal at the pinned source commit.
+
 ## Hosted fictional demo | draft PR #13 | November 18
 
 | Check | Evidence |

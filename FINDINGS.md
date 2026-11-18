@@ -1,5 +1,11 @@
 # Findings
 
+## Render refused the private source repository | November 18, 2026
+
+GitHub confirmed the requested PR head and branch. Render rejected service creation before assigning a service or deploy ID. The private repository URL matches the GitHub URL format listed in the HTTP 400 response. The workspace inventory before and after the request contained the same two unrelated services. The exact cause of the failed repository fetch is unconfirmed. The first thing to check is whether the Render GitHub App can select `jderomanis1/chassis` through the connected Git deployment credential. A change under `deploy/` cannot grant repository access. [Request and response](evidence/acceptance.md)
+
+Joe confirmed December 1, 2026 as the last day of the single Starter instance exception. The reviewer closed the `door.mjs` comparison. The prior Docker rehearsal still stands. The first-click result after 20 idle minutes and the open browser's recovery time after a restart both require a live sandbox.
+
 ## Hosted fictional vault | November 18
 
 The unchanged portal expects its loopback Host and Origin on writes. The deployment front door authenticates each request and checks the exact public Host, browser Origin and same-origin fetch metadata before translating the authority to loopback. The original CSRF, content type, size, grants and record-version checks still execute inside the portal. The user-named `door.mjs` did not accompany the request. Comparison with that reference remains open.

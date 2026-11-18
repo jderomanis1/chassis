@@ -12,7 +12,7 @@ draft's branch and use the repository root as the build context. Set the
 Dockerfile path to `deploy/Dockerfile`. Use manual deployment of the reviewed
 commit, one fixed instance, ephemeral storage and the default TCP health
 check. The public listener opens after the loopback portal confirms writes
-are enabled. Keep autoscaling and automatic deploys off during the meeting.
+are enabled. Keep autoscaling and automatic deploys off throughout the sandbox window.
 
 Set `DEMO_PASSWORD` as a secret in Render. The browser username is `demo`.
 Render supplies `PORT` and `RENDER_EXTERNAL_URL`. If Joe uses a custom domain,
@@ -24,12 +24,18 @@ browser's CSRF token and fetch metadata through to the unchanged portal.
 The meeting commands below require **Shell on the running web instance**.
 Render offers that shell on paid web compute, starting at $7/month prorated.
 Paid web compute stays awake while idle. Free sleeps after 15 idle minutes,
-loses local edits when it spins down, and has no live shell. Joe's hosting
-exception covers the fictional vault. The repo separately excludes paid
-infrastructure. A paid service requires a spending decision before creation.
+loses local edits when it spins down, and has no live shell. Joe approved one Starter instance for this fictional sandbox through
+December 1, 2026.
 [Render shell support](https://render.com/docs/ssh) ·
 [Free service behavior](https://render.com/docs/free) ·
 [Compute pricing](https://render.com/pricing)
+
+## Joe's reset procedure
+
+1. On the sandbox service's **Deploys** page in Render, choose **Manual Deploy** > **Restart service**.
+2. When Render marks it live, check the open board for the original Acme title and Cedar status. Run `/app/.venv/bin/python /app/deploy/meeting.py history` in the running service's **Shell** to confirm there is only the fictional baseline commit.
+
+Tell Andy, “You can leave and come back to your edits until the service restarts or is redeployed, which resets the sandbox to its original sample board.”
 
 ## Joe's meeting commands
 

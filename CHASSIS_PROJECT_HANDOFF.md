@@ -1,6 +1,19 @@
 # Chassis project handoff
 
-## Hosted fictional demo | draft PR #13 | November 18
+## Render sandbox provisioning | November 18, 2026
+
+Joe approves one Render Starter web instance for the demo and sandbox window, ending December 1, 2026, as a stated exception to the no-paid-infrastructure rule in AGENTS.md.
+The door.mjs comparison is closed by the reviewer.
+
+Andy will use the sandbox independently for several days. GitHub confirmed that draft PR #13 was open at `d0f19a756c8f876df3cbee7cfd59dea2a4a4be16` on `codex/render-fictional-demo`. This is the commit authorized for manual deployment. A later evidence commit does not change the deploy target.
+
+Render returned HTTP 400 when asked to create the Docker service from the private repository. A second inventory check found no service for the sandbox. There is no deploy, sandbox address, build log or runtime log. All six hosted checks remain unrun. The request and response are in [acceptance evidence](evidence/acceptance.md). Joe's reset steps are in the [deployment runbook](deploy/README.md).
+
+**Next chat prompt**
+
+> Resume draft PR #13 from its provisioning evidence commit. Verify that any changes after the approved deploy target are documentation only. Once Render's connected Git provider can select the private `jderomanis1/chassis` repository, create one Starter Docker instance and manually deploy `d0f19a756c8f876df3cbee7cfd59dea2a4a4be16` with automatic deploys off. The spending exception ends December 1, 2026. Run all six hosted checks once on the fresh instance, including the 20-minute idle check and timed automatic recovery after one restart. Record the evidence, keep the address private to Joe and leave PR #13 as a draft.
+
+## Earlier hosted demo checkpoint | draft PR #13 | November 18
 
 Joe approves a hosted demo of the fictional vault only, as a stated exception to the no-deployment rule in AGENTS.md.
 
