@@ -6,6 +6,8 @@ export function Editor({ record, message, canEdit = true, conflict, bindClose, o
   const titleRef = useRef(null);
   const saving = useRef(false);
   const alertRef = useRef(null);
+  const keepRef = useRef(null);
+  const restoreRef = useRef(null);
   const [fields, setFields] = useState({
     title: record.title, status: record.status, next_step: record.next_step,
     blocker_reason: record.blocker_reason, due_at: record.due_at,
@@ -15,10 +17,20 @@ export function Editor({ record, message, canEdit = true, conflict, bindClose, o
   const task = record.kind === 'task';
   useEffect(() => { titleRef.current?.focus(); }, []);
   useEffect(() => { if (conflict) alertRef.current?.focus(); }, [conflict]);
-  const dirty = ['title', 'status', 'next_step', 'blocker_reason', 'due_at'].some(key => (fields[key] || '') !== (record[key] || ''));
+  useEffect(() => { if (ask) keepRef.current?.focus(); }, [ask]);
+  const dirty = ['title', 'status', 'next_step', 'blocker_reason', 'due_at'].some(key => (
+    (fields[key] || '') !== (record[key] || '')
+  ));
   function requestClose() {
-    if (conflict && dirty) setAsk(true);
-    else onClose();
+    if (saving.current) return;
+    if (ask) {
+      setAsk(false);
+      restoreRef.current?.focus();
+      return;
+    }
+    if (!(conflict && dirty)) return onClose();
+    restoreRef.current = document.activeElement;
+    setAsk(true);
   }
   useEffect(() => { bindClose?.(requestClose); });
   function update(name, value) { setFields(current => ({ ...current, [name]: value })); }
@@ -26,11 +38,16 @@ export function Editor({ record, message, canEdit = true, conflict, bindClose, o
     if (saving.current || !canEdit) return;
     saving.current = true;
     setBusy(true);
-    try { await onSave(next); }
-    finally { saving.current = false; setBusy(false); }
+    try {
+      await onSave(next);
+    } finally {
+      saving.current = false;
+      setBusy(false);
+    }
   }
   function submit(event) {
     event.preventDefault();
+    if (ask) return;
     const data = new FormData(event.currentTarget);
     const next = {
       title: String(data.get('title') ?? ''),
@@ -52,14 +69,20 @@ export function Editor({ record, message, canEdit = true, conflict, bindClose, o
           {conflict ? <section className="conflict" role="alert">
             <h3 ref={alertRef} tabIndex={-1}>Your edit was not saved</h3>
             <p>This card changed while you were editing.</p>
-            {conflict.rows.map(row => <p key={row.key}>Latest: {row.latest} Yours: {row.yours}</p>)}
-            <button type="button" className="btn" aria-disabled={locked} title={reconnect} onClick={() => run(fields)}>Keep mine and save again</button>
+            {conflict.latest ? conflict.rows.map(row => <p key={row.key}>Latest: {row.latest} Yours: {row.yours}</p>) : <p>Couldn't load the latest version</p>}
+            <button
+              type="button"
+              className="btn"
+              aria-disabled={locked}
+              title={reconnect}
+              onClick={() => run(fields)}
+            >Keep mine and save again</button>
             <button type="button" className="btn ghost" onClick={onUseLatest}>Use latest</button>
           </section> : null}
-          {ask ? <div>
+          {ask ? <div role="alertdialog" aria-label="Discard your changes?">
             <p>Discard your changes?</p>
             <button type="button" className="btn" onClick={onClose}>Discard</button>
-            <button type="button" className="btn ghost" onClick={() => setAsk(false)}>Keep editing</button>
+            <button type="button" className="btn ghost" ref={keepRef} onClick={requestClose}>Keep editing</button>
           </div> : null}
           <label>Title<input id="edit-title" name="title" ref={titleRef} value={fields.title} readOnly={busy} onChange={event => update('title', event.target.value)} required autoComplete="off" /></label>
           <label>Status<select name="status" value={fields.status} disabled={busy} onChange={event => update('status', event.target.value)}>

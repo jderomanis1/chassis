@@ -192,12 +192,27 @@ function App() {
       const task = (await api(`/api/initiatives/${initiative.id}`)).tasks.find(item => item.id === editing.id);
       if (task) return task;
     }
-    return {};
+    return null;
   }
-  function useLatest() {
+  async function useLatest() {
     const latest = conflict?.latest;
-    if (!latest) return;
-    setEditor(current => current ? { ...current, title: latest.title || '', status: latest.status || '', next_step: latest.next_step || '', blocker_reason: latest.blocker_reason || '', due_at: latest.due_at || '', version: latest.version } : current);
+    if (!latest?.id) {
+      closeEditor();
+      await load();
+      return;
+    }
+    setEditor(current => {
+      if (!current) return current;
+      return {
+        ...current,
+        title: latest.title || '',
+        status: latest.status || '',
+        next_step: latest.next_step || '',
+        blocker_reason: latest.blocker_reason || '',
+        due_at: latest.due_at || '',
+        version: latest.version,
+      };
+    });
     setConflict(null);
     setGeneration(value => value + 1);
   }
@@ -233,11 +248,20 @@ function App() {
     } catch (failure) {
       setPending(null);
       if (failure.code === 'conflict') {
-        const latest = await readLatest(editing).catch(() => ({ version: failure.current_version }));
+        let latest = null;
+        try {
+          latest = await readLatest(editing);
+        } catch {
+          latest = null;
+        }
+        if (!latest?.id) {
+          setConflict({ latest: null, rows: [] });
+          return;
+        }
         const rows = ['title', 'status', 'next_step', 'blocker_reason', 'due_at']
-          .filter(key => String(fields[key] ?? '') !== String(latest?.[key] ?? ''))
-          .map(key => ({ key, yours: String(fields[key] ?? ''), latest: String(latest?.[key] ?? '') }));
-        setEditor(current => current ? { ...current, version: latest?.version ?? failure.current_version ?? current.version } : current);
+          .filter(key => String(fields[key] ?? '') !== String(latest[key] ?? ''))
+          .map(key => ({ key, yours: String(fields[key] ?? ''), latest: String(latest[key] ?? '') }));
+        setEditor(current => current ? { ...current, version: latest.version ?? current.version } : current);
         setConflict({ latest, rows });
       } else setFieldMessage(failure.message);
     }
