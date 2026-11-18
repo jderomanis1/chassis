@@ -295,3 +295,30 @@ test('Save and Enter do not overwrite after a 409', async ({ page, demo }) => {
   await expect(page.locator('#edit-title')).toHaveValue(typed);
   await expect(page.getByRole('heading', { name: 'Your edit was not saved' })).toBeVisible();
 });
+
+test('Keep mine is hidden when the latest version did not load', async ({ page, demo }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openTask(page, demo);
+  await page.locator('#edit-title').fill('No blind overwrite');
+  await page.route('**/api/records/**', route => {
+    if (route.request().method() === 'PATCH') {
+      return route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ error: {
+        code: 'conflict', message: 'This record changed before the save landed.', current_version: 9 } }) });
+    }
+    return route.continue();
+  });
+  await page.route('**/api/initiatives/**', route => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { message: 'unavailable' } }) }));
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByText("Couldn't load the latest version")).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Keep mine and save again' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Use latest' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Close editor' })).toBeVisible();
+  let patches = 0;
+  page.on('request', request => {
+    if (request.method() === 'PATCH' && request.url().includes('/api/records/')) patches += 1;
+  });
+  await page.locator('#edit-title').press('Enter');
+  await settled(page);
+  expect(patches).toBe(0);
+  await expect(page.locator('#edit-title')).toHaveValue('No blind overwrite');
+});
