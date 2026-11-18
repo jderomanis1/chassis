@@ -147,3 +147,36 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024
     });
   });
 }
+
+test('a failed latest read does not blank the fields', async ({ page, demo }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  const card = await openTask(page, demo);
+  const status = await page.getByLabel('Status').inputValue();
+  const title = await page.locator('#edit-title').inputValue();
+  await page.locator('#edit-title').fill('Kept after a failed read');
+  await page.route('**/api/records/**', route => {
+    if (route.request().method() === 'PATCH') {
+      return route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ error: {
+        code: 'conflict', message: 'This record changed before the save landed.', current_version: 4 } }) });
+    }
+    return route.continue();
+  });
+  await page.route('**/api/initiatives/**', route => route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { message: 'unavailable' } }) }));
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.getByText("Couldn't load the latest version")).toBeVisible();
+  const blankLatest = await page.locator('.conflict').evaluate(node => [...node.querySelectorAll('p')].some(item => {
+    const text = item.textContent || '';
+    if (!text.includes('Latest:')) return false;
+    return text.split('Yours:')[0].replace('Latest:', '').trim() === '';
+  }));
+  expect(blankLatest).toBe(false);
+  let patches = 0;
+  page.on('request', request => {
+    if (request.method() === 'PATCH' && request.url().includes('/api/records/')) patches += 1;
+  });
+  await page.getByRole('button', { name: 'Use latest' }).click();
+  expect(patches).toBe(0);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(card).toContainText(title);
+  await expect(card).toHaveAttribute('data-status', status);
+});
