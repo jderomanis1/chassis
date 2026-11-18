@@ -4,7 +4,9 @@
 
 The portal used `default-src 'none'` without a media directive. A local MP3 would therefore be blocked. The I-002 draft adds `media-src 'self'` and tests the exact directive. Playback starts at document boot, outside the React component, with click and keydown listeners installed only after an autoplay denial. Each gesture removes both listeners before retrying.
 
-The available archives and current integration tree contain no copy of the approved MP3. Its required SHA-256 is recorded in the handoff. Production remains silent in this draft. Volume 0.35 is a provisional player setting. The clip's peak and its balance against the demo machine's other sounds require measurement and listening.
+Joe supplied the approved `am_michael` MP3 after the initial wiring draft. The file is 222,764 bytes and its SHA-256 matches his requested digest. Frontend public assets and the packaged portal use identical bytes. The local notices include the Kokoro voice attribution and Apache-2.0 license.
+
+The source is 48 kHz stereo and peaks at -2.0 dBTP. At the selected gain of 0.35 the measured output peak is -11.1 dBTP with integrated loudness of -25.1 LUFS. The canvas has no other audio playback calls in its current source. A physical-device listening check will establish the balance with the actual demonstration setup.
 
 The browser suite for INC-1a ran inside the all-extras job. The [step log](https://github.com/jderomanis1/chassis/actions/runs/44326795343/job/134880143975#step:12:1) records 80 passed. Joe's live outage check remains on the Thursday and Saturday run sheets.
 
