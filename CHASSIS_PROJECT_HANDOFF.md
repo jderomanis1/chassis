@@ -1,12 +1,14 @@
 # Chassis project handoff
 
-## Demo sprint | INC-1a merged, I-002 in draft | November 18
+## Demo sprint | INC-1a and I-002 merged | November 18
 
 Joe accepted the panel review of PR #9 at `72ea32bc`. CI run 61 passed all three jobs before the head-pinned merge to `step7-c1-write` at `a1ee201dccd6a725e3871215583110773cb67581`. The following cleanup, `6cc0c73d7d31fa304d6cb41b97972dbaf5ea0cd8`, limits push and pull-request targets to the integration branch and main. Main was checked at `42f0fa0`.
 
-Draft [PR #10](https://github.com/jderomanis1/chassis/pull/10) contains the I-002 tests (`c0a20a78`), boot behavior (`01a3bbf1`) and approved recording (`b2254b4e`). The packaged portal serves `/intro.mp3` byte-for-byte with SHA-256 `a6d1543544c714477fab343472d58b5ed07aea358d6bb0a9aea63724b1318a42`. The recording is 6.936 seconds. Its modeled output at the 35% player setting measures -25.1 LUFS integrated and -11.1 dBTP. The UAT check uses the demo speakers and Android Chrome. Thursday’s recording and Saturday’s freeze run cover the idle outage, two drags and recovery.
+Joe authorized the I-002 merge. GitHub Actions run 68 passed all three checks on `10d27598fd336cb0007e0f77cbc98ef989568ddd`. PR #10 was marked ready and merged into `step7-c1-write` at `cd07e0d67ccc98f6cdc6b22082c628878e62a7d0`, with `6cc0c73d7d31fa304d6cb41b97972dbaf5ea0cd8` as its first parent and the checked PR head as its second parent. [CI run 68](https://github.com/jderomanis1/chassis/actions/runs/44337935376)
 
-**Next chat prompt.** Resume PR #10 against `step7-c1-write` for Joe’s one consolidated I-002 review. Check the current head and its CI logs. Record the actual listening and device results separately from the automated Chrome and emulated-touch tests. The merge target is Friday, November 20 at noon Arizona time. Use the operator run sheet for Thursday’s recording and Saturday’s noon freeze. Finalize Andy’s Sunday cue card against the freeze SHA and Joe’s approved exit wording.
+[PR #10](https://github.com/jderomanis1/chassis/pull/10) contains the I-002 tests (`c0a20a78`), boot behavior (`01a3bbf1`) and approved recording (`b2254b4e`). The packaged portal serves `/intro.mp3` byte-for-byte with SHA-256 `a6d1543544c714477fab343472d58b5ed07aea358d6bb0a9aea63724b1318a42`. The recording is 6.936 seconds. Its modeled output at the 35% player setting measures -25.1 LUFS integrated and -11.1 dBTP. The UAT check uses the demo speakers and Android Chrome. Thursday’s recording and Saturday’s freeze run cover the idle outage, two drags and recovery.
+
+**Next chat prompt.** Resume the demo walkthrough from the I-002 merge `cd07e0d67ccc98f6cdc6b22082c628878e62a7d0` on `step7-c1-write`. Use the operator run sheet for Thursday’s recording and Saturday’s noon Arizona freeze. Record the build SHA, audible playback on the demo speakers, physical Android Chrome playback, and the outage, two drags and recovery. Keep the flick test at `x1.spec.mjs:10` open for follow-up. Finalize Andy’s Sunday cue card against the freeze SHA and Joe’s approved exit wording.
 
 ## Demo sprint checkpoint, November 18
 

@@ -2,13 +2,15 @@
 
 ## Demo intro audio | November 18
 
-The portal used `default-src 'none'` without a media directive. A local MP3 would therefore be blocked. The I-002 draft adds `media-src 'self'` and tests the exact directive. Playback starts at document boot, outside the React component, with click and keydown listeners installed only after an autoplay denial. Each gesture removes both listeners before retrying.
+The portal used `default-src 'none'` without a media directive. A local MP3 would therefore be blocked. The I-002 merge `cd07e0d67ccc98f6cdc6b22082c628878e62a7d0` on `step7-c1-write` adds `media-src 'self'` and tests the exact directive. Playback starts at document boot, outside the React component, with click and keydown listeners installed only after an autoplay denial. Each gesture removes both listeners before retrying.
 
 Joe supplied the approved `am_michael` MP3 after the initial wiring draft. The file is 222,764 bytes and its SHA-256 matches his requested digest. Frontend public assets and the packaged portal use identical bytes. The local notices include the Kokoro voice attribution and Apache-2.0 license.
 
 The source is 48 kHz stereo and peaks at -2.0 dBTP. At the selected gain of 0.35 the measured output peak is -11.1 dBTP with integrated loudness of -25.1 LUFS. The canvas has no other audio playback calls in its current source. A physical-device listening check will establish the balance with the actual demonstration setup.
 
 The actual-clip browser run caught console 404s after playback. The boot page now supplies an inline favicon so Chrome can resolve its implicit icon without another request. The emulated phone check follows the visible editing indicator through the outage. The separate connection label is hidden below 700 px by the existing layout.
+
+**Open flake in card flick.** `tests/e2e/x1.spec.mjs:10` (H and a flick hide a card without deleting it) failed in run 67 at `7ff7df9` and passed in run 68 at `10d27598`. Neither the flick implementation nor its test changed between those commits. The only product edit was an inline favicon in the source and packaged HTML. The cause of the intermittent failure remains open. [Run 67 failure](https://github.com/jderomanis1/chassis/actions/runs/44336259129/job/134913708916#step:12:1) · [Run 68 pass](https://github.com/jderomanis1/chassis/actions/runs/44337935376/job/134919615965#step:12:1) · [Commit comparison](https://github.com/jderomanis1/chassis/compare/7ff7df9...10d27598)
 
 The browser suite for INC-1a ran inside the all-extras job. The [step log](https://github.com/jderomanis1/chassis/actions/runs/44326795343/job/134880143975#step:12:1) records 80 passed. Joe's live outage check remains on the Thursday and Saturday run sheets.
 
