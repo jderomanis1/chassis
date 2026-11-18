@@ -6,6 +6,8 @@
 
 At `4a7ce79`, the test starts listening for the layout PUT before each navigation. On page load, the canvas schedules this save from React Flow’s `onMoveEnd`. Waiting for its successful response after reload puts the Cedar measurement after the fit animation. The first wait also finishes the original page’s fit save before the H key. The test still flicks with the mouse, checks that the hidden count reaches two, restores both cards and verifies the vault commit. The earlier 29/30 diagnosis and its trace are preserved below.
 
+The full suite passed on the PR #12 head `0b75280` and again on [merge `a4ec2abfeaadf33762e7640cac77b81624087357`](https://github.com/jderomanis1/chassis/commit/a4ec2abfeaadf33762e7640cac77b81624087357). Core, portal and all-extras passed on attempt 1 in both runs. `git diff --exit-code` between the merge and the PR head returned 0 with no output. Both commits point to tree `af58b2cb6d38af712990f94331eec1160bacba06`. [CI run 73](https://github.com/jderomanis1/chassis/actions/runs/44358301206) · [CI run 74](https://github.com/jderomanis1/chassis/actions/runs/44364117712)
+
 ## Flick-hide diagnosis, November 18
 
 **29 passed, 1 failed (N = 30).** GitHub Actions ran only `tests/e2e/x1.spec.mjs:10` on Chromium at `21239f1`, based on `e371fdf`, with one worker, zero retries and a fresh fictional vault per execution. The third execution failed (`repeat2` in Playwright). All 30 completed. [Diagnosis run](https://github.com/jderomanis1/chassis/actions/runs/44349874303) · [Job log](https://github.com/jderomanis1/chassis/actions/runs/44349874303/job/134962276007#step:7:1)
