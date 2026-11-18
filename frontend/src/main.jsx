@@ -237,7 +237,7 @@ function App() {
     if (!Object.keys(changes).length) { closeEditor(); return; }
     setPending({ id: editing.id, changes });
     try {
-      const result = await api(`/api/records/${encodeURIComponent(editing.id)}`, { method: 'PATCH', csrf: data.session.csrf,
+      const result = await api(`/api/records/${encodeURIComponent(editing.id)}`, { method: 'PATCH', csrf: data.session.csrf, signal: AbortSignal.timeout(10000),
         data: { changes, expected_version: editing.version } });
       setUndo(stack => [...stack, { id: editing.id, changes: priorValues(changes, editing), version: result.record.version }].slice(-10));
       confirmRecord(editing.id, result.record.version, changes);

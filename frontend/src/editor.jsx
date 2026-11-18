@@ -34,6 +34,10 @@ export function Editor({ record, message, canEdit = true, conflict, bindClose, o
   }
   useEffect(() => { bindClose?.(requestClose); });
   function update(name, value) { setFields(current => ({ ...current, [name]: value })); }
+  function whenIdle(action) {
+    if (saving.current) return;
+    action();
+  }
   async function run(next) {
     if (saving.current || !canEdit) return;
     saving.current = true;
@@ -69,19 +73,23 @@ export function Editor({ record, message, canEdit = true, conflict, bindClose, o
           {conflict ? <section className="conflict" role="alert">
             <h3 ref={alertRef} tabIndex={-1}>Your edit was not saved</h3>
             <p>This card changed while you were editing.</p>
-            {conflict.latest ? conflict.rows.map(row => <p key={row.key}>Latest: {row.latest} Yours: {row.yours}</p>) : <p>Couldn't load the latest version</p>}
-            <button
+            {conflict.latest ? conflict.rows.map(row => (
+              <p key={row.key}>Latest: {row.latest} Yours: {row.yours}</p>
+            )) : (
+              <p>Couldn't load the latest version</p>
+            )}
+            {conflict.latest ? <button
               type="button"
               className="btn"
               aria-disabled={locked}
               title={reconnect}
               onClick={() => run(fields)}
-            >Keep mine and save again</button>
-            <button type="button" className="btn ghost" onClick={onUseLatest}>Use latest</button>
+            >Keep mine and save again</button> : null}
+            <button type="button" className="btn ghost" onClick={() => whenIdle(onUseLatest)}>Use latest</button>
           </section> : null}
           {ask ? <div role="alertdialog" aria-label="Discard your changes?">
             <p>Discard your changes?</p>
-            <button type="button" className="btn" onClick={onClose}>Discard</button>
+            <button type="button" className="btn" onClick={() => whenIdle(onClose)}>Discard</button>
             <button type="button" className="btn ghost" ref={keepRef} onClick={requestClose}>Keep editing</button>
           </div> : null}
           <label>Title<input id="edit-title" name="title" ref={titleRef} value={fields.title} readOnly={busy} onChange={event => update('title', event.target.value)} required autoComplete="off" /></label>
