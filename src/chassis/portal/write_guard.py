@@ -11,7 +11,7 @@ from chassis.policy import authorize_reader, authorize_writer
 
 MAX_BODY = 64 * 1024
 CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; "
-       "img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; "
+       "img-src 'self' data:; media-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; "
        "form-action 'none'; frame-ancestors 'none'")
 
 
