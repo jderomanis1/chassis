@@ -65,7 +65,7 @@ function App() {
     document.body.tabIndex = -1;
     load();
     const onTheme = () => setTheme(document.documentElement.dataset.theme);
-    const onHash = () => load();
+    const onHash = () => { setHover(null); load(); };
     window.addEventListener('chassis-theme-change', onTheme);
     window.addEventListener('hashchange', onHash);
     return () => { window.removeEventListener('chassis-theme-change', onTheme); window.removeEventListener('hashchange', onHash); };
@@ -257,19 +257,21 @@ function App() {
         {data && <span className="mode mono">{writes ? 'Editing enabled' : 'Read only · editing is off'}</span>}</span></div>
       {ventureId && <p className="crumbs"><button type="button" className="back" onClick={() => { location.hash = '#/'; }}>Back to all</button>
         <span className="mono">{detail?.venture.title || ventureId}</span></p>}
-      {notice ? <p className="attn" role="status">{notice}{reloadOffer ? <button type="button" className="btn" onClick={() => load()}>Reload</button> : null}</p> : null}
       <form className="search" role="search" onSubmit={search}>
         <label className="sr" htmlFor="record-search">Search records</label>
         <input id="record-search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search visible records" />
         <button className="btn" type="submit">Search</button>
       </form>
-      {hits.length ? <ul className="hits">{hits.map(hit => <li key={hit.id}><button type="button" onClick={() => { if (hit.type === 'venture') location.hash = `#/v/${hit.id}`; }}>{hit.title}</button></li>)}</ul> : null}
       <HoverCard record={hover} />
-      {hiddenHere.length ? <button type="button" className="btn ghost" onClick={showHidden}>Show hidden ({hiddenHere.length})</button> : null}
+      <div className="canvas-stack">
+      {notice ? <p className="attn canvas-overlay" role="status">{notice}{reloadOffer ? <button type="button" className="btn" onClick={() => load()}>Reload</button> : null}</p> : null}
+      {hits.length ? <ul className="hits canvas-overlay">{hits.map(hit => <li key={hit.id}><button type="button" onClick={() => { if (hit.type === 'venture') location.hash = `#/v/${hit.id}`; }}>{hit.title}</button></li>)}</ul> : null}
+      {hiddenHere.length ? <button type="button" className="btn ghost show-hidden canvas-overlay" onClick={showHidden}>Show hidden ({hiddenHere.length})</button> : null}
       {error ? <section className="panel empty" role="alert"><h2>Could not load canvas</h2><p>{error}</p><button className="btn" onClick={load}>Try again</button></section>
         : !data || (ventureId && !model) ? <section className="panel empty" role="status">Loading your canvas…</section>
         : !data.snapshot.ventures.length ? <section className="panel empty"><h2>No ventures yet</h2><p>Your visible ventures will appear here.</p></section>
         : <Canvas model={model} layout={data.layout} writes={writes} fitSignal={fitSignal} onLayout={onLayout} onOpen={id => { location.hash = `#/v/${id}`; }} onEdit={openEdit} onHover={setHover} onClear={() => setHover(null)} onHide={hideCard} onLink={linkCards} />}
+      </div>
     </main>
     {editor ? <Editor record={editor} message={fieldMessage} onClose={closeEditor} onSave={save} /> : null}
     <CommandBar open={commandOpen} ventures={data?.snapshot?.ventures || []} onClose={() => setCommandOpen(false)} onRun={runIntent} /></>;

@@ -1,6 +1,6 @@
 # Chassis project handoff
 
-**Checkpoint date: 2026-11-18. PR #3 is merged into `step7-c1-write` at `eb37a42`. The follow-up branch is `cursor/read-path-followups-8f6d`, based on that commit. Its pull request targets `step7-c1-write`. Do not merge. Main is still `42f0fa0`. C1/C2 stay off main until independent SecOps review.**
+**Checkpoint date: 2026-11-18. PR #4 is merged into `step7-c1-write` at `fef33be`. I-038, the wrong-record edit, is on `cursor/wrong-record-strip-8f6d`, based on that commit. Its pull request targets `step7-c1-write`. Do not merge. Main is still `42f0fa0`. C1/C2 stay off main until independent SecOps review.**
 This file preserves the approved build decisions and evidence so each step can
 continue in a separate chat. Read current repository HEAD before making changes.
 
@@ -159,6 +159,18 @@ tokenized invitation/tracking links are not copied into the repository.
   restricted-clearance viewers with grants see 13 records and Acme task total 3.
   The restricted fixture's owner is now a unique fictional name for an unambiguous
   leak scan. No real data, frontend, ask endpoint, Miro call, or deployment was used.
+
+## I-038 wrong-record edit: current
+
+- Branch `cursor/wrong-record-strip-8f6d` starts at `step7-c1-write` `fef33be`.
+  Do not touch main. Do not merge this pull request from the build chat.
+- The editor still opens the card that receives the double-click. After a save,
+  focus fills the details strip. That strip is now one fixed line, 52 pixels
+  on desktop and tablet and 44 pixels on a phone, so the canvas does not jump.
+  The full title stays in the strip's accessible name and in the editor header.
+- A notice, search hits, and Show hidden sit over the canvas instead of pushing
+  it. Navigation clears the hover strip. CI counts for this head are in the
+  pull request.
 
 ## Read-path follow-up: current
 

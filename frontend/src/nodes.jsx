@@ -79,7 +79,7 @@ export function HoverCard({ record }) {
     <aside className="hover-slot panel" role="tooltip" aria-label={record ? record.title : 'Card details'}>
       {record ? <>
         <p className="mono">{record.kind}</p>
-        <h4>{record.title}</h4>
+        <h4 title={record.title}>{record.title}</h4>
         <dl>
           <div><dt>Next</dt><dd>{record.next_milestone || record.next_step || 'None'}</dd></div>
           <div><dt>Counts</dt><dd>{hoverSummary(record)}</dd></div>

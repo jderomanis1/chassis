@@ -1,5 +1,13 @@
 # Findings
 
+## I-038 wrong-record edit
+
+A long title saved on one card made the details strip grow, so the next
+double-click landed on the card below and saved that other record. The strip
+is now a single fixed line. Notices, search hits, and Show hidden overlay the
+canvas. Navigation clears the hover text. The full title stays available in
+the strip name and the editor header.
+
 ## Read-path follow-up
 
 These notes are engineering evidence on `cursor/read-path-followups-8f6d`,
