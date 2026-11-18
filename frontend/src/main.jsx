@@ -30,7 +30,7 @@ function App() {
   const [undo, setUndo] = useState([]), [pending, setPending] = useState(null), [focusId, setFocusId] = useState(null);
   const [query, setQuery] = useState(''), [hits, setHits] = useState([]), [hover, setHover] = useState(null);
   const [commandOpen, setCommandOpen] = useState(false), [viewMode, setViewMode] = useState('show-all'), [fitSignal, setFitSignal] = useState(0);
-  const ticket = useRef(0), layoutRef = useRef(null), timer = useRef(0), etagRef = useRef("");
+  const ticket = useRef(0), layoutRef = useRef(null), timer = useRef(0), etagRef = useRef(""), loading = useRef(false);
   const writes = Boolean(data?.session.writes_enabled);
 
   async function loadVenture(id) {
@@ -45,6 +45,7 @@ function App() {
   }
   async function load() {
     const current = ++ticket.current;
+    loading.current = true;
     const selected = readVenture(location.hash);
     try {
       const [session, snapshot, layout, history] = await Promise.all([
@@ -59,6 +60,8 @@ function App() {
     } catch (failure) {
       if (current !== ticket.current) return;
       setError(failure.message); setData(null);
+    } finally {
+      if (current === ticket.current) loading.current = false;
     }
   }
   useEffect(() => {
@@ -75,7 +78,7 @@ function App() {
       if (!etagRef.current) return;
       try {
         const version = await readVersion(etagRef.current);
-        if (version.changed) await load();
+        if (version.changed && !loading.current) await load();
       } catch (failure) {
         if (failure.name !== 'AbortError') setError(failure.message);
       }
@@ -152,8 +155,9 @@ function App() {
         data: { changes, expected_version: editing.version } });
       setUndo(stack => [...stack, { id: editing.id, changes: priorValues(changes, editing), version: result.record.version }].slice(-10));
       confirmRecord(editing.id, result.record.version, changes);
-      showNotice(''); await load();
+      showNotice('');
       setEditor(null); setFieldMessage(''); setFocusId(editing.id);
+      await load();
     } catch (failure) {
       setPending(null);
       if (failure.code === 'conflict') {
