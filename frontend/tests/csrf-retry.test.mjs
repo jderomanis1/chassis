@@ -20,6 +20,7 @@ test('a 403 is retried once when the record version is unchanged', async () => {
     return json({});
   };
   bindSessionRefresh(async () => ({ csrf: 'fresh' }));
+  bindWriteRetry(() => true);
   const result = await api('/api/records/task-a', { method: 'PATCH', csrf: 'stale', data: { expected_version: 2, changes: { title: 'x' } } });
   assert.deepEqual(writes, ['stale', 'fresh']);
   assert.equal(result.record.version, 3);
@@ -37,6 +38,7 @@ test('a 403 is not retried when the record version changed', async () => {
     return json({});
   };
   bindSessionRefresh(async () => ({ csrf: 'fresh' }));
+  bindWriteRetry(() => true);
   await assert.rejects(
     () => api('/api/records/task-a', { method: 'PATCH', csrf: 'stale', data: { expected_version: 2, changes: { title: 'x' } } }),
     error => error.status === 409 && error.code === 'conflict');
@@ -55,6 +57,7 @@ test('a second 403 does not retry again', async () => {
     return json({});
   };
   bindSessionRefresh(async () => ({ csrf: 'fresh' }));
+  bindWriteRetry(() => true);
   await assert.rejects(
     () => api('/api/records/task-a', { method: 'PATCH', csrf: 'stale', data: { expected_version: 2, changes: { title: 'x' } } }),
     error => error.status === 403);
