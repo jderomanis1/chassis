@@ -29,14 +29,15 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024
       await page.getByLabel('Title').fill('Juniper fictional hit list title');
       edit(demo.vault, demo.credentials['canvas-editor'], 'task-juniper-launch-2', 1, { next_step: 'Updated from another terminal.' });
       await page.getByRole('button', { name: 'Save', exact: true }).click();
-      const reload = page.getByRole('button', { name: 'Reload' });
+      await expect(page.getByRole('heading', { name: 'Your edit was not saved' })).toBeVisible();
+      await page.getByRole('button', { name: 'Close editor' }).click();
+      await page.getByRole('button', { name: 'Discard' }).click();
       const show = page.getByRole('button', { name: 'Show hidden (1)' });
-      await expect(reload).toBeVisible();
       await page.getByLabel('Search records').fill('review');
       await page.getByRole('button', { name: 'Search', exact: true }).click();
       await expect(page.locator('.hits li')).toHaveCount(62);
       const size = page.viewportSize();
-      for (const control of [reload, show]) {
+      for (const control of [show]) {
         const box = await control.boundingBox();
         expect(inside(box, size)).toBe(true);
         const name = await control.innerText();
@@ -62,8 +63,6 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024
       await expect(page.getByRole('button', { name: 'Close hits' })).toBeVisible();
       await page.keyboard.press('Escape');
       await expect(list).toHaveCount(0);
-      await reload.click();
-      await expect(page.locator('p.attn')).toHaveCount(0);
     });
   });
 }

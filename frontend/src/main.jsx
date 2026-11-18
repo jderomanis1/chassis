@@ -26,6 +26,8 @@ function App() {
   const [theme, setTheme] = useState(document.documentElement.dataset.theme);
   const [ventureId, setVentureId] = useState(readVenture(location.hash));
   const [editor, setEditor] = useState(null), [fieldMessage, setFieldMessage] = useState('');
+  const [conflict, setConflict] = useState(null);
+  const [generation, setGeneration] = useState(0);
   const [notice, setNotice] = useState(''), [reloadOffer, setReloadOffer] = useState(false);
   const [confirmed, setConfirmed] = useState({});
   const [undo, setUndo] = useState([]), [pending, setPending] = useState(null), [focusId, setFocusId] = useState(null);
@@ -36,6 +38,7 @@ function App() {
   const writes = Boolean(data?.session.writes_enabled);
   const canEdit = writes && link === 'live';
   const canEditRef = useRef(false);
+  const closeRef = useRef(() => {});
   canEditRef.current = canEdit;
 
   async function loadVenture(id) {
@@ -129,7 +132,7 @@ function App() {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); setCommandOpen(true); return; }
       if (event.key === 'Escape') {
         if (commandOpen) { event.preventDefault(); setCommandOpen(false); return; }
-        if (editor) { event.preventDefault(); closeEditor(); return; }
+        if (editor) { event.preventDefault(); closeRef.current(); return; }
         if (hits.length) { event.preventDefault(); setHits([]); return; }
         if (readVenture(location.hash)) location.hash = '#/';
       }
@@ -179,7 +182,39 @@ function App() {
   function closeEditor() {
     const id = editor?.id;
     setEditor(null); setFieldMessage('');
+    setConflict(null);
     if (id) setFocusId(id);
+  }
+  async function readLatest(editing) {
+    if (editing.kind === 'venture') return (await api(`/api/ventures/${editing.id}`)).venture;
+    for (const initiative of (await api(`/api/ventures/${readVenture(location.hash)}`)).initiatives) {
+      if (initiative.id === editing.id) return initiative;
+      const task = (await api(`/api/initiatives/${initiative.id}`)).tasks.find(item => item.id === editing.id);
+      if (task) return task;
+    }
+    return null;
+  }
+  async function useLatest() {
+    const latest = conflict?.latest;
+    if (!latest?.id) {
+      closeEditor();
+      await load();
+      return;
+    }
+    setEditor(current => {
+      if (!current) return current;
+      return {
+        ...current,
+        title: latest.title || '',
+        status: latest.status || '',
+        next_step: latest.next_step || '',
+        blocker_reason: latest.blocker_reason || '',
+        due_at: latest.due_at || '',
+        version: latest.version,
+      };
+    });
+    setConflict(null);
+    setGeneration(value => value + 1);
   }
   async function openEdit(record) {
     if (!canEdit) return;
@@ -190,6 +225,7 @@ function App() {
       ? { ...record, title: source.title, status: source.status, next_step: source.next_step, version, kind: 'venture' }
       : { ...record, version };
     setFieldMessage(''); setFocusId(null); setEditor(next);
+    setConflict(null);
   }
   async function save(fields) {
     if (!canEdit) return;
@@ -201,17 +237,33 @@ function App() {
     if (!Object.keys(changes).length) { closeEditor(); return; }
     setPending({ id: editing.id, changes });
     try {
-      const result = await api(`/api/records/${encodeURIComponent(editing.id)}`, { method: 'PATCH', csrf: data.session.csrf,
+      const result = await api(`/api/records/${encodeURIComponent(editing.id)}`, { method: 'PATCH', csrf: data.session.csrf, signal: AbortSignal.timeout(10000),
         data: { changes, expected_version: editing.version } });
       setUndo(stack => [...stack, { id: editing.id, changes: priorValues(changes, editing), version: result.record.version }].slice(-10));
       confirmRecord(editing.id, result.record.version, changes);
       showNotice('');
       setEditor(null); setFieldMessage(''); setFocusId(editing.id);
+      setConflict(null);
       await load();
     } catch (failure) {
       setPending(null);
       if (failure.code === 'conflict') {
-        setEditor(null); setFocusId(editing.id); showNotice(failure.message, true); await load();
+        let latest = null;
+        try {
+          const expired = new Promise(resolve => setTimeout(() => resolve(null), 3000));
+          latest = await Promise.race([readLatest(editing), expired]);
+        } catch {
+          latest = null;
+        }
+        if (!latest?.id) {
+          setConflict({ latest: null, rows: [] });
+          return;
+        }
+        const rows = ['title', 'status', 'next_step', 'blocker_reason', 'due_at']
+          .filter(key => String(fields[key] ?? '') !== String(latest[key] ?? ''))
+          .map(key => ({ key, yours: String(fields[key] ?? ''), latest: String(latest[key] ?? '') }));
+        setEditor(current => current ? { ...current, version: latest.version ?? current.version } : current);
+        setConflict({ latest, rows });
       } else setFieldMessage(failure.message);
     }
   }
@@ -334,7 +386,7 @@ function App() {
         : <Canvas model={model} layout={data.layout} writes={writes} canEdit={canEdit} fitSignal={fitSignal} onLayout={onLayout} onOpen={id => { location.hash = `#/v/${id}`; }} onEdit={openEdit} onHover={setHover} onClear={() => setHover(null)} onHide={hideCard} onLink={linkCards} />}
       </div>
     </main>
-    {editor ? <Editor record={editor} message={fieldMessage} canEdit={canEdit} onClose={closeEditor} onSave={save} /> : null}
+    {editor ? <Editor key={generation} record={editor} message={fieldMessage} canEdit={canEdit} conflict={conflict} bindClose={fn => { closeRef.current = fn; }} onClose={closeEditor} onUseLatest={useLatest} onSave={save} /> : null}
     <CommandBar open={commandOpen} ventures={data?.snapshot?.ventures || []} onClose={() => setCommandOpen(false)} onRun={runIntent} /></>;
 }
 createRoot(document.getElementById('root')).render(<App/>);
