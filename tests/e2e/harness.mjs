@@ -45,8 +45,11 @@ export const test = base.extend({
       }
       await use({ vault, origin, credentials, env, server });
     } finally {
-      server.kill('SIGTERM');
-      await new Promise(resolve => server.exitCode !== null ? resolve() : server.once('exit', resolve));
+      if (server.exitCode === null) server.kill('SIGTERM');
+      await Promise.race([
+        new Promise(resolve => server.exitCode !== null ? resolve() : server.once('exit', resolve)),
+        delay(2000),
+      ]);
       await rm(parent, { recursive: true, force: true });
     }
   },
