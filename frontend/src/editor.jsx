@@ -4,6 +4,7 @@ const STATUSES = ['planned', 'in_progress', 'blocked', 'done'];
 
 export function Editor({ record, message, canEdit = true, conflict, bindClose, onClose, onUseLatest, onSave }) {
   const titleRef = useRef(null);
+  const saving = useRef(false);
   const alertRef = useRef(null);
   const [fields, setFields] = useState({
     title: record.title, status: record.status, next_step: record.next_step,
@@ -22,10 +23,11 @@ export function Editor({ record, message, canEdit = true, conflict, bindClose, o
   useEffect(() => { bindClose?.(requestClose); });
   function update(name, value) { setFields(current => ({ ...current, [name]: value })); }
   async function run(next) {
-    if (busy || !canEdit) return;
+    if (saving.current || !canEdit) return;
+    saving.current = true;
     setBusy(true);
     try { await onSave(next); }
-    finally { setBusy(false); }
+    finally { saving.current = false; setBusy(false); }
   }
   function submit(event) {
     event.preventDefault();
