@@ -62,6 +62,7 @@ function App() {
     }
   }
   useEffect(() => {
+    document.body.tabIndex = -1;
     load();
     const onTheme = () => setTheme(document.documentElement.dataset.theme);
     const onHash = () => load();
@@ -85,13 +86,14 @@ function App() {
     function onKey(event) {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') { event.preventDefault(); setCommandOpen(true); return; }
       if (event.key === 'Escape') {
-        if (commandOpen) { setCommandOpen(false); return; }
-        if (editor) closeEditor(); else if (readVenture(location.hash)) location.hash = '#/';
+        if (commandOpen) { event.preventDefault(); setCommandOpen(false); return; }
+        if (editor) { event.preventDefault(); closeEditor(); return; }
+        if (readVenture(location.hash)) location.hash = '#/';
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !editor && !commandOpen && writes) { event.preventDefault(); undoLast(); }
     }
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
   });
   function toggle() {
     const next = theme === 'dark' ? 'light' : 'dark';
@@ -249,7 +251,7 @@ function App() {
     <span><b>CHASSIS</b><small className="mono">Chief of staff console</small></span></a>
     <span className="live mono">{data ? <><i className="dot"/>Live store</> : 'Connecting'}</span>
     <button className="theme-btn" onClick={toggle} aria-label={`Theme: ${theme}. Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>{theme === 'dark' ? '☾' : '☀'} {theme}</button></header>
-    <main id="canvas"><div className="intro"><div><p className="mono">Command canvas</p>
+    <main id="canvas" tabIndex={-1}><div className="intro"><div><p className="mono">Command canvas</p>
       <h1>Every venture. One clear view.</h1><p className="lede">Open a venture to see the work, the links, and what needs you next.</p></div>
       <span className="intro-actions">{writes ? <button className="btn ghost" type="button" onClick={undoLast} disabled={!undo.length}>Undo</button> : null}
         {data && <span className="mode mono">{writes ? 'Editing enabled' : 'Read only · editing is off'}</span>}</span></div>

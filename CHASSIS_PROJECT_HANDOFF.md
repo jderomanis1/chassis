@@ -204,6 +204,10 @@ tokenized invitation/tracking links are not copied into the repository.
   the same `invalid dependency` refusal and no commit. An unchanged dependency
   list is not rechecked.
 - Long titles wrap inside the card.
+- Theme, Close editor, Save, and the skip link are at least 44 pixels. Escape
+  returns focus to the card. Enter on a card opens the editor. Enter in Next
+  step submits. The React Flow credit is not a tab stop. Body focus shows an
+  inset ring.
 - Duplicate ids in `depends_on` use the error envelope
   `{error:{code,message}}` and do not echo the id.
 - CI on pull requests into `step7-c1-write` runs all-extras, core-only, and

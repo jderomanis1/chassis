@@ -63,9 +63,25 @@ test('editor focus returns to the card and connectors are not tab stops', async 
   await page.getByRole('button', { name: 'Save' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(card).toBeFocused();
-  const stops = await page.locator('.react-flow__handle, .react-flow').evaluateAll(nodes => nodes.map(node => node.tabIndex));
+  const stops = await page.locator('.react-flow__handle, .react-flow, .react-flow__attribution, .react-flow__attribution a').evaluateAll(nodes => nodes.map(node => node.tabIndex));
   expect(stops.length).toBeGreaterThan(0);
   expect(stops.every(index => index < 0)).toBe(true);
+  await card.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByLabel('Title')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(card).toBeFocused();
+  await card.focus();
+  await page.keyboard.press('Enter');
+  await page.getByLabel('Next step').fill('Fictional enter submit.');
+  const saved = page.waitForResponse(response => response.url().includes('/api/records/') && response.request().method() === 'PATCH');
+  await page.getByLabel('Next step').press('Enter');
+  expect((await saved).status()).toBe(200);
+  await expect(card).toBeFocused();
+  await page.evaluate(() => document.body.focus());
+  const ring = await page.evaluate(() => getComputedStyle(document.body).outlineStyle);
+  expect(ring).not.toBe('none');
 });
 
 test('primary controls are at least 44 pixels', async ({ page, demo }) => {
@@ -76,7 +92,21 @@ test('primary controls are at least 44 pixels', async ({ page, demo }) => {
     expect(box.width, name).toBeGreaterThanOrEqual(44);
     expect(box.height, name).toBeGreaterThanOrEqual(44);
   }
+  const theme = await page.getByRole('button', { name: /Theme:/ }).boundingBox();
+  expect(theme.width).toBeGreaterThanOrEqual(44);
+  expect(theme.height).toBeGreaterThanOrEqual(44);
+  await page.locator('.skip').focus();
+  const skip = await page.locator('.skip').boundingBox();
+  expect(skip.width).toBeGreaterThanOrEqual(44);
+  expect(skip.height).toBeGreaterThanOrEqual(44);
   await page.goto(`${demo.origin}/#/v/venture-ridgeview`);
+  await page.locator('[data-record-id="task-ridgeview-launch-1"]').dblclick();
+  for (const name of ['Close editor', 'Save']) {
+    const box = await page.getByRole('button', { name, exact: true }).boundingBox();
+    expect(box.width, name).toBeGreaterThanOrEqual(44);
+    expect(box.height, name).toBeGreaterThanOrEqual(44);
+  }
+  await page.keyboard.press('Escape');
   for (const name of ['Edit', 'Back to all']) {
     const box = await page.getByRole('button', { name, exact: true }).first().boundingBox();
     expect(box.width, name).toBeGreaterThanOrEqual(44);

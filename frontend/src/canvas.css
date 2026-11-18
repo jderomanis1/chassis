@@ -16,7 +16,11 @@ button{font:inherit}button:disabled{opacity:.6;cursor:not-allowed}
 .react-flow__node-card{width:260px}
 .react-flow__controls-button{width:44px;height:44px;background:var(--panel);border-bottom:1px solid var(--line);fill:var(--text)}
 .react-flow__minimap{background:var(--panel)!important}
-.intro-actions .btn,.search .btn,.back{min-width:44px;min-height:44px}
+.intro-actions .btn,.search .btn,.back,.theme-btn,.editor-form .btn,.drawer .x,.skip{min-width:44px;min-height:44px}
+.theme-btn{height:44px}
+.drawer .x{width:44px;height:44px}
+.skip{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center}
+body:focus,body:focus-visible{outline:3px solid var(--cyan);outline-offset:-6px}
 .tile .btn,.node-card .btn{min-width:44px;min-height:44px;transform:scale(calc(1 / var(--canvas-zoom, 1)));transform-origin:center}
 .tile .row h3,.node-card .t,.hover-slot h4{min-width:0;overflow-wrap:anywhere}
 .tile .row h3{flex:1}

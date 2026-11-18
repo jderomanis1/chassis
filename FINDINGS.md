@@ -58,6 +58,11 @@ not SecOps, QE, or Code Reviewer approval. Main is still `42f0fa0`. CI run
   Back to all and after the window is resized. A camera check allows one pixel
   of drift so a fractional transform does not fail the suite.
 - A long unbroken title wraps inside the tile instead of spilling out.
+- Theme, Close editor, Save, and the skip link are at least 44 pixels. Escape
+  closes the editor and returns focus to the card. Enter on a focused card
+  opens the editor, and Enter in Next step submits it. The React Flow credit
+  stays visible and is not a tab stop. The page body can take focus and shows
+  an inset ring, because an outside outline is clipped.
 - A repeated `depends_on` id uses the generic error envelope and does not
   include the id.
 

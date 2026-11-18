@@ -25,7 +25,7 @@ The new tests cover:
 4. A title edit after the hidden dependency file is deleted saves, drops that id, and does not mention it.
 5. Adding and removing a restricted task leaves snapshot counts, initiative progress, task-card totals, and graph task counts unchanged. The Acme tile, zoomed cards, and progress total are all 5.
 6. A duplicate `depends_on` list returns `{error:{code:"validation", message:"Record update could not be completed"}}` and does not echo the id.
-7. Playwright checks focus return, 44 pixel controls, the minimap at 1280 after zoom-back and resize, wrapping a long title, one commit for a save started mid-typing, and a 1 pixel camera tolerance.
+7. Playwright checks focus return, 44 pixel controls (including Theme, Close editor, Save, and the skip link), the minimap at 1280 after zoom-back and resize, wrapping a long title, one commit for a save started mid-typing, and a 1 pixel camera tolerance. Enter on a card opens the editor, Escape returns focus to that card, Enter in Next step submits, the React Flow credit is not a tab stop, and body focus shows an inset ring.
 8. A second save and an undo stamp the version from the response. The two-undo test expects each save to return 200, and the gated edit restores blocked.
 9. A portal title edit after a deleted hidden dependency returns 200 and drops that id. Test: `tests/portal/test_record_writes.py` (`test_portal_title_edit_drops_a_deleted_hidden_dependency`).
 10. A normal viewer's `/api/undo` body, count, and etag stay the same when a restricted-task commit is added. A cleared viewer still sees that entry. Test: `tests/portal/test_record_writes.py` (`test_restricted_editor_history_is_invisible_to_a_normal_viewer`).

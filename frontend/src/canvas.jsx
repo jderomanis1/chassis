@@ -75,6 +75,15 @@ function Surface({ model, layout, writes, onLayout, onOpen, onEdit, onHover, onC
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, [flow]);
+  useEffect(() => {
+    const pane = document.querySelector('[data-testid="command-canvas"]');
+    if (!pane) return undefined;
+    const quiet = () => pane.querySelectorAll('.react-flow__attribution, .react-flow__attribution a').forEach(node => { node.tabIndex = -1; });
+    quiet();
+    const observer = new MutationObserver(quiet);
+    observer.observe(pane, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
   function publish(nextNodes, viewport) {
     if (!nextNodes.length) return;
     onLayout(nextNodes.map(node => ({ id: node.id, position: node.position })), roundViewport(viewport || flow.getViewport()));
