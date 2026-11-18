@@ -35,14 +35,14 @@ test('loading and empty states', async ({ page, demo }) => {
 for (const status of [404, 500]) test(`error state for HTTP ${status}`, async ({ page, demo }) => {
   await page.route('**/api/snapshot', route => route.fulfill({ status, json: { error: { code: 'test', message: 'Sample service unavailable' } } }));
   await page.goto(demo.origin);
-  await expect(page.getByRole('alert')).toContainText('Sample service unavailable');
+  await expect(page.getByRole('alert')).toContainText("Couldn't load your ventures. The live store didn't answer.");
   await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
 });
 
 test('network failure and writes-disabled state are explicit', async ({ page, demo }) => {
   await page.route('**/api/snapshot', route => route.abort());
   await page.goto(demo.origin);
-  await expect(page.getByRole('alert')).toContainText('Cannot reach the local canvas');
+  await expect(page.getByRole('alert')).toContainText("Couldn't load your ventures. The live store didn't answer.");
   await page.unroute('**/api/snapshot');
   await page.route('**/api/session', async route => {
     const response = await route.fetch();
