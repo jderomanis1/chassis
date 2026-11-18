@@ -6,13 +6,49 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "deploy"))
 from meeting import chief_write, history
-from start import initialize
+from start import initialize, open_vault
 
 
 class MeetingTests(unittest.TestCase):
+    def test_existing_files_survive_an_invalid_vault_or_failed_reset(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            vault = root / "current"
+            vault.mkdir()
+            note = vault / "keep.txt"
+            note.write_text("existing file")
+            with self.assertRaises(RuntimeError):
+                open_vault(root)
+            self.assertEqual(note.read_text(), "existing file")
+            note.unlink()
+            vault.rmdir()
+            open_vault(root)
+            initial_history = history(vault)
+            with contextlib.redirect_stdout(io.StringIO()):
+                chief_write(vault)
+            edited_history = history(vault)
+            self.assertNotEqual(initial_history, edited_history)
+            marker = vault / ".chassis/reset-on-next-start"
+            marker.touch()
+            with patch("start.initialize", side_effect=RuntimeError("seed failed")):
+                with self.assertRaisesRegex(RuntimeError, "seed failed"):
+                    open_vault(root)
+            self.assertEqual(history(vault), edited_history)
+            self.assertTrue(marker.exists())
+            vault.rename(root / ".reset-previous")  # Interrupted before publishing the new seed.
+            open_vault(root)
+            self.assertFalse(marker.exists())
+            self.assertNotIn("chief-of-staff@", history(vault))
+            with contextlib.redirect_stdout(io.StringIO()):
+                chief_write(vault)
+            after_reset = history(vault)
+            open_vault(root)
+            self.assertEqual(history(vault), after_reset)
+
     def test_cli_updates_once_and_history_names_the_record_and_author(self):
         with tempfile.TemporaryDirectory() as directory:
             vault = Path(directory) / "vault"

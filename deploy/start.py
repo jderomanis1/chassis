@@ -1,4 +1,4 @@
-"""Start one disposable vault, one loopback portal and one public front door."""
+"""Start one disk-backed fictional vault, one loopback portal and one public front door."""
 import json
 import os
 import shutil
@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 from urllib.request import ProxyHandler, build_opener
 
-RUNTIME = Path("/run/chassis-demo")
+RUNTIME = Path("/var/data")
 LOCAL_PORT = 8765
 
 
@@ -27,13 +27,48 @@ def portal_environment():
             if key in {"PATH", "LANG", "LC_ALL", "HOME", "TZ", "PYTHONPATH"}}
 
 
+def portal_credentials(credentials):
+    return portal_environment() | {
+        "CHASSIS_PORTAL_VIEWER_AGENT": "reviewer",
+        "CHASSIS_AGENT_TOKEN": credentials["reviewer"],
+        "CHASSIS_PORTAL_EDITOR_AGENT": "canvas-editor",
+        "CHASSIS_PORTAL_EDITOR_TOKEN": credentials["canvas-editor"],
+    }
+
+
 def initialize(vault):
-    env = portal_environment()
-    credentials = json.loads(chassis("demo-init", vault, env=env))["credentials"]
-    return env | {"CHASSIS_PORTAL_VIEWER_AGENT": "reviewer",
-                  "CHASSIS_AGENT_TOKEN": credentials["reviewer"],
-                  "CHASSIS_PORTAL_EDITOR_AGENT": "canvas-editor",
-                  "CHASSIS_PORTAL_EDITOR_TOKEN": credentials["canvas-editor"]}
+    credentials = json.loads(chassis("demo-init", vault, env=portal_environment()))["credentials"]
+    return portal_credentials(credentials)
+
+
+def open_vault(root):
+    vault = root / "current"
+    previous = root / ".reset-previous"
+    # Recover a reset interrupted between moving the old vault and publishing its replacement.
+    if previous.exists() and not os.path.lexists(vault):
+        previous.rename(vault)
+    if vault.is_symlink() or (vault.exists() and not (vault / ".git").is_dir()):
+        raise RuntimeError(f"Expected a demo Git vault at {vault}. Existing data was left in place.")
+    if previous.exists():
+        shutil.rmtree(previous)
+    if vault.exists() and not (vault / ".chassis/reset-on-next-start").is_file():
+        subprocess.run(["git", "-C", vault, "rev-parse", "--verify", "HEAD"],
+                       check=True, stdout=subprocess.DEVNULL)
+        credentials = {agent: chassis("agent-token", "create", agent, "--vault", vault,
+                                      env=portal_environment()).strip()
+                       for agent in ("reviewer", "canvas-editor")}
+        return portal_credentials(credentials)
+
+    # Stage on the same disk. A failed demo-init cannot change the active board.
+    with tempfile.TemporaryDirectory(dir=root, prefix=".seed-") as staging:
+        fresh = Path(staging) / "vault"
+        env = initialize(fresh)
+        if vault.exists():
+            vault.rename(previous)  # The reset request travels with the old board.
+        fresh.rename(vault)
+    if previous.exists():
+        shutil.rmtree(previous)
+    return env
 
 
 def run():
@@ -54,54 +89,51 @@ def run():
     for sig in (signal.SIGTERM, signal.SIGINT):
         signal.signal(sig, shutdown)
     children = []
-    with tempfile.TemporaryDirectory(dir=RUNTIME) as generation:
-        vault = Path(generation) / "vault"
-        env = initialize(vault)
-        try:
-            portal = subprocess.Popen([sys.executable, "-m", "chassis.cli", "portal", "--vault",
-                                       vault, "--host", "127.0.0.1", "--port", str(LOCAL_PORT),
-                                       "--allow-writes"], env=env)
-            children.append(portal)
-            opener = build_opener(ProxyHandler({}))
-            deadline = time.monotonic() + 30
-            while not stopping:
-                if portal.poll() is not None or time.monotonic() >= deadline:
-                    raise RuntimeError("Loopback portal failed its startup check")
-                try:
-                    with opener.open(f"http://127.0.0.1:{LOCAL_PORT}/api/session", timeout=1) as r:
-                        if json.load(r)["writes_enabled"]:
-                            break
-                except OSError:
-                    pass
-                time.sleep(0.1)
-            if stopping:
-                return
-            link = Path(generation) / "current"
-            link.symlink_to(vault, target_is_directory=True)
-            link.replace(RUNTIME / "current")
-            door_env = portal_environment() | {"PUBLIC_ORIGIN": origin, "DEMO_PASSWORD": password}
-            door = subprocess.Popen([sys.executable, "-m", "uvicorn", "door:from_environment",
-                                     "--factory", "--app-dir", str(Path(__file__).resolve().parent),
-                                     "--host", "0.0.0.0", "--port", str(port), "--lifespan", "off",
-                                     "--no-proxy-headers", "--no-access-log"], env=door_env)
-            children.append(door)
-            while not stopping:
-                if any(child.poll() is not None for child in children):
-                    raise RuntimeError("A demo service exited")
-                time.sleep(0.25)
-        finally:
-            for child in children:
-                if child.poll() is None:
-                    child.terminate()
-            for child in children:
-                try:
-                    child.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    child.kill()
-                    child.wait()
-            current = RUNTIME / "current"
-            if current.is_symlink() and current.readlink() == vault:
-                current.unlink()
+    # Linux mountinfo also identifies bind mounts on the same filesystem.
+    mounts = Path("/proc/self/mountinfo").read_text().splitlines()
+    if not any(line.split()[4] == str(RUNTIME) for line in mounts):
+        raise RuntimeError(f"Mount the sandbox disk at {RUNTIME} before starting")
+    vault = RUNTIME / "current"
+    env = open_vault(RUNTIME)
+    try:
+        portal = subprocess.Popen([sys.executable, "-m", "chassis.cli", "portal", "--vault",
+                                   vault, "--host", "127.0.0.1", "--port", str(LOCAL_PORT),
+                                   "--allow-writes"], env=env)
+        children.append(portal)
+        opener = build_opener(ProxyHandler({}))
+        deadline = time.monotonic() + 30
+        while not stopping:
+            if portal.poll() is not None or time.monotonic() >= deadline:
+                raise RuntimeError("Loopback portal failed its startup check")
+            try:
+                with opener.open(f"http://127.0.0.1:{LOCAL_PORT}/api/session", timeout=1) as r:
+                    if json.load(r)["writes_enabled"]:
+                        break
+            except OSError:
+                pass
+            time.sleep(0.1)
+        if stopping:
+            return
+        door_env = portal_environment() | {"PUBLIC_ORIGIN": origin, "DEMO_PASSWORD": password}
+        door = subprocess.Popen([sys.executable, "-m", "uvicorn", "door:from_environment",
+                                 "--factory", "--app-dir", str(Path(__file__).resolve().parent),
+                                 "--host", "0.0.0.0", "--port", str(port), "--lifespan", "off",
+                                 "--no-proxy-headers", "--no-access-log"], env=door_env)
+        children.append(door)
+        while not stopping:
+            if any(child.poll() is not None for child in children):
+                raise RuntimeError("A demo service exited")
+            time.sleep(0.25)
+    finally:
+        for child in children:
+            if child.poll() is None:
+                child.terminate()
+        for child in children:
+            try:
+                child.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                child.kill()
+                child.wait()
 
 
 if __name__ == "__main__":

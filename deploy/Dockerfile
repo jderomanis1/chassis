@@ -4,7 +4,8 @@ COPY --from=uv /uv /usr/local/bin/uv
 RUN apt-get update && apt-get install -y --no-install-recommends git tzdata \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --shell /bin/bash demo \
-    && install -d -m 0700 -o demo -g demo /home/demo/.ssh /run/chassis-demo
+    && install -d -m 0700 -o demo -g demo /home/demo/.ssh /run/chassis-demo /var/data \
+    && ln -s /var/data/current /run/chassis-demo/current
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
 COPY src/ src/

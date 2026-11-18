@@ -1,24 +1,24 @@
 # Hosted fictional demo
 
-The container starts one generated vault, the existing write-enabled portal
-on 127.0.0.1:8765, and a password front door on Render's PORT. Each start
-creates a new fictional history. A restart or redeploy discards the meeting
-edits. The image includes the committed canvas assets.
+The container serves one fictional vault from `/var/data/current`. The portal
+listens on 127.0.0.1:8765 behind a password front door on Render's PORT.
+The first start seeds the empty disk. Subsequent starts reopen that Git
+checkout, keeping the board edits, versions, layout and history.
 
 ## Render service
 
 Use a Docker web service from the private Chassis repository, select this
 draft's branch and use the repository root as the build context. Set the
 Dockerfile path to `deploy/Dockerfile`. Use manual deployment of the reviewed
-commit, one fixed instance, ephemeral storage and the default TCP health
+commit, one fixed instance, one persistent disk and the default TCP health
 check. The public listener opens after the loopback portal confirms writes
 are enabled. Keep autoscaling and automatic deploys off throughout the sandbox window.
 
 Set `DEMO_PASSWORD` as a secret in Render. The browser username is `demo`.
 Render supplies `PORT` and `RENDER_EXTERNAL_URL`. If Joe uses a custom domain,
 set `PUBLIC_ORIGIN` to its exact HTTPS origin, without a trailing slash.
-Advertise only the configured origin privately to Joe. Chassis generates the
-viewer, editor and chief credentials afresh. The front door passes the
+Advertise only the configured origin privately to Joe. Startup issues viewer
+and editor credentials for the current process. The front door passes the
 browser's CSRF token and fetch metadata through to the unchanged portal.
 
 The meeting commands below require **Shell on the running web instance**.
@@ -30,12 +30,38 @@ December 1, 2026.
 [Free service behavior](https://render.com/docs/free) ·
 [Compute pricing](https://render.com/pricing)
 
+### Disk and first cutover
+
+The proposed 1 GB disk adds **$0.25 per month** to Starter. Joe's Starter
+approval through December 1 covers compute. Wait for his disk approval before
+attaching storage. Use the existing sandbox's **Disks** page, name the disk
+`chassis-vault`, and mount it at **`/var/data`**. This image requires that
+mount and write access for its `demo` user. [Render pricing](https://render.com/pricing)
+· [Persistent disks](https://render.com/docs/disks)
+
+Adding the disk triggers a deploy. The currently hosted build keeps its vault
+on ephemeral storage. Before cutover, preserve its complete fictional checkout
+off-instance, including hidden files, and verify its Git HEAD against the live
+checkout. Follow the `/run/chassis-demo/current` link to the actual directory
+when copying. A blank disk starts at the fictional baseline. Plan any restore
+before serving writes from the new disk. Disk-backed deploys briefly interrupt
+the single instance.
+
 ## Joe's reset procedure
 
-1. On the sandbox service's **Deploys** page in Render, choose **Manual Deploy** > **Restart service**.
-2. When Render marks it live, check the open board for the original Acme title and Cedar status. Run `/app/.venv/bin/python /app/deploy/meeting.py history` in the running service's **Shell** to confirm there is only the fictional baseline commit.
+1. When ready to discard sandbox edits and history, open **Shell** on the
+   running disk-backed instance and run `touch /var/data/current/.chassis/reset-on-next-start`.
+   The current board stays available until the next start. To cancel before
+   then, remove that marker with `rm /var/data/current/.chassis/reset-on-next-start`.
+2. Choose **Manual Deploy** > **Restart service**. Startup replaces the marked
+   vault with fresh fictional records and consumes the request.
+3. Open Acme D2C and confirm **Acme D2C: launch review 1** is back at version 1.
+   Cedar Rentals' second launch review should be **planned**. In Shell, run
+   `/app/.venv/bin/python /app/deploy/meeting.py history` and confirm the
+   fictional baseline is the only commit.
 
-Tell Andy, “You can leave and come back to your edits until the service restarts or is redeployed, which resets the sandbox to its original sample board.”
+Once the disk-backed build is live, tell Andy, “Your edits survive restarts
+and redeploys. Joe can deliberately reset the sandbox to its sample board.”
 
 ## Joe's meeting commands
 
@@ -63,7 +89,7 @@ An ephemeral shell or one-off job has a different filesystem.
 
 ## Acceptance on the Render address
 
-Start with a fresh instance. In a separate browser session, enter a wrong
+Start with a known fictional baseline. In a separate browser session, enter a wrong
 password and verify a 401 on the session request. Carry out the two-browser
 edit above. In the live shell, verify one editor commit and its single path:
 
@@ -79,5 +105,6 @@ credentials out of command history, URLs and logs. Then run Joe's two
 commands. Record the deployed commit, actual compute plan, idle behavior
 and results in the checkpoint. Keep the service address in Joe's chat.
 
-The CI rehearsal runs the Docker image behind a local TLS terminator with two
-Chromium processes. The hosted checks above exercise the actual Render edge.
+The CI rehearsal uses a named Docker volume and two Chromium processes behind
+local TLS. It checks Acme's saved title, version and commit after restart,
+reuses the volume in a replacement container, then exercises Joe's reset.
