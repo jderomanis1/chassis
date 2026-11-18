@@ -1,5 +1,9 @@
 # Findings
 
+## INC-1a handoff findings, November 18
+
+The original PR #9 head `601ca5da` measured 59 raw product lines. Separate statements shared lines in the pointer listener and its cleanup. The revised source relies on React Flow for the pan gesture, records the attempted move for the outage notice, and declares each control's pause description when React renders it. This also covers controls that appear after the connection drops. The header keeps its existing `.mode.mono` styling in both themes.
+
 ## I-038 wrong-record edit
 
 A long title saved on one card made the details strip grow, so the next
