@@ -109,7 +109,6 @@ function App() {
     if (!writes || !data) return;
     const stamp = ++layoutStamp.current;
     layoutRef.current = next;
-    setData(current => current ? { ...current, layout: next } : current);
     clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
       layoutBusy.current = true;
