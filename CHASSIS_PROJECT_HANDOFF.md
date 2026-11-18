@@ -1,6 +1,16 @@
 # Chassis project handoff
 
-## Render sandbox provisioning | November 18, 2026
+## Live fictional sandbox | November 18, 2026
+
+Joe's one-instance Starter exception runs through December 1, 2026. The reviewer closed the door.mjs comparison. Render service `srv-dbv016p5efls73airmig` is the existing sandbox. Deploy `dep-dbv01715efls73airn9g` went live at GitHub commit `3ff1106ad1e813c64e0da3b6e085ae5626662c24`. The service has a single Docker instance in Oregon and automatic deploys are off. GitHub confirmed the difference from `d0f19a7` was Markdown only.
+
+The hosted board refused a wrong password, propagated one browser save to a second browser and preserved the edit through 22 minutes 35 seconds away. The authenticated cross-site PATCH returned 403. The Acme task remains at version 2, with save SHA `49444d0cf695d7dc872e9d1af0a43d52baa6c2d7`. The outstanding observations are the Git author/count/path, the post-refusal HEAD, the chief write and three-commit history, and automatic browser recovery after one actual restart. [Hosted acceptance results](evidence/acceptance.md)
+
+**Next chat prompt**
+
+> Resume draft PR #13 at the evidence commit directly following deployed source `3ff1106ad1e813c64e0da3b6e085ae5626662c24`. Use the existing service and preserve the Acme edit. With access to its running Shell, compare current vault HEAD to `49444d0cf695d7dc872e9d1af0a43d52baa6c2d7` and inspect author, count and changed paths. Open Cedar in the observer browser before running chief-write once, then verify its status without reload and record the three-commit history. Finally, time one Render Restart service action until the already-open browser shows the fresh board with no lingering error. Preserve the recorded idle result. Keep the address private to Joe and PR #13 in draft.
+
+## Earlier Render sandbox provisioning | November 18, 2026
 
 Joe approves one Render Starter web instance for the demo and sandbox window, ending December 1, 2026, as a stated exception to the no-paid-infrastructure rule in AGENTS.md.
 The door.mjs comparison is closed by the reviewer.

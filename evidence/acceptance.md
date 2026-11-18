@@ -1,5 +1,24 @@
 # Acceptance evidence
 
+## Hosted Render acceptance | November 18, 2026
+
+Joe added the private repository to the Render GitHub App selection. GitHub reported open draft PR #13 at `3ff1106ad1e813c64e0da3b6e085ae5626662c24`. Its parent was `d0f19a756c8f876df3cbee7cfd59dea2a4a4be16`. The full comparison touched only `CHASSIS_PROJECT_HANDOFF.md`, `FINDINGS.md`, `deploy/README.md`, and `evidence/acceptance.md`.
+
+One create request succeeded in Joe's My Workspace. Service `srv-dbv016p5efls73airmig` has one fixed Starter Docker instance in Oregon on `codex/render-fictional-demo`. Render reports automatic deploys off, repository-root context, Dockerfile `deploy/Dockerfile`, and the default TCP health check. The container started its portal on loopback port 8765 and its public listener on port 10000. Render marked deploy `dep-dbv01715efls73airn9g` live at 19:47:11 UTC and reported **`3ff1106ad1e813c64e0da3b6e085ae5626662c24`** as the deployed GitHub commit. The vault has its own Git history.
+
+| Check on the hosted instance | Observed result |
+| --- | --- |
+| Wrong password | A wrong demo password on `GET /api/session` returned **401**. Valid demo credentials returned **200**, writes enabled, and a CSRF token. |
+| Two-browser edit and one editor commit on one path | **Browser portion passed.** Two independent Firefox 153 processes opened the original Acme task. One Save returned **200**, version 2, vault commit `49444d0cf695d7dc872e9d1af0a43d52baa6c2d7`. The other browser displayed `Acme fictional review confirmed` with the same document time origin. The hosted undo endpoint returned one matching entry. Independent Git verification of author, total count and changed paths remains open. |
+| Authenticated cross-site PATCH and vault HEAD | **HTTP portion passed.** With valid demo credentials, current version 2 and session CSRF, the cross-site request returned **403**. The title, version and sole undo entry matched before and after. The exact post-request vault HEAD still needs to be compared with the save SHA above. |
+| Chief write, second browser and three-commit history | **Unrun.** The second browser showed Cedar launch review 2 as `planned` before the idle period. The running-instance Shell was unavailable to the test operator. |
+| Return after at least 20 idle minutes | **Passed.** Both browsers left the board at 19:57:36 UTC. Neither sent a sandbox request during the 1,354.6 seconds before returning. The first click on Acme D2C opened the venture and displayed the saved title. Render reported one instance throughout the sampled interval and zero HTTP requests at each minute sample from 20:00 through 20:20 UTC. |
+| Open-browser recovery after one restart | **Unrun.** No restart was issued and no recovery time was measured. |
+
+The Render connection exposed deployment and status operations. The live Shell and the distinct Restart service action required a signed-in operator session. The edited fictional vault was left in place for the outstanding checks. [Running-instance commands](../deploy/README.md)
+
+The earlier [Docker rehearsal in CI run 77](https://github.com/jderomanis1/chassis/actions/runs/44372930337) remains a separate record of local-container behavior. The service address and credentials are omitted from this repository.
+
 ## Render provisioning attempt | November 18, 2026
 
 GitHub confirmed draft PR #13 at `d0f19a756c8f876df3cbee7cfd59dea2a4a4be16` on `codex/render-fictional-demo`. Joe approved one Starter instance through December 1, 2026. The reviewer closed the door.mjs comparison.

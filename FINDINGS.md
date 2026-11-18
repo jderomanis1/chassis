@@ -1,5 +1,11 @@
 # Findings
 
+## Hosted sandbox findings | November 18, 2026
+
+After Joe enabled repository access for the Render GitHub App, the create request succeeded. Render reported the reviewed PR head `3ff1106ad1e813c64e0da3b6e085ae5626662c24` live on one Starter instance with automatic deploys off. The difference from the Docker-rehearsed source `d0f19a7` was four Markdown files.
+
+On the hosted board, a second Firefox browser picked up the Acme edit without reloading. The same title remained available on the first venture click after 1,354.6 idle seconds. A wrong password returned 401. A validly authenticated cross-site write returned 403, with matching title, version and undo entry before and after. The save response contains the vault commit SHA. Direct Git history, the chief CLI write and timed restart recovery still require operator access to the running instance. [Hosted observations](evidence/acceptance.md)
+
 ## Render refused the private source repository | November 18, 2026
 
 GitHub confirmed the requested PR head and branch. Render rejected service creation before assigning a service or deploy ID. The private repository URL matches the GitHub URL format listed in the HTTP 400 response. The workspace inventory before and after the request contained the same two unrelated services. The exact cause of the failed repository fetch is unconfirmed. The first thing to check is whether the Render GitHub App can select `jderomanis1/chassis` through the connected Git deployment credential. A change under `deploy/` cannot grant repository access. [Request and response](evidence/acceptance.md)
