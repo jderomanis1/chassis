@@ -180,3 +180,26 @@ test('a failed latest read does not blank the fields', async ({ page, demo }) =>
   await expect(card).toContainText(title);
   await expect(card).toHaveAttribute('data-status', status);
 });
+
+test('Enter does not save while the discard prompt is open', async ({ page, demo }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openTask(page, demo);
+  const typed = await conflict(page, demo, 'Enter must not save');
+  await page.locator('#edit-title').click();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('alertdialog', { name: 'Discard your changes?' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Keep editing' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  await expect(page.locator('#edit-title')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('alertdialog')).toBeVisible();
+  let patches = 0;
+  page.on('request', request => {
+    if (request.method() === 'PATCH' && request.url().includes('/api/records/')) patches += 1;
+  });
+  await page.keyboard.press('Enter');
+  expect(patches).toBe(0);
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.locator('#edit-title')).toHaveValue(typed);
+});
