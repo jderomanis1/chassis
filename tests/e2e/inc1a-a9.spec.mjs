@@ -3,6 +3,36 @@ import { test, expect } from './harness.mjs';
 
 const SENTENCE = 'Editing paused until the live store reconnects.';
 
+test('a conflict action appearing during an outage describes the pause', async ({ page, demo }) => {
+  await page.clock.install();
+  await page.goto(`${demo.origin}/#/v/venture-juniper`);
+  const card = page.locator('[data-record-id="task-juniper-launch-2"]');
+  await card.dblclick();
+  await page.locator('#edit-title').fill('Fictional late conflict');
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  await page.route('**/api/records/**', async route => {
+    if (route.request().method() !== 'PATCH') return route.continue();
+    await gate;
+    return route.fulfill({ status: 409, json: { error: {
+      code: 'conflict', message: 'This card changed.', current_version: 2,
+    } } });
+  });
+  const saving = page.waitForRequest(request => request.method() === 'PATCH');
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
+  await saving;
+  await page.route('**/api/version', route => route.abort());
+  try {
+    await page.clock.fastForward(4000);
+    await expect(page.getByText('Reconnecting', { exact: true })).toBeVisible();
+  } finally {
+    release();
+  }
+  const retry = page.getByRole('button', { name: 'Keep mine and save again' });
+  await expect(retry).toBeVisible();
+  await expect(retry).toHaveAccessibleDescription(SENTENCE);
+});
+
 async function described(locator) {
   return locator.evaluate(node => {
     const id = node.getAttribute('aria-describedby');
