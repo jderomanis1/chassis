@@ -30,7 +30,7 @@ function App() {
   const [undo, setUndo] = useState([]), [pending, setPending] = useState(null), [focusId, setFocusId] = useState(null);
   const [query, setQuery] = useState(''), [hits, setHits] = useState([]), [hover, setHover] = useState(null);
   const [commandOpen, setCommandOpen] = useState(false), [viewMode, setViewMode] = useState('show-all'), [fitSignal, setFitSignal] = useState(0);
-  const ticket = useRef(0), layoutRef = useRef(null), timer = useRef(0), etagRef = useRef(""), loading = useRef(false);
+  const ticket = useRef(0), layoutRef = useRef(null), layoutStamp = useRef(0), layoutBusy = useRef(false), timer = useRef(0), etagRef = useRef(""), loading = useRef(false);
   const writes = Boolean(data?.session.writes_enabled);
 
   async function loadVenture(id) {
@@ -48,13 +48,15 @@ function App() {
     loading.current = true;
     const selected = readVenture(location.hash);
     try {
+      const stamp = layoutStamp.current;
       const [session, snapshot, layout, history] = await Promise.all([
         api('/api/session'), api('/api/snapshot'), api('/api/layout'), api('/api/undo')]);
       const nextDetail = selected ? await loadVenture(selected) : null;
       if (current !== ticket.current) return;
-      layoutRef.current = layout;
+      const layoutNow = stamp === layoutStamp.current && !layoutBusy.current && !timer.current ? layout : layoutRef.current;
+      layoutRef.current = layoutNow;
       etagRef.current = snapshot.etag;
-      setData({ session, snapshot, layout }); setDetail(nextDetail); setVentureId(selected);
+      setData({ session, snapshot, layout: layoutNow }); setDetail(nextDetail); setVentureId(selected);
       setUndo(history.entries || []);
       setError(null); setPending(null);
     } catch (failure) {
@@ -105,13 +107,23 @@ function App() {
   }
   function persistLayout(next) {
     if (!writes || !data) return;
+    const stamp = ++layoutStamp.current;
     layoutRef.current = next;
+    setData(current => current ? { ...current, layout: next } : current);
     clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
+      layoutBusy.current = true;
+      timer.current = 0;
       try {
         const saved = await api('/api/layout', { method: 'PUT', csrf: data.session.csrf, data: layoutRef.current });
+        if (stamp !== layoutStamp.current) return;
         layoutRef.current = saved; setData(current => current ? { ...current, layout: saved } : current);
-      } catch (failure) { showNotice(failure.message); }
+      } catch (failure) {
+        if (stamp !== layoutStamp.current) return;
+        showNotice(failure.message);
+      } finally {
+        if (stamp === layoutStamp.current) layoutBusy.current = false;
+      }
     }, 200);
   }
   function onLayout(moved, viewport) {
@@ -268,9 +280,13 @@ function App() {
       </form>
       <HoverCard record={hover} />
       <div className="canvas-stack">
-      {notice ? <p className="attn canvas-overlay" role="status">{notice}{reloadOffer ? <button type="button" className="btn" onClick={() => load()}>Reload</button> : null}</p> : null}
-      {hits.length ? <ul className="hits canvas-overlay">{hits.map(hit => <li key={hit.id}><button type="button" onClick={() => { if (hit.type === 'venture') location.hash = `#/v/${hit.id}`; }}>{hit.title}</button></li>)}</ul> : null}
-      {hiddenHere.length ? <button type="button" className="btn ghost show-hidden canvas-overlay" onClick={showHidden}>Show hidden ({hiddenHere.length})</button> : null}
+      <div className="canvas-overlays">
+      {notice ? <p className="attn" role="status">{notice}{reloadOffer ? <button type="button" className="btn" onClick={() => load()}>Reload</button> : null}</p> : null}
+      {hits.length ? <ul className="hits">{hits.map(hit => <li key={hit.id}>{hit.type === 'venture'
+        ? <button type="button" onClick={() => { location.hash = `#/v/${hit.id}`; }}>{hit.title}</button>
+        : <span className="hit-note">{hit.title}</span>}</li>)}</ul> : null}
+      {hiddenHere.length ? <button type="button" className="btn ghost show-hidden" onClick={showHidden}>Show hidden ({hiddenHere.length})</button> : null}
+      </div>
       {error ? <section className="panel empty" role="alert"><h2>Could not load canvas</h2><p>{error}</p><button className="btn" onClick={load}>Try again</button></section>
         : !data || (ventureId && !model) ? <section className="panel empty" role="status">Loading your canvas…</section>
         : !data.snapshot.ventures.length ? <section className="panel empty"><h2>No ventures yet</h2><p>Your visible ventures will appear here.</p></section>

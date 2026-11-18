@@ -35,13 +35,16 @@ body:focus,body:focus-visible{outline:3px solid var(--cyan);outline-offset:-6px}
 .tile .btn,.node-card .btn{margin-top:10px}
 .search{display:flex;gap:8px;margin:0 0 12px}
 .search input{flex:1;min-width:0;background:var(--panel);color:var(--text);border:1px solid var(--line-strong);border-radius:var(--r-pill);padding:8px 14px;font:400 14px var(--font-body)}
-.hits{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px;padding:0;list-style:none}
-.hits button{background:var(--panel);color:var(--text);border:1px solid var(--line-strong);border-radius:var(--r-pill);padding:6px 10px;cursor:pointer}
+.hits{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:8px;list-style:none;background:var(--panel);border:1px solid var(--line-strong);border-radius:var(--r-lg)}
+.hits button,.hits .hit-note{display:inline-flex;align-items:center;min-height:44px;background:var(--panel);color:var(--text);border:1px solid var(--line-strong);border-radius:var(--r-pill);padding:6px 10px}
+.hits button{cursor:pointer}
+.hits .hit-note{cursor:default}
 .canvas-stack{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
-.canvas-overlay{position:absolute;z-index:6;margin:0}
-.attn.canvas-overlay{top:8px;left:8px;right:8px;width:auto}
-.hits.canvas-overlay{top:52px;left:8px;right:8px;max-height:96px;overflow:auto;margin:0}
-.show-hidden{top:8px;right:8px;left:auto}
+.canvas-overlays{position:absolute;z-index:6;top:8px;left:8px;right:8px;display:flex;flex-direction:column;align-items:stretch;gap:8px;pointer-events:none}
+.canvas-overlays>*{pointer-events:auto}
+.canvas-overlays .attn{position:static;width:auto;margin:0;background:var(--panel)}
+.canvas-overlays .show-hidden{align-self:flex-end;min-width:44px;min-height:44px;background:var(--panel)}
+.canvas-overlays .btn{min-width:44px;min-height:44px}
 .editor-form label{display:grid;gap:6px;margin:0 0 14px;font:500 12px var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
 .editor-form input,.editor-form select{min-height:44px;text-transform:none;letter-spacing:0;font:400 15px var(--font-body);color:var(--text);background:var(--bg-0);border:1px solid var(--line-strong);border-radius:8px;padding:8px 10px}
 @media(max-width:375px){

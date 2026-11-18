@@ -63,7 +63,10 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024
         const shown = page.waitForResponse(response => response.url().endsWith('/api/layout') && response.request().method() === 'PUT');
         await page.getByRole('button', { name: 'Show hidden (1)' }).click();
         expect((await shown).status()).toBe(200);
+        const graph = page.waitForResponse(response => response.url().includes('/api/graph'));
         release();
+        await graph;
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         await expect(hidden).toBeVisible();
         await expect(page.getByRole('button', { name: 'Reload' })).toBeVisible();
       } finally { release(); }
