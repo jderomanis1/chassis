@@ -1,5 +1,13 @@
 # Findings
 
+## Demo intro audio | November 18
+
+The portal used `default-src 'none'` without a media directive. A local MP3 would therefore be blocked. The I-002 draft adds `media-src 'self'` and tests the exact directive. Playback starts at document boot, outside the React component, with click and keydown listeners installed only after an autoplay denial. Each gesture removes both listeners before retrying.
+
+The available archives and current integration tree contain no copy of the approved MP3. Its required SHA-256 is recorded in the handoff. Production remains silent in this draft. Volume 0.35 is a provisional player setting. The clip's peak and its balance against the demo machine's other sounds require measurement and listening.
+
+The browser suite for INC-1a ran inside the all-extras job. The [step log](https://github.com/jderomanis1/chassis/actions/runs/44326795343/job/134880143975#step:12:1) records 80 passed. Joe's live outage check remains on the Thursday and Saturday run sheets.
+
 ## INC-1a handoff findings, November 18
 
 The original PR #9 head `601ca5da` measured 59 raw product lines. Separate statements shared lines in the pointer listener and its cleanup. The revised source relies on React Flow for the pan gesture, records the attempted move for the outage notice, and declares each control's pause description when React renders it. This also covers controls that appear after the connection drops. The header keeps its existing `.mode.mono` styling in both themes.

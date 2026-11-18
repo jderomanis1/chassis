@@ -1,5 +1,18 @@
 # Acceptance evidence
 
+## November 18 demo sprint | INC-1a and I-002
+
+| Build | Executed check | Result |
+| --- | --- | --- |
+| PR #9 head `72ea32bc` | GitHub Actions run 61, all three jobs | Passed. The [all-extras job](https://github.com/jderomanis1/chassis/actions/runs/44326795343/job/134880143975) records 80 Playwright tests passed in 7.4 minutes. |
+| I-002 before implementation | New playback unit suite and portal media policy assertion | Red. The playback module was absent and the portal denied same-origin media. |
+| I-002 product `01a3bbf1` | Local locked all-extras pytest, frontend unit suite, production Vite build | 723 Python and 29 frontend tests passed. Build succeeded. |
+| I-002 local browser attempt | Chromium launch for the 1280px intro test | Process socket creation was denied. Physical Android and audible desktop checks remain open. |
+
+The I-002 browser spec uses silent PCM only inside the test. It checks the document entry point with native media playback under two autoplay policies. The released voice, actual peak, perceived level and physical-device playback require the approved bytes. The current draft makes no request for a missing MP3.
+
+Joe's panel approved INC-1a for integration. The actual disconnection and recovery on the walkthrough machine are scheduled for Thursday's recording and Saturday's freeze run. The operator should log the build SHA and both recording timestamps.
+
 ## INC-1a review candidate, November 18
 
 Implementation `15a0f9a9e90a28a77943edc487f11641ebff8240` on draft [PR #9](https://github.com/jderomanis1/chassis/pull/9), based on `9ff76ea`. Product source is +47/-9, 56 lines total. Tests and generated files are separate. The local Vite build completed and all 24 frontend unit tests passed. Chromium startup in the builder environment was blocked at OS socket creation. Use the [PR checks](https://github.com/jderomanis1/chassis/pull/9/checks) for Python, browser and audit results on the exact review head.

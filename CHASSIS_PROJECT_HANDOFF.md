@@ -1,5 +1,13 @@
 # Chassis project handoff
 
+## Demo sprint | INC-1a merged, I-002 in draft | November 18
+
+Joe accepted the panel review of PR #9 at `72ea32bc`. CI run 61 passed all three jobs before the head-pinned merge to `step7-c1-write` at `a1ee201dccd6a725e3871215583110773cb67581`. The following cleanup, `6cc0c73d7d31fa304d6cb41b97972dbaf5ea0cd8`, limits push and pull-request targets to the integration branch and main. Main was checked at `42f0fa0`.
+
+Draft [PR #10](https://github.com/jderomanis1/chassis/pull/10) contains the I-002 tests (`c0a20a78`) and playback wiring (`01a3bbf1`). The production audio element has no source until the approved MP3 arrives. The Thursday recording and Saturday freeze run include a live idle outage, two drags and recovery. Keep the single I-002 review for the version with the actual voice.
+
+**Next chat prompt.** Resume PR #10 against `step7-c1-write`. Check its current head and CI. Verify the supplied Kokoro am_michael MP3 against SHA-256 `a6d1543544c714477fab343472d58b5ed07aea358d6bb0a9aea63724b1318a42`. Add the local asset and source, update the audio attribution, rebuild the committed portal, and verify the served hash. Measure peak and listen at the demo volume on desktop Chrome at 1280 and Android Chrome. Obtain one consolidated review before merging. I-002 is due Friday, November 20 at noon Arizona time. Freeze is Saturday, November 21 at noon Arizona time.
+
 ## Demo sprint checkpoint, November 18
 
 Draft [PR #9](https://github.com/jderomanis1/chassis/pull/9) targets `step7-c1-write` at `9ff76ea`. INC-1a implementation `15a0f9a9e90a28a77943edc487f11641ebff8240` follows the test-first branch in place. The previous accepted demo build is `9ff76ea`. The older checkpoints below are preserved for history.
