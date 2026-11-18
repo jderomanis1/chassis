@@ -1,0 +1,10 @@
+**
+!pyproject.toml
+!uv.lock
+!src/
+!src/**
+!deploy/
+!deploy/Dockerfile
+!deploy/start.py
+!deploy/door.py
+!deploy/meeting.py

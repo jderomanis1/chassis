@@ -1,5 +1,33 @@
 # Findings
 
+## Sandbox edits survive container replacement on the same disk | November 18, 2026
+
+The previous startup created the vault inside a temporary directory and removed it on shutdown. Commit `2b87075911fed91b34d34aa5f99c054750cfd0e5` keeps the Git checkout, records and per-vault state under `/var/data/current`. Startup rotates the viewer and editor credentials through the existing CLI. Existing Git history stays intact. A reset marker inside the active vault requests a fresh seed for the next start. A failed seed leaves the current board available on disk.
+
+[CI run 80](https://github.com/jderomanis1/chassis/actions/runs/44395260148) passed all three jobs on attempt 1. After container replacement, Git still linked Homer's commit to the original canvas-editor save. After an explicit reset, the board returned to its seeded records and one baseline commit. [Rehearsal details](evidence/acceptance.md)
+
+Adding a Render disk triggers a deploy. An empty disk does not import the running service's ephemeral checkout. The proposed 1 GB mount costs an additional $0.25 per month. The live cutover and verification await Joe's approval. [Render disk documentation](https://render.com/docs/disks) · [Pricing](https://render.com/pricing)
+
+## Hosted sandbox findings | November 18, 2026
+
+After Joe enabled repository access for the Render GitHub App, the create request succeeded. Render reported the reviewed PR head `3ff1106ad1e813c64e0da3b6e085ae5626662c24` live on one Starter instance with automatic deploys off. The difference from the Docker-rehearsed source `d0f19a7` was four Markdown files.
+
+On the hosted board, a second Firefox browser picked up the Acme edit without reloading. The same title remained available on the first venture click after 1,354.6 idle seconds. A wrong password returned 401. A validly authenticated cross-site write returned 403, with matching title, version and undo entry before and after. The save response contains the vault commit SHA. Direct Git history, the chief CLI write and timed restart recovery still require operator access to the running instance. [Hosted observations](evidence/acceptance.md)
+
+## Render refused the private source repository | November 18, 2026
+
+GitHub confirmed the requested PR head and branch. Render rejected service creation before assigning a service or deploy ID. The private repository URL matches the GitHub URL format listed in the HTTP 400 response. The workspace inventory before and after the request contained the same two unrelated services. The exact cause of the failed repository fetch is unconfirmed. The first thing to check is whether the Render GitHub App can select `jderomanis1/chassis` through the connected Git deployment credential. A change under `deploy/` cannot grant repository access. [Request and response](evidence/acceptance.md)
+
+Joe confirmed December 1, 2026 as the last day of the single Starter instance exception. The reviewer closed the `door.mjs` comparison. The prior Docker rehearsal still stands. The first-click result after 20 idle minutes and the open browser's recovery time after a restart both require a live sandbox.
+
+## Hosted fictional vault | November 18
+
+The unchanged portal expects its loopback Host and Origin on writes. The deployment front door authenticates each request and checks the exact public Host, browser Origin and same-origin fetch metadata before translating the authority to loopback. The original CSRF, content type, size, grants and record-version checks still execute inside the portal. The user-named `door.mjs` did not accompany the request. Comparison with that reference remains open.
+
+Six focused checks passed locally. A real local HTTP rehearsal separately returned 401, 200 and 403 for wrong password, same-origin edit and cross-site edit. The denied request used valid authentication and CSRF and left HEAD unchanged. The meeting helper recorded a chief-of-staff CLI write and printed it above the canvas-editor write and baseline with their changed paths. No new product endpoint was needed. Local Chromium failed before navigation with a socket permission error. [Image rehearsal and checks](https://github.com/jderomanis1/chassis/pull/13/checks)
+
+No Render plan was used at this checkpoint. Render's Free plan sleeps after 15 idle minutes and provides no shell into the live instance. The live shell is available on paid web compute, which stays awake while idle. The repository has a separate restriction on paid infrastructure. The supplied authorization names the deployment exception. [Render shell support](https://render.com/docs/ssh) · [Free service behavior](https://render.com/docs/free) · [Meeting runbook](deploy/README.md)
+
 ## Cedar Rentals flick after reload, November 18
 
 **30 passed, 0 failed.** GitHub Actions ran `tests/e2e/x1.spec.mjs:10` in Chromium with `--repeat-each=30 --workers=1 --retries=0` at `41fbd26`. Each execution used a fresh fictional vault. [CI run](https://github.com/jderomanis1/chassis/actions/runs/44357179794) · [Playwright log](https://github.com/jderomanis1/chassis/actions/runs/44357179794/job/134988317567#step:7:1)

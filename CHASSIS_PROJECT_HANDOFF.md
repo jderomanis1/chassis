@@ -1,5 +1,52 @@
 # Chassis project handoff
 
+## Persistent sandbox vault | November 18, 2026
+
+Draft PR #13 started this increment at `2737881e80d1968c71f412df207a6e75a664fabd`. Commit `2b87075911fed91b34d34aa5f99c054750cfd0e5` moves the fictional Git checkout to `/var/data/current` on one mounted disk. An ordinary restart reopens it. Joe can request a one-time reset from the running Shell. [Reset procedure](deploy/README.md#joes-reset-procedure)
+
+[CI run 80](https://github.com/jderomanis1/chassis/actions/runs/44395260148) passed all three jobs on attempt 1. The existing Render sandbox still runs the previously recorded ephemeral build at `3ff1106ad1e813c64e0da3b6e085ae5626662c24`. Joe's one-instance Starter exception ends December 1. The proposed 1 GB disk adds $0.25 per month and awaits Joe's approval. This increment made no Render changes. [Acceptance evidence](evidence/acceptance.md)
+
+**Next chat prompt**
+
+> Resolve the live head of draft PR #13 on `codex/render-fictional-demo`. The persistence implementation is `2b87075911fed91b34d34aa5f99c054750cfd0e5` and its immediate child records the rehearsal. Verify that child is documentation only and check CI on the live PR head. Wait for Joe's explicit approval of the 1 GB disk at $0.25 per month before any Render change. Before any cutover, preserve the live ephemeral fictional vault off-instance and verify its Git HEAD. Keep PR #13 in draft.
+
+## Live fictional sandbox | November 18, 2026
+
+Joe's one-instance Starter exception runs through December 1, 2026. The reviewer closed the door.mjs comparison. Render service `srv-dbv016p5efls73airmig` is the existing sandbox. Deploy `dep-dbv01715efls73airn9g` went live at GitHub commit `3ff1106ad1e813c64e0da3b6e085ae5626662c24`. The service has a single Docker instance in Oregon and automatic deploys are off. GitHub confirmed the difference from `d0f19a7` was Markdown only.
+
+The hosted board refused a wrong password, propagated one browser save to a second browser and preserved the edit through 22 minutes 35 seconds away. The authenticated cross-site PATCH returned 403. The Acme task remains at version 2, with save SHA `49444d0cf695d7dc872e9d1af0a43d52baa6c2d7`. The outstanding observations are the Git author/count/path, the post-refusal HEAD, the chief write and three-commit history, and automatic browser recovery after one actual restart. [Hosted acceptance results](evidence/acceptance.md)
+
+**Next chat prompt**
+
+> Resume draft PR #13 at the evidence commit directly following deployed source `3ff1106ad1e813c64e0da3b6e085ae5626662c24`. Use the existing service and preserve the Acme edit. With access to its running Shell, compare current vault HEAD to `49444d0cf695d7dc872e9d1af0a43d52baa6c2d7` and inspect author, count and changed paths. Open Cedar in the observer browser before running chief-write once, then verify its status without reload and record the three-commit history. Finally, time one Render Restart service action until the already-open browser shows the fresh board with no lingering error. Preserve the recorded idle result. Keep the address private to Joe and PR #13 in draft.
+
+## Earlier Render sandbox provisioning | November 18, 2026
+
+Joe approves one Render Starter web instance for the demo and sandbox window, ending December 1, 2026, as a stated exception to the no-paid-infrastructure rule in AGENTS.md.
+The door.mjs comparison is closed by the reviewer.
+
+Andy will use the sandbox independently for several days. GitHub confirmed that draft PR #13 was open at `d0f19a756c8f876df3cbee7cfd59dea2a4a4be16` on `codex/render-fictional-demo`. This is the commit authorized for manual deployment. A later evidence commit does not change the deploy target.
+
+Render returned HTTP 400 when asked to create the Docker service from the private repository. A second inventory check found no service for the sandbox. There is no deploy, sandbox address, build log or runtime log. All six hosted checks remain unrun. The request and response are in [acceptance evidence](evidence/acceptance.md). Joe's reset steps are in the [deployment runbook](deploy/README.md).
+
+**Next chat prompt**
+
+> Resume draft PR #13 from its provisioning evidence commit. Verify that any changes after the approved deploy target are documentation only. Once Render's connected Git provider can select the private `jderomanis1/chassis` repository, create one Starter Docker instance and manually deploy `d0f19a756c8f876df3cbee7cfd59dea2a4a4be16` with automatic deploys off. The spending exception ends December 1, 2026. Run all six hosted checks once on the fresh instance, including the 20-minute idle check and timed automatic recovery after one restart. Record the evidence, keep the address private to Joe and leave PR #13 as a draft.
+
+## Earlier hosted demo checkpoint | draft PR #13 | November 18
+
+Joe approves a hosted demo of the fictional vault only, as a stated exception to the no-deployment rule in AGENTS.md.
+
+GitHub confirmed `step7-c1-write` at `94974a2725fa46ccd273868ac5fdd54c1877a1bc` before the new branch was created. The hosted demo work is on `codex/render-fictional-demo`. The front door is `6c2fe4a`, startup and live-instance CLI commands are `40d5af0`, and the Docker two-browser rehearsal is `d8591ba`. Review [draft PR #13](https://github.com/jderomanis1/chassis/pull/13) and its current [head checks](https://github.com/jderomanis1/chassis/pull/13/checks).
+
+The local HTTP rehearsal produced a wrong-password 401, a successful canvas PATCH, and an authenticated cross-site 403 with the same vault HEAD. The active fictional vault contained exactly one canvas-editor commit and one chief-of-staff CLI commit over its baseline. Six focused local tests passed. A local Chromium launch stopped before page navigation. The CI rehearsal and live hosted acceptance are distinct.
+
+**Hosting status at this checkpoint.** No Render plan was provisioned. Instance sleep behavior is unobserved. Render Free sleeps after 15 idle minutes and lacks a live shell. Entry-level paid web compute offers the shell and stays awake. The repo's separate paid-infrastructure restriction still needs Joe's decision. The named `door.mjs` reference was missing from the supplied files. The Python door was built against the pinned portal's guards and needs comparison with the reference. See [Joe's commands and the service settings](deploy/README.md).
+
+**Next chat prompt**
+
+> Resume draft PR #13 on `codex/render-fictional-demo`. Resolve its live head and first-attempt CI status. Start from the deployment implementation through `d8591ba` and preserve the later evidence commits. Compare the supplied door.mjs with the Python front door and resolve the live-shell compute decision. Once those are resolved, deploy only the fictional vault on one instance, record the observed plan and verify the two-browser edit, editor commit, denied cross-site write, chief-of-staff CLI write and three-commit history at the Render address. Share the address with Joe only. Leave the PR as a draft.
+
 ## Demo sprint | INC-1a and I-002 merged | November 18
 
 Joe accepted the panel review of PR #9 at `72ea32bc`. CI run 61 passed all three jobs before the head-pinned merge to `step7-c1-write` at `a1ee201dccd6a725e3871215583110773cb67581`. The following cleanup, `6cc0c73d7d31fa304d6cb41b97972dbaf5ea0cd8`, limits push and pull-request targets to the integration branch and main. Main was checked at `42f0fa0`.

@@ -1,5 +1,80 @@
 # Acceptance evidence
 
+## Disk-backed Docker rehearsal | November 18, 2026
+
+Implementation `2b87075911fed91b34d34aa5f99c054750cfd0e5` follows the verified PR head `2737881e80d1968c71f412df207a6e75a664fabd`. The implementation diff contains only deployment files and tests. [CI run 80](https://github.com/jderomanis1/chassis/actions/runs/44395260148) passed all three jobs on attempt 1. The all-extras job passed 731 Python tests and all 85 Playwright tests. Its [Docker rehearsal](https://github.com/jderomanis1/chassis/actions/runs/44395260148/job/135123331402#step:12:1) passed in 36.9 seconds.
+
+| Docker rehearsal check | Observed result |
+| --- | --- |
+| Restart the edited container on its named volume | The API returned the saved Acme title and version 2. Vault HEAD matched the full commit returned by the browser save. |
+| Replace the container with a new one on the same volume | The API returned the same Acme edit and version. Git retained the chief commit at HEAD and the exact editor commit as its parent. |
+| Apply Joe's reset marker and restart | Acme and Cedar matched their original titles, statuses and versions. Git contained only the fictional initialization commit. |
+
+Seven focused Python tests passed locally. A separate local CLI check reopened the saved Acme record at version 2 with the same Git HEAD and reset it to the original title at version 1 with a single baseline commit. Startup without a mount at `/var/data` exited before serving the board. The failure-path test preserved the edited vault after a seed failure and recovered an interrupted reset.
+
+No Render disk was attached and no live reset, restart or redeploy was performed in this increment. The earlier hosted observations apply to the ephemeral build.
+
+## Hosted Render acceptance | November 18, 2026
+
+Joe added the private repository to the Render GitHub App selection. GitHub reported open draft PR #13 at `3ff1106ad1e813c64e0da3b6e085ae5626662c24`. Its parent was `d0f19a756c8f876df3cbee7cfd59dea2a4a4be16`. The full comparison touched only `CHASSIS_PROJECT_HANDOFF.md`, `FINDINGS.md`, `deploy/README.md`, and `evidence/acceptance.md`.
+
+One create request succeeded in Joe's My Workspace. Service `srv-dbv016p5efls73airmig` has one fixed Starter Docker instance in Oregon on `codex/render-fictional-demo`. Render reports automatic deploys off, repository-root context, Dockerfile `deploy/Dockerfile`, and the default TCP health check. The container started its portal on loopback port 8765 and its public listener on port 10000. Render marked deploy `dep-dbv01715efls73airn9g` live at 19:47:11 UTC and reported **`3ff1106ad1e813c64e0da3b6e085ae5626662c24`** as the deployed GitHub commit. The vault has its own Git history.
+
+| Check on the hosted instance | Observed result |
+| --- | --- |
+| Wrong password | A wrong demo password on `GET /api/session` returned **401**. Valid demo credentials returned **200**, writes enabled, and a CSRF token. |
+| Two-browser edit and one editor commit on one path | **Browser portion passed.** Two independent Firefox 153 processes opened the original Acme task. One Save returned **200**, version 2, vault commit `49444d0cf695d7dc872e9d1af0a43d52baa6c2d7`. The other browser displayed `Acme fictional review confirmed` with the same document time origin. The hosted undo endpoint returned one matching entry. Independent Git verification of author, total count and changed paths remains open. |
+| Authenticated cross-site PATCH and vault HEAD | **HTTP portion passed.** With valid demo credentials, current version 2 and session CSRF, the cross-site request returned **403**. The title, version and sole undo entry matched before and after. The exact post-request vault HEAD still needs to be compared with the save SHA above. |
+| Chief write, second browser and three-commit history | **Unrun.** The second browser showed Cedar launch review 2 as `planned` before the idle period. The running-instance Shell was unavailable to the test operator. |
+| Return after at least 20 idle minutes | **Passed.** Both browsers left the board at 19:57:36 UTC. Neither sent a sandbox request during the 1,354.6 seconds before returning. The first click on Acme D2C opened the venture and displayed the saved title. Render reported one instance throughout the sampled interval and zero HTTP requests at each minute sample from 20:00 through 20:20 UTC. |
+| Open-browser recovery after one restart | **Unrun.** No restart was issued and no recovery time was measured. |
+
+The Render connection exposed deployment and status operations. The live Shell and the distinct Restart service action required a signed-in operator session. The edited fictional vault was left in place for the outstanding checks. [Running-instance commands](../deploy/README.md)
+
+The earlier [Docker rehearsal in CI run 77](https://github.com/jderomanis1/chassis/actions/runs/44372930337) remains a separate record of local-container behavior. The service address and credentials are omitted from this repository.
+
+## Render provisioning attempt | November 18, 2026
+
+GitHub confirmed draft PR #13 at `d0f19a756c8f876df3cbee7cfd59dea2a4a4be16` on `codex/render-fictional-demo`. Joe approved one Starter instance through December 1, 2026. The reviewer closed the door.mjs comparison.
+
+| Request field | Value |
+| --- | --- |
+| Operation | Render `create_web_service` in Joe's My Workspace |
+| Source | `https://github.com/jderomanis1/chassis`, branch `codex/render-fictional-demo` |
+| Runtime and build | `docker`, Dockerfile `deploy/Dockerfile`, build context `.` |
+| Compute | `starter`, region `oregon` |
+| Automatic deploys | `no` |
+| Environment | `DEMO_PASSWORD` supplied as a secret |
+
+Render returned `INVALID_ARGUMENT` with the following response.
+
+```text
+received response code 400: passed in repository URL is invalid or unfetchable: https://github.com/jderomanis1/chassis. Accepted formats are: https://github.com/{namespace}/{repository}, https://gitlab.com/{namespace}/{repository}, https://bitbucket.org/{namespace}/{repository}, or https://cursor.com/codebase/{namespace}/{repository}. You may pass in a branch in the branch field.
+```
+
+Workspace inventories before and after the request both showed the same two unrelated services. The create request returned no service or deploy ID. There was no build or runtime log line, and a manual deploy was never triggered.
+
+| Check on the Render address | Result |
+| --- | --- |
+| Wrong-password session request returns 401 | Unrun |
+| Second browser shows the saved edit without reload, with one canvas-editor commit on one path | Unrun |
+| Authenticated cross-site PATCH returns 403 with unchanged vault HEAD | Unrun |
+| After chief-write, the second browser shows Cedar done without reload and history contains three commits | Unrun |
+| First click after 20 idle minutes works and earlier edits persist | Unrun |
+| Already-open browser recovers to the fresh board after one restart, with no error left on screen | Unrun. No recovery time measured. |
+
+[CI run 77](https://github.com/jderomanis1/chassis/actions/runs/44372930337) passed the earlier Docker rehearsal at the pinned source commit.
+
+## Hosted fictional demo | draft PR #13 | November 18
+
+| Check | Evidence |
+| --- | --- |
+| Starting branch | Live `step7-c1-write` matched `94974a2725fa46ccd273868ac5fdd54c1877a1bc` before branching. |
+| Deployment boundary and meeting CLI | At `40d5af0`, six focused local tests passed. A separate local service run started the actual CLI portal, front door and a fresh fictional vault. Wrong password returned 401. Authenticated record PATCH returned 200. A valid-credential, valid-CSRF cross-site PATCH returned 403 and left HEAD unchanged. |
+| Local vault evidence | Baseline `9648cba`, editor commit `bea70a3` on `records/tasks/task-acme-launch-1.md`, then chief commit `2f02e68` on `records/tasks/task-cedar-launch-2.md`. These are disposable **vault** hashes. The three-entry history showed the matching authors and files. |
+| Browser rehearsal | Local Chromium failed at launch with a socket permission error. The Docker rehearsal added in `d8591ba` builds the image, signs in two separate Chromium processes behind a local TLS terminator and checks the vault inside the running container. [PR head checks](https://github.com/jderomanis1/chassis/pull/13/checks) |
+| Render address | No service or plan provisioned at this checkpoint. Hosted wrong-password refusal, live propagation, editor commit, cross-site refusal, chief write, history and idle behavior await a run on Render. |
+
 ## November 18 demo sprint | INC-1a and I-002
 
 | Build | Executed check | Result |
