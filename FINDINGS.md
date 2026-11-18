@@ -2,8 +2,9 @@
 
 ## Monday demo UAT fixes
 
-These notes are engineering evidence at `5052aed` on `cursor/uat-canvas-fixes-8f6d`. They are
-not SecOps, QE, or Code Reviewer approval. Main is still `42f0fa0`.
+These notes are engineering evidence at `c335ad2` on `cursor/uat-canvas-fixes-8f6d`. They are
+not SecOps, QE, or Code Reviewer approval. Main is still `42f0fa0`. CI run
+`44210561714` on that commit is success.
 
 - The canvas waited on a 5 second poll, so a disk edit could take just over 5
   seconds. It now checks `/api/version` every 1 second with `If-None-Match`.
@@ -24,13 +25,19 @@ not SecOps, QE, or Code Reviewer approval. Main is still `42f0fa0`.
   file and stays out of the response. The portal PATCH was still 400 because
   the index refresh validated the vault before that drop. The write path now
   checks visibility without that graph check, then the store drops the missing
-  id and saves.
+  id and saves. Index reads still reject a vault whose relationships are broken.
+  `commit-human` uses the same unseen-id refusal when the working tree adds a
+  dependency the caller cannot see. An unchanged list is not rechecked.
 - A second edit of the same card could send the version from the first paint.
   That version changed only when a later reload committed, so a fast second
   save received 409 and undo could apply against the old card. Save and undo
   now stamp the version and the fields from the response onto the card before
   the editor closes. The local run that reported 22 passed used Google Chrome
-  and won the race. CI used Playwright Chromium and lost it.
+  and won that race. CI run `44208147816` used Playwright Chromium and lost it:
+  the second save returned 409, undo left the card in progress, and the MCP
+  update stayed green. A later local rerun also returned 409, so the miss was
+  timing, not a Chrome-only difference. Run `44210561714` on the stamp is
+  green, including those three Playwright cases.
 - A venture tile, the zoomed cards, initiative progress, and the graph task
   count are all taken from the visible rows. Adding or deleting a restricted
   task does not change those numbers. Acme in the demo vault shows 5 tasks in

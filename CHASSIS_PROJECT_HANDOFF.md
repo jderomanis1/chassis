@@ -1,6 +1,6 @@
 # Chassis project handoff
 
-**Checkpoint date: 2026-11-17. Monday demo UAT fixes are on `cursor/uat-canvas-fixes-8f6d`, branched from `step7-c1-write` at `06a53bc` (PR #2 is merged). Open one pull request into `step7-c1-write`. Do not merge. Main is still `42f0fa0`. C1/C2 stay off main until independent SecOps review.**
+**Checkpoint date: 2026-11-18. Monday demo UAT fixes and the review fixes are on `cursor/uat-canvas-fixes-8f6d` at `c335ad2`, branched from `step7-c1-write` at `06a53bc` (PR #2 is merged). Pull request #3 targets `step7-c1-write`. Do not merge. Main is still `42f0fa0`. C1/C2 stay off main until independent SecOps review.**
 This file preserves the approved build decisions and evidence so each step can
 continue in a separate chat. Read current repository HEAD before making changes.
 
@@ -162,9 +162,13 @@ tokenized invitation/tracking links are not copied into the repository.
 
 ## UAT fixes checkpoint: current
 
-- Implementation commit `5052aed` on `cursor/uat-canvas-fixes-8f6d` starts at
-  `step7-c1-write` `06a53bc`.
+- Product commit `c335ad2` on `cursor/uat-canvas-fixes-8f6d` starts at
+  `step7-c1-write` `06a53bc`. The earlier UAT commit is `5052aed`.
   Do not touch main. Do not merge this pull request from the build chat.
+- CI run `44210561714` on `c335ad2` is success for all-extras, core, and portal.
+  https://github.com/jderomanis1/chassis/actions/runs/44210561714
+  Counts from that run are in `evidence/acceptance.md`. They are not an
+  independent review.
 - The canvas polls `/api/version` every 1 second with `If-None-Match`. A match
   is HTTP 304 and does not reload the snapshot. A disk edit or agent update is
   visible in under 3 seconds in the worst case the tests lock.
@@ -188,14 +192,23 @@ tokenized invitation/tracking links are not copied into the repository.
   window fit the cards again.
 - A save reads the form fields at submit time and ignores a second submit while
   the first is in flight. A 409 says the edit was not saved and offers Reload.
+  After a successful save or undo, the card version and fields come from that
+  response, so the next edit does not send the version from the first paint.
+- A portal title edit whose hidden dependency was deleted checks visibility
+  without rebuilding the index first. The store then drops the missing id and
+  saves. Index reads still reject a vault whose relationships are broken.
+- `GET /api/undo` omits any entry the viewer cannot see. The list, its count,
+  and its etag match a history that never contained that commit. A viewer who
+  can see the record still receives it.
+- `commit-human` rejects a newly added dependency the caller cannot see, with
+  the same `invalid dependency` refusal and no commit. An unchanged dependency
+  list is not rechecked.
 - Long titles wrap inside the card.
 - Duplicate ids in `depends_on` use the error envelope
   `{error:{code,message}}` and do not echo the id.
 - CI on pull requests into `step7-c1-write` runs all-extras, core-only, and
   portal-only pytest. uv is pinned to 0.13.9. Checkout does not persist
   credentials. Playwright still uses the committed canvas build.
-- Counts from this working tree are in `evidence/acceptance.md`. They are not
-  an independent review.
 
 ## R1 and CI checkpoint: current
 

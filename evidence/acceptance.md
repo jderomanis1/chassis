@@ -1,19 +1,19 @@
 # Acceptance evidence
 
-**Snapshot:** Monday demo UAT fixes are commit `5052aed` on `cursor/uat-canvas-fixes-8f6d`, based on `step7-c1-write` at `06a53bc`. The pull request targets `step7-c1-write` and is not merged. Main remains `42f0fa0`. C1/C2 are not independently reviewed. **Date:** 2026-11-17.
+**Snapshot:** Review fixes are commit `c335ad2` on `cursor/uat-canvas-fixes-8f6d`, based on `step7-c1-write` at `06a53bc`. The pull request targets `step7-c1-write` and is not merged. Main remains `42f0fa0`. C1/C2 are not independently reviewed. **Date:** 2026-11-18.
 
 ## UAT fixes
 
-These runs used the working tree on this branch. They are not a fresh three-mode checkout, and they are not SecOps, QE, or Code Reviewer approval. Python 3.12.3. Node 24.22.1 and npm 11.9.0. uv 0.13.9. The lock file was not edited. Playwright used `/usr/bin/google-chrome`.
+These counts are from CI run [44210561714](https://github.com/jderomanis1/chassis/actions/runs/44210561714) on commit `c335ad2`. All three jobs succeeded. They are not SecOps, QE, or Code Reviewer approval. The earlier local Playwright run of 22 passed used Google Chrome and won a version race that CI Chromium lost on run 44208147816. A later local rerun also hit that 409. The counts below are the green run.
 
 | Command | Result |
 | :--- | :--- |
-| `uv sync --locked --all-extras` then `.venv/bin/pytest -q` | **718 passed in 62.72s** |
-| `uv sync --locked` then pytest | **523 passed, 9 skipped in 25.74s** |
-| `uv sync --locked --extra portal` then pytest | **682 passed, 8 skipped, 1 warning in 38.63s** |
+| all-extras `uv sync --locked --all-extras` then pytest | **721 passed in 62.94s** |
+| core `uv sync --locked` then pytest | **524 passed, 9 skipped in 47.20s** |
+| portal `uv sync --locked --extra portal` then pytest | **685 passed, 8 skipped, 1 warning in 66.45s** |
 | `npm test` | **19 passed**, 0 failed |
 | `npm audit --omit=dev` | 0 vulnerabilities |
-| Playwright, `CHASSIS_CHROMIUM=/usr/bin/google-chrome` | **22 passed (1.0m)** |
+| Playwright on the all-extras job | **22 passed (1.4m)** |
 
 Core skips are the portal module and 8 MCP modules. Portal skips are the 8 MCP modules. The warning is the existing `StarletteDeprecationWarning` for `TestClient` at `tests/portal/conftest.py:6`.
 
@@ -26,6 +26,10 @@ The new tests cover:
 5. Adding and removing a restricted task leaves snapshot counts, initiative progress, task-card totals, and graph task counts unchanged. The Acme tile, zoomed cards, and progress total are all 5.
 6. A duplicate `depends_on` list returns `{error:{code:"validation", message:"Record update could not be completed"}}` and does not echo the id.
 7. Playwright checks focus return, 44 pixel controls, the minimap at 1280 after zoom-back and resize, wrapping a long title, one commit for a save started mid-typing, and a 1 pixel camera tolerance.
+8. A second save and an undo stamp the version from the response. The two-undo test expects each save to return 200, and the gated edit restores blocked.
+9. A portal title edit after a deleted hidden dependency returns 200 and drops that id. Test: `tests/portal/test_record_writes.py` (`test_portal_title_edit_drops_a_deleted_hidden_dependency`).
+10. A normal viewer's `/api/undo` body, count, and etag stay the same when a restricted-task commit is added. A cleared viewer still sees that entry. Test: `tests/portal/test_record_writes.py` (`test_restricted_editor_history_is_invisible_to_a_normal_viewer`).
+11. `commit-human` rejects a newly added hidden dependency. Test: `tests/test_human_commits.py` (`test_commit_human_rejects_a_new_hidden_dependency`).
 
 ## R1 hidden dependencies and CI
 
