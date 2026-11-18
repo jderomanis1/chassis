@@ -1,4 +1,6 @@
 // A 409 keeps the drawer and the typed values. Nothing is saved until Keep mine.
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { test, expect, CLI } from './harness.mjs';
 
@@ -25,9 +27,17 @@ async function conflict(page, demo, title) {
   const denied = page.waitForResponse(response => response.url().includes('/api/records/') && response.request().method() === 'PATCH');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   expect((await denied).status()).toBe(409);
+  await expect(page.locator('.conflict')).toHaveAttribute('role', 'alert');
+  await expect(page.getByRole('button', { name: 'Keep mine and save again' })).toHaveClass(/btn/);
+  await expect(page.getByRole('button', { name: 'Keep mine and save again' })).not.toHaveClass(/ghost/);
+  await expect(page.getByRole('button', { name: 'Use latest' })).toHaveClass(/ghost/);
   await expect(page.getByRole('heading', { name: 'Your edit was not saved' })).toBeFocused();
   await expect(page.getByLabel('Title')).toHaveValue(typed);
   return typed;
+}
+
+async function settled(page) {
+  await page.waitForTimeout(400);
 }
 
 for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024 }]) {
@@ -43,10 +53,16 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024
       page.on('request', request => {
         if (request.method() === 'PATCH' && request.url().includes('/api/records/')) patches += 1;
       });
-      const saved = page.waitForRequest(request => request.url().includes('/api/records/') && request.method() === 'PATCH');
+      const saved = page.waitForResponse(response => response.url().includes('/api/records/') && response.request().method() === 'PATCH');
       await page.getByRole('button', { name: 'Keep mine and save again' }).click();
-      expect(JSON.parse((await saved).postData()).expected_version).toBe(2);
+      const response = await saved;
+      expect(response.status()).toBe(200);
+      expect(JSON.parse(response.request().postData()).expected_version).toBe(2);
+      await settled(page);
       expect(patches).toBe(1);
+      const text = await readFile(join(demo.vault, 'records/tasks/task-juniper-launch-2.md'), 'utf8');
+      expect(text).toContain('Updated from another terminal.');
+      expect(text).toContain(`title: ${typed}`);
       await expect(page.getByRole('dialog')).toHaveCount(0);
     });
 
@@ -61,6 +77,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024
       await page.getByRole('button', { name: 'Use latest' }).click();
       await expect(page.getByLabel('Title')).toHaveValue(original);
       await expect(page.getByLabel('Next step')).toHaveValue('Updated from another terminal.');
+      await settled(page);
       expect(patches).toBe(0);
     });
 
@@ -71,9 +88,18 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024
       await expect(page.getByText('Discard your changes?', { exact: true })).toBeVisible();
       await expect(page.getByRole('dialog')).toBeVisible();
       await page.getByRole('button', { name: 'Keep editing' }).click();
+      await expect(page.getByText('Discard your changes?', { exact: true })).toHaveCount(0);
       await expect(page.getByRole('dialog')).toBeVisible();
       await page.getByRole('button', { name: 'Close editor' }).click();
       await page.getByRole('button', { name: 'Discard' }).click();
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+    });
+
+    test('Escape closes an edit with no conflict at once', async ({ page, demo }) => {
+      await openTask(page, demo);
+      await page.locator('#edit-title').fill('Typed with no conflict');
+      await page.keyboard.press('Escape');
+      await expect(page.getByText('Discard your changes?', { exact: true })).toHaveCount(0);
       await expect(page.getByRole('dialog')).toHaveCount(0);
     });
 
@@ -129,6 +155,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024
         if (request.method() === 'PATCH' && request.url().includes('/api/records/')) patches += 1;
       });
       await keep.click({ force: true });
+      await settled(page);
       expect(patches).toBe(0);
       await expect(page.getByLabel('Title')).toHaveValue('Offline keep');
     });
@@ -175,6 +202,7 @@ test('a failed latest read does not blank the fields', async ({ page, demo }) =>
     if (request.method() === 'PATCH' && request.url().includes('/api/records/')) patches += 1;
   });
   await page.getByRole('button', { name: 'Use latest' }).click();
+  await settled(page);
   expect(patches).toBe(0);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(card).toContainText(title);
@@ -199,9 +227,34 @@ test('Enter does not save while the discard prompt is open', async ({ page, demo
     if (request.method() === 'PATCH' && request.url().includes('/api/records/')) patches += 1;
   });
   await page.keyboard.press('Enter');
+  await settled(page);
   expect(patches).toBe(0);
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.locator('#edit-title')).toHaveValue(typed);
+});
+
+test('a hanging latest read does not stay on Saving', async ({ page, demo }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openTask(page, demo);
+  await page.locator('#edit-title').fill('Held through a hang');
+  let release = () => {};
+  const gate = new Promise(resolve => { release = resolve; });
+  await page.route('**/api/records/**', route => {
+    if (route.request().method() === 'PATCH') {
+      return route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ error: {
+        code: 'conflict', message: 'This record changed before the save landed.', current_version: 4 } }) });
+    }
+    return route.continue();
+  });
+  await page.route('**/api/initiatives/**', () => gate);
+  try {
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.getByText("Couldn't load the latest version")).toBeVisible({ timeout: 8000 });
+    await expect(page.getByRole('button', { name: 'Saving...' })).toHaveCount(0);
+    await expect(page.locator('#edit-title')).toHaveValue('Held through a hang');
+  } finally {
+    release();
+  }
 });
 
 test('Escape during a save does not drop a later conflict', async ({ page, demo }) => {

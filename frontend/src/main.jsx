@@ -250,7 +250,8 @@ function App() {
       if (failure.code === 'conflict') {
         let latest = null;
         try {
-          latest = await readLatest(editing);
+          const expired = new Promise(resolve => setTimeout(() => resolve(null), 3000));
+          latest = await Promise.race([readLatest(editing), expired]);
         } catch {
           latest = null;
         }

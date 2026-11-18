@@ -47,7 +47,7 @@ export function Editor({ record, message, canEdit = true, conflict, bindClose, o
   }
   function submit(event) {
     event.preventDefault();
-    if (ask) return;
+    if (ask || conflict) return;
     const data = new FormData(event.currentTarget);
     const next = {
       title: String(data.get('title') ?? ''),
@@ -88,7 +88,7 @@ export function Editor({ record, message, canEdit = true, conflict, bindClose, o
           <label>Status<select name="status" value={fields.status} disabled={busy} onChange={event => update('status', event.target.value)}>
             {STATUSES.map(status => <option key={status} value={status}>{status.replaceAll('_', ' ')}</option>)}
           </select></label>
-          <label>Next step<input name="next_step" value={fields.next_step} readOnly={busy} onChange={event => update('next_step', event.target.value)} required autoComplete="off" onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); if (canEdit && !busy) event.currentTarget.form?.requestSubmit(); } }} /></label>
+          <label>Next step<input name="next_step" value={fields.next_step} readOnly={busy} onChange={event => update('next_step', event.target.value)} required autoComplete="off" onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); if (canEdit && !busy && !conflict) event.currentTarget.form?.requestSubmit(); } }} /></label>
           {task ? <label>Blocker reason<input name="blocker_reason" value={fields.blocker_reason} readOnly={busy} onChange={event => update('blocker_reason', event.target.value)} autoComplete="off" /></label> : null}
           {task ? <label>Due date<input name="due_at" value={fields.due_at} readOnly={busy} placeholder="YYYY-MM-DD" onChange={event => update('due_at', event.target.value)} autoComplete="off" /></label> : null}
           {message ? <p role="alert">{message}</p> : null}
