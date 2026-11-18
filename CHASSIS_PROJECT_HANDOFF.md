@@ -1,5 +1,19 @@
 # Chassis project handoff
 
+## Hosted fictional demo | draft PR #13 | November 18
+
+Joe approves a hosted demo of the fictional vault only, as a stated exception to the no-deployment rule in AGENTS.md.
+
+GitHub confirmed `step7-c1-write` at `94974a2725fa46ccd273868ac5fdd54c1877a1bc` before the new branch was created. The hosted demo work is on `codex/render-fictional-demo`. The front door is `6c2fe4a`, startup and live-instance CLI commands are `40d5af0`, and the Docker two-browser rehearsal is `d8591ba`. Review [draft PR #13](https://github.com/jderomanis1/chassis/pull/13) and its current [head checks](https://github.com/jderomanis1/chassis/pull/13/checks).
+
+The local HTTP rehearsal produced a wrong-password 401, a successful canvas PATCH, and an authenticated cross-site 403 with the same vault HEAD. The active fictional vault contained exactly one canvas-editor commit and one chief-of-staff CLI commit over its baseline. Six focused local tests passed. A local Chromium launch stopped before page navigation. The CI rehearsal and live hosted acceptance are distinct.
+
+**Hosting status at this checkpoint.** No Render plan was provisioned. Instance sleep behavior is unobserved. Render Free sleeps after 15 idle minutes and lacks a live shell. Entry-level paid web compute offers the shell and stays awake. The repo's separate paid-infrastructure restriction still needs Joe's decision. The named `door.mjs` reference was missing from the supplied files. The Python door was built against the pinned portal's guards and needs comparison with the reference. See [Joe's commands and the service settings](deploy/README.md).
+
+**Next chat prompt**
+
+> Resume draft PR #13 on `codex/render-fictional-demo`. Resolve its live head and first-attempt CI status. Start from the deployment implementation through `d8591ba` and preserve the later evidence commits. Compare the supplied door.mjs with the Python front door and resolve the live-shell compute decision. Once those are resolved, deploy only the fictional vault on one instance, record the observed plan and verify the two-browser edit, editor commit, denied cross-site write, chief-of-staff CLI write and three-commit history at the Render address. Share the address with Joe only. Leave the PR as a draft.
+
 ## Demo sprint | INC-1a and I-002 merged | November 18
 
 Joe accepted the panel review of PR #9 at `72ea32bc`. CI run 61 passed all three jobs before the head-pinned merge to `step7-c1-write` at `a1ee201dccd6a725e3871215583110773cb67581`. The following cleanup, `6cc0c73d7d31fa304d6cb41b97972dbaf5ea0cd8`, limits push and pull-request targets to the integration branch and main. Main was checked at `42f0fa0`.

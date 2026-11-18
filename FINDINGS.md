@@ -1,5 +1,13 @@
 # Findings
 
+## Hosted fictional vault | November 18
+
+The unchanged portal expects its loopback Host and Origin on writes. The deployment front door authenticates each request and checks the exact public Host, browser Origin and same-origin fetch metadata before translating the authority to loopback. The original CSRF, content type, size, grants and record-version checks still execute inside the portal. The user-named `door.mjs` did not accompany the request. Comparison with that reference remains open.
+
+Six focused checks passed locally. A real local HTTP rehearsal separately returned 401, 200 and 403 for wrong password, same-origin edit and cross-site edit. The denied request used valid authentication and CSRF and left HEAD unchanged. The meeting helper recorded a chief-of-staff CLI write and printed it above the canvas-editor write and baseline with their changed paths. No new product endpoint was needed. Local Chromium failed before navigation with a socket permission error. [Image rehearsal and checks](https://github.com/jderomanis1/chassis/pull/13/checks)
+
+No Render plan was used at this checkpoint. Render's Free plan sleeps after 15 idle minutes and provides no shell into the live instance. The live shell is available on paid web compute, which stays awake while idle. The repository has a separate restriction on paid infrastructure. The supplied authorization names the deployment exception. [Render shell support](https://render.com/docs/ssh) · [Free service behavior](https://render.com/docs/free) · [Meeting runbook](deploy/README.md)
+
 ## Cedar Rentals flick after reload, November 18
 
 **30 passed, 0 failed.** GitHub Actions ran `tests/e2e/x1.spec.mjs:10` in Chromium with `--repeat-each=30 --workers=1 --retries=0` at `41fbd26`. Each execution used a fresh fictional vault. [CI run](https://github.com/jderomanis1/chassis/actions/runs/44357179794) · [Playwright log](https://github.com/jderomanis1/chassis/actions/runs/44357179794/job/134988317567#step:7:1)

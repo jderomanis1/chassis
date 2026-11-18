@@ -1,5 +1,15 @@
 # Acceptance evidence
 
+## Hosted fictional demo | draft PR #13 | November 18
+
+| Check | Evidence |
+| --- | --- |
+| Starting branch | Live `step7-c1-write` matched `94974a2725fa46ccd273868ac5fdd54c1877a1bc` before branching. |
+| Deployment boundary and meeting CLI | At `40d5af0`, six focused local tests passed. A separate local service run started the actual CLI portal, front door and a fresh fictional vault. Wrong password returned 401. Authenticated record PATCH returned 200. A valid-credential, valid-CSRF cross-site PATCH returned 403 and left HEAD unchanged. |
+| Local vault evidence | Baseline `9648cba`, editor commit `bea70a3` on `records/tasks/task-acme-launch-1.md`, then chief commit `2f02e68` on `records/tasks/task-cedar-launch-2.md`. These are disposable **vault** hashes. The three-entry history showed the matching authors and files. |
+| Browser rehearsal | Local Chromium failed at launch with a socket permission error. The Docker rehearsal added in `d8591ba` builds the image, signs in two separate Chromium processes behind a local TLS terminator and checks the vault inside the running container. [PR head checks](https://github.com/jderomanis1/chassis/pull/13/checks) |
+| Render address | No service or plan provisioned at this checkpoint. Hosted wrong-password refusal, live propagation, editor commit, cross-site refusal, chief write, history and idle behavior await a run on Render. |
+
 ## November 18 demo sprint | INC-1a and I-002
 
 | Build | Executed check | Result |
