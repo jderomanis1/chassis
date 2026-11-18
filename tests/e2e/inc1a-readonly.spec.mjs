@@ -24,6 +24,7 @@ test('read-only does not change the chip or announce a move', async ({ page, dem
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(`${demo.origin}/#/v/venture-juniper`);
   await expect(page.locator('.mode')).toHaveText(CHIP);
+  await expect(page.locator('.mode')).toHaveCSS('color', 'rgb(125, 146, 169)');
   await page.route('**/api/version', route => route.abort());
   await page.clock.fastForward(4000);
   await expect(page.getByText('Reconnecting', { exact: true })).toBeVisible();
@@ -37,6 +38,7 @@ test('read-only does not change the chip or announce a move', async ({ page, dem
   await page.clock.fastForward(36000);
   await expect(page.getByText('Offline', { exact: true })).toBeVisible();
   await expect(page.locator('.mode')).toHaveText(CHIP);
+  await expect(page.locator('.mode')).toHaveCSS('color', 'rgb(125, 146, 169)');
   await page.unroute('**/api/version');
   await page.clock.fastForward(2000);
   await expect(page.getByText('Live store', { exact: true })).toBeVisible();

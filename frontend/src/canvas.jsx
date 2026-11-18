@@ -1,14 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { Background, Controls, MiniMap, ReactFlow, ReactFlowProvider, useEdgesState, useNodesInitialized, useNodesState, useReactFlow } from '@xyflow/react';
-import { useStore } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { CardNode, VentureNode } from './nodes.jsx';
 import { place, roundViewport } from './place.js';
 import { flickedOff } from './records.js';
 
 const nodeTypes = { venture: VentureNode, card: CardNode };
-let notePausedMove = () => {};
-export function bindPausedMove(fn) { notePausedMove = fn; }
 const FIT_PADDING = { top: '24px', left: '24px', right: '210px', bottom: '150px' };
 
 function rememberZoom(zoom) {
@@ -42,9 +39,9 @@ function bind(node, actions) {
     onClear: () => actions.current.onClear() } };
 }
 
-function Surface({ model, layout, writes, canEdit, onLayout, onOpen, onEdit, onHover, onClear, onHide, onLink, fitSignal }) {
+function Surface({ model, layout, writes, canEdit, onLayout, onOpen, onEdit, onHover, onClear, onHide, onLink, fitSignal, onPausedMove }) {
   const flow = useReactFlow();
-  const panBy = useStore(state => state.panBy);
+  const pressedCard = useRef(null);
   const actions = useRef({});
   actions.current = { onOpen, onEdit, onHover, onClear, onHide, writes, canEdit };
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -78,32 +75,6 @@ function Surface({ model, layout, writes, canEdit, onLayout, onOpen, onEdit, onH
     return () => cancelAnimationFrame(frame);
   }, [fitSignal, nodes.length, model.nodes.length, flow]);
   useEffect(() => {
-    const pane = document.querySelector('[data-testid="command-canvas"]');
-    if (!pane || canEdit || !writes) return undefined;
-    const down = (event) => {
-      if (event.button) return;
-      const node = event.target.closest?.('.react-flow__node');
-      if (!node || event.target.closest('button, a, input, textarea, select')) return;
-      event.preventDefault(); event.stopPropagation();
-      let x = event.clientX;
-      let y = event.clientY;
-      let announced = false;
-      const move = (ev) => {
-        const dx = ev.clientX - x;
-        const dy = ev.clientY - y;
-        x = ev.clientX;
-        y = ev.clientY;
-        if (!dx && !dy) return;
-        if (!announced) { announced = true; notePausedMove(); }
-        panBy({ x: dx, y: dy });
-      };
-      function up() { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); }
-      window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
-    };
-    pane.addEventListener('pointerdown', down, true);
-    return () => pane.removeEventListener('pointerdown', down, true);
-  }, [canEdit, writes, panBy]);
-  useEffect(() => {
     const onResize = () => { if (framed.current) fit(flow); };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
@@ -117,6 +88,19 @@ function Surface({ model, layout, writes, canEdit, onLayout, onOpen, onEdit, onH
     observer.observe(pane, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, []);
+  function trackPausedPress(event) {
+    if (!event.isPrimary) return;
+    const card = event.target.closest('[data-record-id]');
+    const control = event.target.closest('button, .react-flow__handle');
+    pressedCard.current = writes && !canEdit && !event.button && card && !control ? event.nativeEvent : null;
+  }
+  function announcePausedPan(event) {
+    const start = pressedCard.current;
+    if (!start || canEdit || event.pointerId !== start.pointerId || event.buttons !== 1) return;
+    if (start.clientX === event.clientX && start.clientY === event.clientY) return;
+    pressedCard.current = null;
+    onPausedMove();
+  }
   function publish(nextNodes, viewport) {
     if (!nextNodes.length) return;
     onLayout(nextNodes.map(node => ({ id: node.id, position: node.position })), roundViewport(viewport || flow.getViewport()));
@@ -129,6 +113,10 @@ function Surface({ model, layout, writes, canEdit, onLayout, onOpen, onEdit, onH
   }
   return (
     <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} nodeTypes={nodeTypes}
+      onPointerDownCapture={trackPausedPress}
+      onPointerMoveCapture={announcePausedPan}
+      onPointerCancelCapture={() => { pressedCard.current = null; }}
+      onPointerUpCapture={() => { pressedCard.current = null; }}
       onNodeDragStop={(event, node, next) => dropped(event, node, next)}
       onMove={(_, viewport) => rememberZoom(viewport.zoom)}
       onMoveEnd={(_, viewport) => { rememberZoom(viewport.zoom); publish(nodes, viewport); }}

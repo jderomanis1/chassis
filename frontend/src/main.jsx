@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api, bindSessionRefresh, bindWriteRetry, mergeSession, readVersion } from './api.js';
-import { bindPausedMove } from './canvas.jsx';
 import { POLL_MS } from './poll.js';
 import { Canvas } from './canvas.jsx';
 import { CommandBar } from './command-bar.jsx';
@@ -20,6 +19,8 @@ function applyPending(nodes, pending) {
   return nodes.map(node => node.id === pending.id ? { ...node, data: { ...node.data, ...pending.changes,
     health: pending.changes.status === 'blocked' ? 'red' : pending.changes.status === 'done' ? 'green' : node.data.health } } : node);
 }
+
+const PAUSED_MOVE = 'Moving cards is paused until the live store reconnects.';
 
 function App() {
   const [data, setData] = useState(null), [detail, setDetail] = useState(null), [bootError, setBootError] = useState(false);
@@ -92,8 +93,9 @@ function App() {
     if (ok) {
       const missed = misses.current > 0 || linkRef.current !== 'live';
       misses.current = 0; downSince.current = 0; linkRef.current = 'live'; setLink('live');
+      moveNoted.current = false;
       if (missed) refreshSession();
-      if (noticeRef.current.startsWith('Cannot reach the local canvas')) showNotice('');
+      if (noticeRef.current === PAUSED_MOVE || noticeRef.current.startsWith('Cannot reach the local canvas')) showNotice('');
       return;
     }
     misses.current += 1;
@@ -108,25 +110,11 @@ function App() {
     return { csrf: incoming.csrf };
   }
   useEffect(() => { bindSessionRefresh(refreshSession); bindWriteRetry(() => canEditRef.current); }, []);
-  useEffect(() => bindPausedMove(() => {
+  function notePausedMove() {
     if (moveNoted.current) return;
     moveNoted.current = true;
-    showNotice('Moving cards is paused until the live store reconnects.');
-  }), []);
-  useEffect(() => { if (canEdit) moveNoted.current = false; }, [canEdit]);
-  useEffect(() => {
-    const apply = () => {
-      const paused = writes && !canEdit;
-      for (const button of document.querySelectorAll('button')) {
-        const on = paused && button.getAttribute('aria-disabled') === 'true';
-        if (on) button.setAttribute('aria-describedby', 'editing-paused');
-        else button.removeAttribute('aria-describedby');
-      }
-    };
-    apply();
-    const frame = requestAnimationFrame(apply);
-    return () => cancelAnimationFrame(frame);
-  }, [writes, canEdit]);
+    showNotice(PAUSED_MOVE);
+  }
   useEffect(() => {
     const poll = setInterval(async () => {
       if (!etagRef.current || polling.current) {
@@ -382,7 +370,8 @@ function App() {
     <button className="theme-btn" onClick={toggle} aria-label={`Theme: ${theme}. Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>{theme === 'dark' ? '☾' : '☀'} {theme}</button></header>
     <main id="canvas" tabIndex={-1}><div className="intro"><div><p className="mono">Command canvas</p>
       <h1>Every venture. One clear view.</h1><p className="lede">Open a venture to see the work, the links, and what needs you next.</p></div>
-      <span className="intro-actions">{writes ? <button className="btn ghost" type="button" onClick={undoLast} disabled={!undo.length} aria-disabled={!canEdit || undefined} title={canEdit ? undefined : 'Reconnect to edit'}>Undo</button> : null}
+      <span className="intro-actions">{writes ? <button className="btn ghost" type="button" onClick={undoLast}
+          aria-describedby={canEdit ? undefined : 'editing-paused'} disabled={!undo.length} aria-disabled={!canEdit || undefined} title={canEdit ? undefined : 'Reconnect to edit'}>Undo</button> : null}
         {data && <span className="mode mono">{!writes ? 'Read only · editing is off' : canEdit ? 'Editing enabled' : <>
           <span>EDITING PAUSED</span>
           <span id="editing-paused" className="sr">Editing paused until the live store reconnects.</span>
@@ -407,7 +396,8 @@ function App() {
       {bootError && !data ? <section className="panel empty" role="alert"><h2>Could not load canvas</h2><p>Couldn't load your ventures. The live store didn't answer.</p><button className="btn" autoFocus onClick={load}>Try again</button></section>
         : !data || (ventureId && !model) ? <section className="panel empty" role="status">Loading your canvas…</section>
         : !data.snapshot.ventures.length ? <section className="panel empty"><h2>No ventures yet</h2><p>Your visible ventures will appear here.</p></section>
-        : <Canvas model={model} layout={data.layout} writes={writes} canEdit={canEdit} fitSignal={fitSignal} onLayout={onLayout} onOpen={id => { location.hash = `#/v/${id}`; }} onEdit={openEdit} onHover={setHover} onClear={() => setHover(null)} onHide={hideCard} onLink={linkCards} />}
+        : <Canvas onPausedMove={notePausedMove}
+            model={model} layout={data.layout} writes={writes} canEdit={canEdit} fitSignal={fitSignal} onLayout={onLayout} onOpen={id => { location.hash = `#/v/${id}`; }} onEdit={openEdit} onHover={setHover} onClear={() => setHover(null)} onHide={hideCard} onLink={linkCards} />}
       </div>
     </main>
     {editor ? <Editor key={generation} record={editor} message={fieldMessage} canEdit={canEdit} conflict={conflict} bindClose={fn => { closeRef.current = fn; }} onClose={closeEditor} onUseLatest={useLatest} onSave={save} /> : null}
