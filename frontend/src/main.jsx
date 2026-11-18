@@ -52,16 +52,18 @@ function App() {
       const [session, snapshot, layout, history] = await Promise.all([
         api('/api/session'), api('/api/snapshot'), api('/api/layout'), api('/api/undo')]);
       const nextDetail = selected ? await loadVenture(selected) : null;
-      if (current !== ticket.current) return;
+      if (current !== ticket.current) return false;
       const layoutNow = stamp === layoutStamp.current && !layoutBusy.current && !timer.current ? layout : layoutRef.current;
       layoutRef.current = layoutNow;
       etagRef.current = snapshot.etag;
       setData({ session, snapshot, layout: layoutNow }); setDetail(nextDetail); setVentureId(selected);
       setUndo(history.entries || []);
       setError(null); setPending(null);
+      return true;
     } catch (failure) {
-      if (current !== ticket.current) return;
+      if (current !== ticket.current) return false;
       setError(failure.message); setData(null);
+      return false;
     } finally {
       if (current === ticket.current) loading.current = false;
     }
@@ -93,6 +95,7 @@ function App() {
       if (event.key === 'Escape') {
         if (commandOpen) { event.preventDefault(); setCommandOpen(false); return; }
         if (editor) { event.preventDefault(); closeEditor(); return; }
+        if (hits.length) { event.preventDefault(); setHits([]); return; }
         if (readVenture(location.hash)) location.hash = '#/';
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !editor && !commandOpen && writes) { event.preventDefault(); undoLast(); }
@@ -280,8 +283,9 @@ function App() {
       <HoverCard record={hover} />
       <div className="canvas-stack">
       <div className="canvas-overlays">
-      {notice ? <p className="attn" role="status">{notice}{reloadOffer ? <button type="button" className="btn" onClick={() => load()}>Reload</button> : null}</p> : null}
-      {hits.length ? <ul className="hits">{hits.map(hit => <li key={hit.id}>{hit.type === 'venture'
+      {notice ? <p className="attn" role="status">{notice}{reloadOffer ? <button type="button" className="btn" onClick={async () => { if (await load()) showNotice(''); }}>Reload</button> : null}</p> : null}
+      {hits.length ? <button type="button" className="btn hits-close" onClick={() => setHits([])}>Close hits</button> : null}
+      {hits.length ? <ul className="hits" onWheel={event => { event.stopPropagation(); event.currentTarget.scrollTop += event.deltaY; }}>{hits.map(hit => <li key={hit.id}>{hit.type === 'venture'
         ? <button type="button" onClick={() => { location.hash = `#/v/${hit.id}`; }}>{hit.title}</button>
         : <span className="hit-note">{hit.title}</span>}</li>)}</ul> : null}
       {hiddenHere.length ? <button type="button" className="btn ghost show-hidden" onClick={showHidden}>Show hidden ({hiddenHere.length})</button> : null}
