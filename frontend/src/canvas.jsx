@@ -1,11 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { Background, Controls, MiniMap, ReactFlow, ReactFlowProvider, useEdgesState, useNodesInitialized, useNodesState, useReactFlow } from '@xyflow/react';
+import { useStore } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { CardNode, VentureNode } from './nodes.jsx';
 import { place, roundViewport } from './place.js';
 import { flickedOff } from './records.js';
 
 const nodeTypes = { venture: VentureNode, card: CardNode };
+let notePausedMove = () => {};
+export function bindPausedMove(fn) { notePausedMove = fn; }
 const FIT_PADDING = { top: '24px', left: '24px', right: '210px', bottom: '150px' };
 
 function rememberZoom(zoom) {
@@ -41,6 +44,7 @@ function bind(node, actions) {
 
 function Surface({ model, layout, writes, canEdit, onLayout, onOpen, onEdit, onHover, onClear, onHide, onLink, fitSignal }) {
   const flow = useReactFlow();
+  const panBy = useStore(state => state.panBy);
   const actions = useRef({});
   actions.current = { onOpen, onEdit, onHover, onClear, onHide, writes, canEdit };
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -74,6 +78,32 @@ function Surface({ model, layout, writes, canEdit, onLayout, onOpen, onEdit, onH
     return () => cancelAnimationFrame(frame);
   }, [fitSignal, nodes.length, model.nodes.length, flow]);
   useEffect(() => {
+    const pane = document.querySelector('[data-testid="command-canvas"]');
+    if (!pane || canEdit || !writes) return undefined;
+    const down = (event) => {
+      if (event.button) return;
+      const node = event.target.closest?.('.react-flow__node');
+      if (!node || event.target.closest('button, a, input, textarea, select')) return;
+      event.preventDefault(); event.stopPropagation();
+      let x = event.clientX;
+      let y = event.clientY;
+      let announced = false;
+      const move = (ev) => {
+        const dx = ev.clientX - x;
+        const dy = ev.clientY - y;
+        x = ev.clientX;
+        y = ev.clientY;
+        if (!dx && !dy) return;
+        if (!announced) { announced = true; notePausedMove(); }
+        panBy({ x: dx, y: dy });
+      };
+      function up() { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); }
+      window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+    };
+    pane.addEventListener('pointerdown', down, true);
+    return () => pane.removeEventListener('pointerdown', down, true);
+  }, [canEdit, writes, panBy]);
+  useEffect(() => {
     const onResize = () => { if (framed.current) fit(flow); };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
@@ -103,7 +133,7 @@ function Surface({ model, layout, writes, canEdit, onLayout, onOpen, onEdit, onH
       onMove={(_, viewport) => rememberZoom(viewport.zoom)}
       onMoveEnd={(_, viewport) => { rememberZoom(viewport.zoom); publish(nodes, viewport); }}
       minZoom={matchMedia('(max-width: 375px)').matches ? 0.5 : 0.1} maxZoom={4}
-      nodesDraggable={!matchMedia('(max-width: 375px)').matches} nodesConnectable panOnScroll fitView={false}
+      nodesDraggable={canEdit && !matchMedia('(max-width: 375px)').matches} nodesConnectable panOnScroll fitView={false}
       nodesFocusable={false} edgesFocusable={false} tabIndex={-1}
       onConnect={connection => onLink?.(connection)}
       colorMode={document.documentElement.dataset.theme === 'light' ? 'light' : 'dark'}

@@ -1,13 +1,19 @@
 // The mode chip must follow the connection, at both widths.
 import { test, expect } from './harness.mjs';
 
+async function pair(page) {
+  return page.evaluate(() => ({
+    chip: (document.querySelector('.mode')?.innerText || '').replace(/\s+/g, ' ').trim(),
+    status: (document.querySelector('.live')?.innerText || '').trim(),
+  }));
+}
+
 async function sample(page, steps) {
   const bad = [];
   const before = await page.locator('.react-flow').boundingBox();
   for (let i = 0; i < steps; i += 1) {
     await page.clock.fastForward(100);
-    const chip = (await page.locator('.mode').innerText()).replace(/\s+/g, ' ').trim();
-    const status = (await page.locator('.live').innerText()).trim();
+    const { chip, status } = await pair(page);
     const paused = status === 'Reconnecting' || status === 'Offline';
     if (paused && (chip === 'Editing enabled' || chip.startsWith('EDITING ENABLED'))) bad.push(status);
   }
@@ -18,10 +24,12 @@ async function sample(page, steps) {
 for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024 }]) {
   test(`the chip matches the connection at ${viewport.width}`, async ({ page, demo }) => {
     await page.setViewportSize(viewport);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.clock.install();
     await page.goto(`${demo.origin}/#/v/venture-juniper`);
     await expect(page.locator('.mode')).toHaveText('Editing enabled');
     await expect(page.getByText('Live store', { exact: true })).toBeVisible();
+    await page.clock.fastForward(500);
     const color = await page.locator('.mode').evaluate(node => getComputedStyle(node).color);
     await page.route('**/api/version', route => route.abort());
     const reconnecting = await sample(page, 50);

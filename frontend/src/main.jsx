@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api, bindSessionRefresh, bindWriteRetry, mergeSession, readVersion } from './api.js';
+import { bindPausedMove } from './canvas.jsx';
 import { POLL_MS } from './poll.js';
 import { Canvas } from './canvas.jsx';
 import { CommandBar } from './command-bar.jsx';
@@ -38,6 +39,7 @@ function App() {
   const writes = Boolean(data?.session.writes_enabled);
   const canEdit = writes && link === 'live';
   const canEditRef = useRef(false);
+  const moveNoted = useRef(false);
   const closeRef = useRef(() => {});
   canEditRef.current = canEdit;
 
@@ -106,6 +108,25 @@ function App() {
     return { csrf: incoming.csrf };
   }
   useEffect(() => { bindSessionRefresh(refreshSession); bindWriteRetry(() => canEditRef.current); }, []);
+  useEffect(() => bindPausedMove(() => {
+    if (moveNoted.current) return;
+    moveNoted.current = true;
+    showNotice('Moving cards is paused until the live store reconnects.');
+  }), []);
+  useEffect(() => { if (canEdit) moveNoted.current = false; }, [canEdit]);
+  useEffect(() => {
+    const apply = () => {
+      const paused = writes && !canEdit;
+      for (const button of document.querySelectorAll('button')) {
+        const on = paused && button.getAttribute('aria-disabled') === 'true';
+        if (on) button.setAttribute('aria-describedby', 'editing-paused');
+        else button.removeAttribute('aria-describedby');
+      }
+    };
+    apply();
+    const frame = requestAnimationFrame(apply);
+    return () => cancelAnimationFrame(frame);
+  }, [writes, canEdit]);
   useEffect(() => {
     const poll = setInterval(async () => {
       if (!etagRef.current || polling.current) {
@@ -362,7 +383,10 @@ function App() {
     <main id="canvas" tabIndex={-1}><div className="intro"><div><p className="mono">Command canvas</p>
       <h1>Every venture. One clear view.</h1><p className="lede">Open a venture to see the work, the links, and what needs you next.</p></div>
       <span className="intro-actions">{writes ? <button className="btn ghost" type="button" onClick={undoLast} disabled={!undo.length} aria-disabled={!canEdit || undefined} title={canEdit ? undefined : 'Reconnect to edit'}>Undo</button> : null}
-        {data && <span className="mode mono">{writes ? 'Editing enabled' : 'Read only · editing is off'}</span>}</span></div>
+        {data && <span className="mode mono">{!writes ? 'Read only · editing is off' : canEdit ? 'Editing enabled' : <>
+          <span>EDITING PAUSED</span>
+          <span id="editing-paused" className="sr">Editing paused until the live store reconnects.</span>
+        </>}</span>}</span></div>
       {ventureId && <p className="crumbs"><button type="button" className="back" onClick={() => { location.hash = '#/'; }}>Back to all</button>
         <span className="mono">{detail?.venture.title || ventureId}</span></p>}
       <form className="search" role="search" onSubmit={search}>

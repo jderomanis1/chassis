@@ -9,14 +9,14 @@ test('an offline drag does not move the card', async ({ page, demo }) => {
   await expect(card).toBeVisible();
   const place = () => card.evaluate(node => node.closest('.react-flow__node').style.transform);
   const before = await place();
-  const paneBefore = await page.locator('.react-flow__viewport').evaluate(node => node.style.transform);
+  await page.route('**/api/version', route => route.abort());
+  await page.clock.fastForward(4000);
+  await expect(page.getByText('Reconnecting', { exact: true })).toBeVisible();
   let puts = 0;
   page.on('request', request => {
     if (request.method() === 'PUT' && request.url().includes('/api/layout')) puts += 1;
   });
-  await page.route('**/api/version', route => route.abort());
-  await page.clock.fastForward(4000);
-  await expect(page.getByText('Reconnecting', { exact: true })).toBeVisible();
+  const paneBefore = await page.locator('.react-flow__viewport').evaluate(node => node.style.transform);
   expect(await card.evaluate(node => getComputedStyle(node).cursor)).toBe('default');
   const box = await card.boundingBox();
   await page.mouse.move(box.x + 40, box.y + 24);
