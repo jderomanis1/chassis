@@ -51,6 +51,7 @@ test('a second 403 does not retry again', async () => {
     const method = options.method || 'GET';
     if (String(path).endsWith('/api/graph')) return json({ nodes: [{ id: 'task-a', version: 2 }] });
     if (method === 'PATCH') {
+      if (writes.length >= 2) throw new Error('retried more than once');
       writes.push(options.headers?.['X-Chassis-CSRF']);
       return json({ error: { message: 'Write not permitted' } }, 403);
     }

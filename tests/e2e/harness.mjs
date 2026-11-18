@@ -40,6 +40,7 @@ export const test = base.extend({
     const env = { ...process.env, CHASSIS_AGENT_TOKEN: credentials.reviewer,
       CHASSIS_PORTAL_VIEWER_AGENT: 'reviewer', CHASSIS_PORTAL_EDITOR_AGENT: 'canvas-editor',
       CHASSIS_PORTAL_EDITOR_TOKEN: credentials['canvas-editor'] };
+    // Mirrors _portal at src/chassis/cli.py:124. Test-only: timeout_graceful_shutdown=2.
     const server = spawn(PYTHON, ['-c', [
       'import os, uvicorn',
       'from chassis.portal.app import create_app',
