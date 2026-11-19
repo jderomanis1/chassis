@@ -1,5 +1,13 @@
 # Chassis project handoff
 
+## Andy's roadmap and scope decisions | November 19, 2026
+
+The [recipient roadmap and backlog](ANDY-ROADMAP-AND-BACKLOG.md) reconciles the November 17 proposal and project issue register with application commit `329e0fa`, the exported source. It gives Andy the next scope and priority decision. The handoff branch started this documentation update at `3ee21a8`. GitHub and Render still show integration `94974a2`, open draft PR #13 at `329e0fa`, and live deployment `3ff1106`. See [verification](evidence/acceptance.md) and [remaining gaps](FINDINGS.md).
+
+**Next chat prompt**
+
+> Homer, read ANDY-ROADMAP-AND-BACKLOG.md and START-HERE-ANDY.md on the handoff branch. Check the live refs. Trace one fictional cross-venture dependency. Rank three choices for Andy, cite evidence and propose one small test. Ask which outcome he wants before changing code or infrastructure.
+
 ## Andy transition | November 18, 2026
 
 Joe requested an independent handoff for Andy and Homer. [Start here](START-HERE-ANDY.md). The application was exported from 329e0faa10df33998396795f2ab53c4829047867 on draft PR #13. The integration canvas remains at 94974a2 and the hosted sandbox at 3ff1106. The handoff branch records this transition separately. [Acceptance evidence](evidence/acceptance.md)

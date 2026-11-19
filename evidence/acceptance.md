@@ -1,5 +1,9 @@
 # Acceptance evidence
 
+## Andy's roadmap verification | November 19, 2026
+
+The recipient roadmap uses the original handoff at `3ee21a8` and the exported application at `329e0fa`. GitHub showed `main` at `42f0fa0`, integration at `94974a2`, PR #13 open in draft at `329e0fa`, and no open GitHub Issues. The project issue IDs in the [roadmap](../ANDY-ROADMAP-AND-BACKLOG.md) come from the prior planning register. CI run 81 reports success on attempt 1 for the application. Render reported a live manual deployment of `3ff1106`, one Starter instance and automatic deploys off. Documentation checks cover the recipient links, cited fixture IDs and a Markdown-only change to the previous handoff tree. Application tests, live browser acceptance, restart and phone checks were not rerun for this documentation update.
+
 ## Handoff verification | November 18, 2026
 
 All 283 tracked file blobs matched application commit 329e0faa10df33998396795f2ab53c4829047867. A Git bundle restored that exact commit and the 186 commits reachable from the 15 pre-handoff branches. A clean clone passed Git fsck. [CI run 81](https://github.com/jderomanis1/chassis/actions/runs/44397271893) finished with three successful jobs on attempt 1.

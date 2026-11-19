@@ -1,5 +1,11 @@
 # Findings
 
+## Open work for Andy | November 19, 2026
+
+The planning register predates several merged fixes. The [recipient backlog](ANDY-ROADMAP-AND-BACKLOG.md#working-backlog) carries the unresolved slow-save result (I-043), malformed-input behavior (I-039), recovery coverage (I-042) and native iPhone proof (I-003) forward with their original IDs. I-038 and I-041 have merged. The tested local MCP update, the Android probe on a separate board and the outstanding native iPhone write into Chassis are three different observations.
+
+The latest draft rehearses persistence with a Docker volume. The hosted sandbox still runs the earlier temporary-storage build. Independent hosted Git attribution, chief write, exact HEAD after the refused request and timed restart recovery remain open. Andy can test the product decision locally without changing the service.
+
 ## Transition to Andy | November 18, 2026
 
 The November 16 upload is an early checkpoint. The current canvas and the disk-backed Docker rehearsal are on later branches. The local demo can be run from the source export using fresh credentials, independently of Joe's GitHub or Render accounts. The hosted sandbox continues to use ephemeral storage. Its live working vault was not copied. [Recipient guide](START-HERE-ANDY.md)

@@ -1,5 +1,7 @@
 # Chassis handoff for Andy
 
+**November 19 update.** Start with the [roadmap, working backlog and prompt for Homer](ANDY-ROADMAP-AND-BACKLOG.md) to choose a direction. The local launch and walkthrough below use the November 18 application.
+
 November 18, 2026 · Fictional working demo
 
 Chassis gives you and Homer a shared set of venture, initiative and task records. You can edit a task in the browser. A compatible agent can update the same task through the Model Context Protocol (MCP). The plain-text files and their Git history travel with you.
